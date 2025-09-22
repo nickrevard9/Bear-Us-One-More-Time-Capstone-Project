@@ -10,7 +10,7 @@ import {
 type Movie = {
   id: string;
   title: string;
-  year: string;
+  releaseYear: string;
 };
 
 export default function ThreeScreen() {
@@ -46,6 +46,7 @@ export default function ThreeScreen() {
               {item.title} ({item.releaseYear})
             </Text>
           )}
+          contentContainerStyle={styles.listContent}
         />
       )}
     </View>
@@ -60,6 +61,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#fff",
   },
-  text: { fontSize: 22, fontWeight: "bold", color: "#333" },
-  item: { paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#000000" },
+  text: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  item: {
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#000000",
+    fontSize: 16,
+  },
+  listContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+  },
 });
