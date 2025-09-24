@@ -3,6 +3,7 @@
 const http = require('http');
 const hostname = '127.0.0.1'
 const register = require("./routes/register.js")
+const login = require("./routes/login.js")
 // Create an HTTP server
 const server = http.createServer((req, res) => {
 
@@ -24,6 +25,27 @@ const server = http.createServer((req, res) => {
 
                 res.writeHead(201, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ message: result }));
+            } catch (err) {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: err.message }));
+            }
+        });
+    } else if (req.method === "POST" && req.url === "/login") {
+        let body = "";
+
+        req.on("data", chunk => (body += chunk.toString()));
+        req.on("end", async () => {
+            try {
+                const data = JSON.parse(body);
+                const result = await login(data);
+
+                if (result.error) {
+                    res.writeHead(401, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify(result));
+                } else {
+                    res.writeHead(200, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify(result));
+                }
             } catch (err) {
                 res.writeHead(500, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ error: err.message }));
