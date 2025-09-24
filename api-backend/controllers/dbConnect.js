@@ -24,7 +24,7 @@ async function main() {
     console.log(`- ${tableName}`);
   }
 
-
+  return connection;
   await connection.end();
 }
 
