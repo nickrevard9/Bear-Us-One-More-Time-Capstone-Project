@@ -18,7 +18,7 @@
     "@tamagui/babel-plugin": "^1.134.0",
     "@tamagui/config": "^1.134.0",
     "@tamagui/metro-plugin": "^1.134.0",
-    "expo": "~53.0.22",
+    "expo": "^54.0.0",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",
     "expo-font": "~13.3.2",
