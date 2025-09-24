@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS user (
   email VARCHAR(255) NOT NULL UNIQUE,
   username VARCHAR(255) NOT NULL UNIQUE,
   user_password VARCHAR(255) NOT NULL,
+  salt VARCHAR(32) NOT NULL,
   user_role_id INT NOT NULL,
   first_name VARCHAR(255) NOT NULL,
   last_name VARCHAR(255) NOT NULL,

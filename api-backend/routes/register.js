@@ -28,9 +28,9 @@ async function register ({USERNAME, EMAIL, PASSWORD, FIRST_NAME, LAST_NAME}){
         const userid = generateUserId();
 
         await db.query(
-            `INSERT INTO user (username, email, user_password, first_name, last_name, user_role_id)
-            VALUES (?, ?, ?, ?, ?, ?)`,
-            [USERNAME, EMAIL, hashedPassword.toString('hex'), FIRST_NAME, LAST_NAME, 1]
+            `INSERT INTO user (username, email, user_password, salt, first_name, last_name, user_role_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [USERNAME, EMAIL, hashedPassword.toString('hex'), salt, FIRST_NAME, LAST_NAME, 1]
         );
 
         return "User created!"
