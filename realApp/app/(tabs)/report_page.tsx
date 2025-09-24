@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Platform, TouchableOpacity} from 'react-native';
-import {Input, Button, YStack, XStack, Text, H2, Label, TextArea, Switch, ScrollView} from "tamagui";
+import { View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import { Input, Button, YStack, XStack, Text, H2, Label, TextArea, Switch, ScrollView } from "tamagui";
+import { useRouter } from 'expo-router';
 import { Calendar } from "@/components/calendar";
 import { TimePicker } from "@/components/timepicker";
 import { DateType } from 'react-native-ui-datepicker';
@@ -8,6 +9,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import {Dropdown} from 'react-native-element-dropdown';
 
 const ReportPage = () => {
+    const router = useRouter();
     const [date, setDate] = useState<Date>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -77,6 +79,13 @@ const ReportPage = () => {
     return (
         <ScrollView>
         <YStack style={styles.container}>
+            {/* Top bar with back arrow and title */}
+            <XStack alignItems="center" paddingBottom={20}>
+                <TouchableOpacity onPress={() => router.replace('/home')} style={styles.backButton}>
+                    <Text style={styles.backArrow}>{'←'}</Text>
+                </TouchableOpacity>
+                <Text style={styles.logTitle}>Log</Text>
+            </XStack>
             <XStack justifyContent="left" witdh="50%" alignItems="center" gap="$4" paddingBottom="$4">
             <Label style={styles.label}>Date</Label>
                 <Input onPress={() => setShowDatePicker(!showDatePicker)} value={date.toDateString()}></Input>
@@ -188,6 +197,18 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 20,
         backgroundColor: '#fff',
+    },
+    backButton: {
+        marginRight: 10,
+        padding: 6,
+    },
+    backArrow: {
+        fontSize: 24,
+        fontWeight: 'bold',
+    },
+    logTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
     },
     label: {
         marginTop: 16,
