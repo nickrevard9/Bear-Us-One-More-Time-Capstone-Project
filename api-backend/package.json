@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "mysql2": "^3.15.0"
+    "bcrypt": "^6.0.0",
+    "mysql2": "^3.15.1"
   }
 }
