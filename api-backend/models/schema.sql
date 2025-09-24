@@ -4,14 +4,15 @@ USE media_tracker_db;
 
 -- Create user_role table first (needed by user)
 CREATE TABLE IF NOT EXISTS user_role (
-  user_role_id INT NOT NULL UNIQUE,
+  user_role_id INT NOT NULL AUTO_INCREMENT,
   role VARCHAR(255) NOT NULL,
   PRIMARY KEY(user_role_id)
 );
+INSERT INTO user_role (role) VALUES ('standard'), ('admin');
 
 -- Create user table
 CREATE TABLE IF NOT EXISTS user (
-  user_id INT NOT NULL UNIQUE,
+  user_id INT NOT NULL AUTO_INCREMENT,
   email VARCHAR(255) NOT NULL UNIQUE,
   username VARCHAR(255) NOT NULL UNIQUE,
   user_password VARCHAR(255) NOT NULL,
