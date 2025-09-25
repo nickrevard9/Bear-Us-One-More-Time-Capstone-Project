@@ -1,11 +1,14 @@
 // fileName : server.js 
 // Example using the http module
 const http = require('http');
-const hostname = '127.0.0.1'
+const hostname = '0.0.0.0'
 const register = require("./routes/register.js")
 const login = require("./routes/login.js")
 // Create an HTTP server
 const server = http.createServer((req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
     if (req.method === "POST" && req.url === "/register") {
         let body = "";
