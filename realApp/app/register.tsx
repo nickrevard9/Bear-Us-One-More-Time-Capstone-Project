@@ -1,8 +1,50 @@
 // app/register.tsx
+import React from "react";
 import { Link } from "expo-router";
 import { Button, Input, YStack, XStack, Text, H2 } from "tamagui";
+import { useState } from "react";
 
 export default function Register() {
+
+  // states for all fields
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+
+  async function handleRegistration() {
+    console.log('tryin it')
+    try {
+      
+      // replace this with your public ip (until we have a real server)
+      const res = await fetch("http://10.183.146.213:8888/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          USERNAME: username,
+          EMAIL: email,
+          PASSWORD: password,
+          FIRST_NAME: firstName,
+          LAST_NAME: lastName,
+        }),
+      });
+      
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage("boom");
+      } else {
+        setMessage("nooo");
+      }
+    } catch (err: any) {
+      setMessage("error");
+    }
+  }
+
   return (
     <XStack
       flex={1}
@@ -22,16 +64,22 @@ export default function Register() {
         <YStack
           gap={'$3'}
         >
-          <Input placeholder="First Name" />
-          <Input placeholder="Last Name" />
-          <Input placeholder="Email" />
-          <Input placeholder="Password" />
+          <Input placeholder="First Name" value={firstName} onChangeText={setFirstName}/>
+          <Input placeholder="Last Name" value={lastName} onChangeText={setLastName}/>
+          <Input placeholder="Username" value={username} onChangeText={setUsername}/>
+          <Input placeholder="Email" value={email} onChangeText={setEmail}/>
+          <Input 
+            placeholder="Password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
         </YStack>
 
         <YStack
           gap={'$3'}
         >
-          <Button>Register User</Button>
+          <Button onPress={handleRegistration}>Register User</Button>
           <Link 
             href="/login"
             alignSelf="center"

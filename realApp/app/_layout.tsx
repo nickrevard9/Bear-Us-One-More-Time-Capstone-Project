@@ -1,14 +1,14 @@
 // app/_layout.tsx
+import React from 'react';
 import '../tamagui-web.css';
-
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { TamaguiProvider } from 'tamagui';
-
 import { tamaguiConfig } from '../tamagui.config';
+
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();

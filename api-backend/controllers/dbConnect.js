@@ -1,32 +1,41 @@
 const mysql = require('mysql2/promise');
 
-async function main() {
-  const connection = await mysql.createConnection({
-    host: "localhost",
-    port: 3306,
-    user: "root",
-    password: "password",
-    multipleStatements: true
-  });
+const pool = mysql.createPool({
+  host: "localhost",
+  port: 3306,
+  user: "root",
+  password: "password",
+  database: "media_tracker_db",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  multipleStatements: true
+});
 
-  const [rows] = await connection.query("SHOW DATABASES");
+async function debug() {
+
+  const [rows] = await pool.query("SHOW DATABASES");
   console.log(rows);
   
   // Switch to the target database
-  await connection.query(`USE media_tracker_db`);
+  await pool.query(`USE media_tracker_db`);
 
   // Show tables
-  const [tables] = await connection.query('SHOW TABLES');
+  const [tables] = await pool.query('SHOW TABLES');
 
   console.log(`Tables in media_tracker_db:`);
   for (const row of tables) {
     const tableName = Object.values(row)[0]; // Extract table name from row
     console.log(`- ${tableName}`);
-  }
 
-  return connection;
-  await connection.end();
+    const [columns] = await pool.query(`DESCRIBE \`${tableName}\``);
+
+    for (const col of columns) {
+      console.log(`   • ${col.Field} (${col.Type}) ${col.Null === 'NO' ? 'NOT NULL' : ''} ${col.Key || ''}`);
+    }
+  }
 }
 
-main().catch(console.error);
-
+debug()
+ 
+module.exports = pool
