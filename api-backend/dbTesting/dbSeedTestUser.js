@@ -20,7 +20,7 @@ async function main() {
   await conn.execute(
     `INSERT INTO \`user\`
       (user_id, email, username, user_password, user_role_id, first_name, last_name, create_date)
-     VALUES (1,'test@example.com','testuser','Password!234',1,'Test','User',CURDATE())
+     VALUES (1,'test@example.com','testuser','password',1,'Test','User',CURDATE())
      ON DUPLICATE KEY UPDATE
        email=VALUES(email), username=VALUES(username), user_password=VALUES(user_password),
        user_role_id=VALUES(user_role_id), first_name=VALUES(first_name), last_name=VALUES(last_name),
