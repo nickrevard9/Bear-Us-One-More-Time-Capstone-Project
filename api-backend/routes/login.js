@@ -1,20 +1,54 @@
-const login = require("../routes/login"); // your login function
-const { createSession } = require("../models/session");
+// routes/login.js
+const db = require("../controllers/dbConnect.js");
+const { scryptSync, timingSafeEqual } = require("crypto");
 
-app.post("/api/auth/login", async (req, res) => {
-  const { email, username, password } = req.body;
+async function login({ USERNAME, EMAIL, PASSWORD }) {
+  try {
+    if ((!EMAIL && !USERNAME) || !PASSWORD) {
+      return { error: "Email/Username and Password are required" };
+    }
 
-  const result = await login({
-    EMAIL: email,
-    USERNAME: username,
-    PASSWORD: password,
-  });
+    // Find by email OR username (pass the same value twice for the placeholders)
+    const [rows] = await db.query(
+      `SELECT user_id, username, email, user_password, salt, first_name, last_name, user_role_id
+       FROM user
+       WHERE email = ? OR username = ?`,
+      [EMAIL || USERNAME, EMAIL || USERNAME]
+    );
 
-  if (result?.error) {
-    return res.status(401).json({ error: result.error });
+    if (rows.length === 0) {
+      return { error: "User not found" };
+    }
+
+    const user = rows[0];
+
+    // Hash provided password with stored salt and compare safely
+    const inputHash = scryptSync(PASSWORD, user.salt, 64);
+    const storedHash = Buffer.from(user.user_password, "hex");
+
+    if (
+      inputHash.length !== storedHash.length ||
+      !timingSafeEqual(inputHash, storedHash)
+    ) {
+      return { error: "Invalid password" };
+    }
+
+    // Success: return a safe user object (no password/salt)
+    return {
+      message: "Login successful",
+      user: {
+        id: user.user_id,
+        username: user.username,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        roleId: user.user_role_id,
+      },
+    };
+  } catch (err) {
+    console.error("Login error:", err);
+    return { error: "Internal server error" };
   }
+}
 
-  const token = await createSession(result.user.id);
-
-  res.json({ user: result.user, accessToken: token });
-});
+module.exports = login;

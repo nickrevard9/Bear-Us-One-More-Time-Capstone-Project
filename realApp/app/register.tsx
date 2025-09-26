@@ -19,7 +19,7 @@ export default function Register() {
     try {
       
       // replace this with your public ip (until we have a real server)
-      const res = await fetch("http://10.183.146.213:8888/register", {
+      const res = await fetch("http://1192.168.68.112:8888/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
