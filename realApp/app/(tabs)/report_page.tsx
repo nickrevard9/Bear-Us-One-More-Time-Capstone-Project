@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {StyleSheet, Platform, TouchableOpacity } from 'react-native';
-import { View, Input, Button, YStack, XStack, Text, H2, Label, TextArea, Switch, ScrollView, styled } from "tamagui";
+import { View, Input, Button, YStack, XStack, Text, H2, Label, TextArea, Switch, 
+    ScrollView, Popover } from "tamagui";
 import { useRouter } from 'expo-router';
 import { Calendar } from "@/components/calendar";
 import { TimePicker } from "@/components/timepicker";
@@ -91,12 +92,25 @@ const ReportPage = () => {
         <ScrollView paddingBottom="$4">
         <YStack justifyContent="left">
             <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
-            <Label>Date</Label>
-                <Input onPress={() => setShowDatePicker(!showDatePicker)} value={date.toDateString()}></Input>
-            {showDatePicker && <Calendar onclick={function (date: DateType): void {
-                    setDate(date as Date);
-                    setShowDatePicker(false);
-                } }></Calendar>}
+                <Label>Date</Label>
+                <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+                    <Popover.Trigger asChild>
+                        <Input
+                            value={date.toDateString()}
+                            editable={false}
+                            onPress={() => setShowDatePicker(true)}
+                            style={{ width: 150 }}
+                        />
+                    </Popover.Trigger>
+                    <Popover.Content>
+                        <Calendar
+                            onclick={function (selected: DateType): void {
+                                setDate(selected as Date);
+                                setShowDatePicker(false);
+                            }}
+                        />
+                    </Popover.Content>
+                </Popover>
             </XStack>
 
             <XStack alignItems="center" gap="$4" paddingBottom="$4">

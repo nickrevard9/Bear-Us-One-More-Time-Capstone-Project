@@ -20,6 +20,7 @@
     "@tamagui/babel-plugin": "^1.134.0",
     "@tamagui/config": "^1.134.0",
     "@tamagui/metro-plugin": "^1.134.0",
+    "@tamagui/portal": "^1.134.0",
     "expo": "latest",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",
