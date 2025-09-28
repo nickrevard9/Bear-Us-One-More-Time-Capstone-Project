@@ -1,26 +1,15 @@
 {
-  "name": "realapp",
   "main": "expo-router/entry",
-  "version": "1.0.0",
-  "scripts": {
-    "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "lint": "expo lint"
-  },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
-    "@react-native-community/cli": "^20.0.2",
     "@react-native-community/datetimepicker": "^8.4.5",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
-    "@tamagui/babel-plugin": "^1.134.0",
-    "@tamagui/config": "^1.134.0",
-    "@tamagui/metro-plugin": "^1.134.0",
-    "@tamagui/portal": "^1.134.0",
+    "@tamagui/babel-plugin": "1.134.2",
+    "@tamagui/config": "1.134.2",
+    "@tamagui/metro-plugin": "1.134.2",
+    "@tamagui/portal": "1.134.2",
     "date-fns": "^4.1.0",
     "expo": "latest",
     "expo-blur": "~14.1.5",
@@ -49,7 +38,7 @@
     "react-native-ui-datepicker": "^3.1.2",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
-    "tamagui": "^1.134.0"
+    "tamagui": "1.134.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -57,6 +46,10 @@
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
     "typescript": "~5.8.3"
+  },
+  "resolutions": {
+    "tamagui": "1.134.2",
+    "@tamagui/*": "1.134.2"
   },
   "private": true
 }

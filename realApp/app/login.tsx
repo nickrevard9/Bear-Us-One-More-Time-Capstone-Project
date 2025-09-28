@@ -5,7 +5,7 @@ import { Platform } from "react-native";
 import { Button, Input, YStack, XStack, Text, H2 } from "tamagui";
 import * as SecureStore from "expo-secure-store";
 
-const API_BASE = "http://192.168.1.213:8888"; // your server.js runs on 8888
+const API_BASE = "http://192.168.68.112:8888"; // your server.js runs on 8888
 const LOGIN_URL = `${API_BASE}/login`;
 
 // save tokens cross-platform (SecureStore on native, localStorage on web)
@@ -73,7 +73,7 @@ export default function Login() {
 
       setMsg("✅ login successful");
       // Send authenticated users into your tabbed app
-      router.replace("/(tabs)/one");
+      router.replace("/(tabs)/home");
     } catch (e: any) {
       if (e?.name === "AbortError") setMsg("⏱️ timeout: server didn’t respond.");
       else setMsg(`🌐 network error: ${e?.message || String(e)}`);
