@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import {StyleSheet, Platform, TouchableOpacity } from 'react-native';
-import { View, Input, Button, YStack, XStack, Text, H2, Label, TextArea, Switch, 
+import {StyleSheet, Platform, TouchableOpacity, Switch } from 'react-native';
+import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, 
     ScrollView, Popover } from "tamagui";
 import { useRouter } from 'expo-router';
 import { Calendar } from "@/components/calendar";
@@ -75,7 +75,7 @@ const ReportPage = () => {
                 <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1 }}>
                     <Text style={{ fontSize: 28, fontWeight: 'bold', textAlign: 'left' }}>{'←'}</Text>
                 </TouchableOpacity>
-                <H2 style={{ flex: 2, textAlign: 'center'}}>Log</H2>
+                <H6 style={{ flex: 2, textAlign: 'center', fontWeight: "600",}}>Log</H6>
                 <View style={{ flex: 1 }} />
             </XStack>
         <ScrollView paddingBottom="$4">
@@ -164,8 +164,7 @@ const ReportPage = () => {
             <XStack alignItems="center" gap="$4" paddingBottom="$4">
             <Label >Intentional?</Label>
             <Text> No </Text>
-            <Switch onClick={() => setIsIntentional(!isIntentional)} value={isIntentional} defaultChecked={isIntentional}>
-            <Switch.Thumb animation="quicker" />
+            <Switch onValueChange={setIsIntentional} value={isIntentional}>
             </Switch>
             <Text> Yes </Text>
             </XStack>
