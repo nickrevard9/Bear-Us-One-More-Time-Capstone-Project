@@ -1,8 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text } from "react-native";
-import { BarChart, LineChart } from "react-native-chart-kit";
+import { LineChart } from "react-native-chart-kit";
 
-export default function ScreenTimeChart() {
+type ScreenTimeChartProps = {
+  usageData: number[];
+};
+
+export default function ScreenTimeChart({ usageData }: ScreenTimeChartProps) {
+  const usage = usageData;
+
   // Generate hourly labels
   const hours = Array.from({ length: 24 }, (_, i) => {
     const hour = i % 12 === 0 ? 12 : i % 12;
@@ -15,17 +21,12 @@ export default function ScreenTimeChart() {
     ["12AM", "6AM", "12PM", "6PM"].includes(h) ? h : ""
   );
 
-  // Example data: random screen time in minutes
-  const usageData = Array.from({ length: 24 }, () =>
-    Math.floor(Math.random() * 120)
-  );
-
-  // Format data for BarChart
+  // Format data for LineChart
   const data = {
     labels: displayLabels,
     datasets: [
       {
-        data: usageData,
+        data: usage,
       },
     ],
   };
@@ -36,28 +37,27 @@ export default function ScreenTimeChart() {
         Screen Time
       </Text>
       <LineChart
-  data={data}
-  width={350}
-  height={300}
-  fromZero
-  bezier
-  withHorizontalLabels={false}
-  chartConfig={{
-    backgroundColor: "#fff",
-    backgroundGradientFrom: "#fff",
-    backgroundGradientTo: "#fff",
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(76, 110, 245, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-    style: { borderRadius: 16 },
-    propsForBackgroundLines: { stroke: "#e3e3e3" },
-  }}
-  style={{
-    marginVertical: 8,
-    borderRadius: 16,
-  }}
-/>
-
+        data={data}
+        width={350}
+        height={300}
+        fromZero
+        bezier
+        withHorizontalLabels={false}
+        chartConfig={{
+          backgroundColor: "#fff",
+          backgroundGradientFrom: "#fff",
+          backgroundGradientTo: "#fff",
+          decimalPlaces: 0,
+          color: (opacity = 1) => `rgba(76, 110, 245, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          style: { borderRadius: 16 },
+          propsForBackgroundLines: { stroke: "#e3e3e3" },
+        }}
+        style={{
+          marginVertical: 8,
+          borderRadius: 16,
+        }}
+      />
     </View>
   );
 }

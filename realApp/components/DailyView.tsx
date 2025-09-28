@@ -7,18 +7,16 @@ interface DailyViewProps {
     initialDate?: Date;
 }
 
-const formatDate = (date: Date) =>
-    date.toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-    });
-
+// Sample data for daily media and recommended sections
 const dailyMedia = [
     { channel: "Spotify", medium: "Phone", duration: "1:00:00", time: "8:00:00 AM" },
-    { channel: "Netflix", medium: "Television", duration: "2:28:00",  time: "4:00:00 PM"  },
+    { channel: "Netflix", medium: "Television", duration: "2:28:00",  time: "4:30:00 PM"  },
     { channel: "Overleaf", medium: "Laptop Computer", duration: "1:32:00",  time: "8:00:00 AM"  },
     { channel: "Safari", medium: "Laptop Computer", duration: "4:30:00", time: "12:00:00 PM" },
+];
+
+const recommendedMedia = [
+    { channel: "Amazon Prime", medium: "Phone", duration: "2:01:00 PM" },
 ];
 
 // Used to format the duration for the Daily Media Report and Recommended sections
@@ -33,10 +31,49 @@ function formatDuration(duration: string): string {
     return result || '0 mins';
 }
 
-const recommendedMedia = [
-    { channel: "Amazon Prime", medium: "Phone", duration: "2:01:00 PM" },
-];
+const formatDate = (date: Date) =>
+    date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
 
+function makeChartData(media: any[]): number[] {
+  // Initialize array for 24 hours
+  const data: number[] = Array.from({ length: 24 }, () => 0);
+
+  media.forEach((item) => {
+    const [timePart, period] = item.time.split(" "); // e.g. "3:30", "PM"
+    const [hourStr, minuteStr] = timePart.split(":");
+    let hour = parseInt(hourStr, 10);
+    const minute = parseInt(minuteStr, 10);
+
+    // Convert to 24-hour format
+    if (period === "PM" && hour !== 12) hour += 12;
+    if (period === "AM" && hour === 12) hour = 0;
+
+    // Parse duration (HH:MM)
+    const [durH, durM] = item.duration.split(":");
+    const durationInMinutes = parseInt(durH, 10) * 60 + parseInt(durM, 10);
+
+    // Check if duration spills into next hour
+    if (minute + durationInMinutes > 60) {
+        // TODO: Fix spillover logic
+        
+        const firstHourMinutes = 60 - minute;
+        const nextHourMinutes = durationInMinutes - firstHourMinutes;
+
+        data[hour] += firstHourMinutes;
+        data[(hour + 1) % 24] += nextHourMinutes;
+    } else {
+        data[hour] += durationInMinutes;
+    }
+  });
+
+  return data;
+}
+
+const usage =  makeChartData(dailyMedia);
 
 const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
     const [date, setDate] = useState<Date>(initialDate || new Date());
@@ -108,10 +145,10 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
                         style={{
                             marginVertical: 8,
                             borderRadius: 16
-                        }}
+                        }}r
                     /> */}
+                    <ScreenTimeChart usageData={usage} />
 
-                    <ScreenTimeChart/>
                 </YStack>
                 <YStack>
                     <YStack>
