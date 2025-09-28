@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
-import { Input, Button, YStack, XStack, Text, H2, Label, TextArea, Switch, ScrollView } from "tamagui";
+import {StyleSheet, Platform, TouchableOpacity, Switch } from 'react-native';
+import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, 
+    ScrollView, Popover } from "tamagui";
 import { useRouter } from 'expo-router';
 import { Calendar } from "@/components/calendar";
 import { TimePicker } from "@/components/timepicker";
@@ -16,8 +17,7 @@ const ReportPage = () => {
     const [time, setTime] = useState<Date>(new Date());
     const [showTimePicker, setShowTimePicker] = useState(false);
 
-    const [hours, setHours] = useState('');
-    const [minutes, setMinutes] = useState('');
+    const [duration, setDuration] = useState(new Date);
     const [description, setDescription] = useState('');
 
     const [medium, setMedium] = useState('');
@@ -54,15 +54,6 @@ const ReportPage = () => {
         { label: "Other", value: "Other" },
     ];
 
-    const onChangeDate = (_: any, selectedDate?: Date) => {
-        setShowDatePicker(Platform.OS === 'ios');
-        if (selectedDate) setDate(selectedDate);
-    };
-
-    const onChangeTime = (_: any, selectedTime?: Date) => {
-        setShowTimePicker(Platform.OS === 'ios');
-        if (selectedTime) setTime(selectedTime);
-    };
 
     const handleSubmit = () => {
         // Handle form submission logic here
@@ -70,179 +61,153 @@ const ReportPage = () => {
         console.log({
             date: date.toDateString(),
             time: time.toLocaleTimeString(),
-            hours,
-            minutes,
+            duration: duration.toTimeString().split(' ')[0], // Format as HH:MM:SS
+            medium,
+            isIntentional,
+            primaryMotivation,
             description,
         });
     };
 
     return (
-        <ScrollView>
-        <YStack style={styles.container}>
-            {/* Top bar with back arrow and title */}
-            <XStack alignItems="center" paddingBottom={20}>
-                <TouchableOpacity onPress={() => router.replace('/home')} style={styles.backButton}>
-                    <Text style={styles.backArrow}>{'←'}</Text>
+        <View paddingTop={50} paddingHorizontal={10}>
+            <XStack alignItems="center" paddingBottom={20} >
+                <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 28, fontWeight: 'bold', textAlign: 'left' }}>{'←'}</Text>
                 </TouchableOpacity>
-                <Text style={styles.logTitle}>Log</Text>
+                <H6 style={{ flex: 2, textAlign: 'center', fontWeight: "600",}}>Log</H6>
+                <View style={{ flex: 1 }} />
             </XStack>
-            <XStack justifyContent="left" witdh="50%" alignItems="center" gap="$4" paddingBottom="$4">
-            <Label style={styles.label}>Date</Label>
-                <Input onPress={() => setShowDatePicker(!showDatePicker)} value={date.toDateString()}></Input>
-            {showDatePicker && <Calendar onclick={function (date: DateType): void {
-                    setDate(date as Date);
-                    setShowDatePicker(false);
-                } }></Calendar>}
+        <ScrollView paddingBottom="$4">
+        <YStack justifyContent="left">
+            <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
+                <Label>Date</Label>
+                <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+                    <Popover.Trigger asChild>
+                        <Input
+                            value={date.toDateString()}
+                            editable={false}
+                            onPress={() => setShowDatePicker(true)}
+                            style={{ width: 150 }}
+                        />
+                    </Popover.Trigger>
+                    <Popover.Content>
+                        <Calendar
+                            onclick={function (selected: DateType): void {
+                                setDate(selected as Date);
+                                setShowDatePicker(false);
+                            }}
+                        />
+                    </Popover.Content>
+                </Popover>
             </XStack>
 
-            <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
-                <Label style={styles.label}>Time (Hour)</Label>
-                    <Input 
-                    onPress={() => setShowTimePicker(!showTimePicker)}
-                    value ={time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}></Input>
-                {showTimePicker && DateTimePicker}
+            <XStack alignItems="center" gap="$4" paddingBottom="$4">
+                <Label style={{ minWidth: 90 }}>Time</Label>
+                <XStack alignItems="center" gap="$2">
+                    <DateTimePicker
+                        value={time}
+                        minuteInterval={30}
+                        mode="time"
+                        is24Hour={false}
+                        display="default"
+                        onChange={(event, selectedTime) => {
+                            setShowTimePicker(true);
+                            if (selectedTime) setTime(selectedTime);
+                        }}
+                    />
+                </XStack>
             </XStack>
 
-            <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
-            <Label style={styles.label}>Time Spent</Label>
-            <View style={styles.timeSpentRow}>
-                <Input
-                    style={[styles.input, styles.timeInput]}
-                    placeholder="Hours"
-                    type="numeric"
-                    min={0}
-                    max={23}
-                    value={hours}
-                    onChangeText={setHours}
+            
+            <XStack alignItems="center" gap="$4" paddingBottom="$4">
+                <Label>Duration</Label>
+                    <DateTimePicker
+                        value={time}
+                        locale="en_GB"
+                        minuteInterval={1}
+                        mode="time"
+                        is24Hour={true}
+                        display="default"
+                        onChange={(event, selectedTime) => {
+                            setShowTimePicker(true);
+                            if (selectedTime) setDuration(selectedTime);
+                        }}
+                    />
+                
+            </XStack>
+
+            <XStack alignItems="center" gap="$4" paddingBottom="$4">
+            <Label style={{ minWidth: 90 }}>Medium</Label>
+                <Dropdown
+                        data={mediums}
+                        placeholder='Select Medium'
+                        value={medium}
+                        onChange={item => setMedium(item)}
+                        style={{ width: 200, alignContent: 'center' }}
+                        labelField={'label'}
+                        valueField={'value'}
+                        placeholderStyle={{ color: '#888', fontSize: 16 }}
+                        selectedTextProps={{ style: { color: '#888', fontSize: 16 } }}
+
                 />
-                <Text style={styles.timeSeparator}>:</Text>
-                <Input
-                    style={[styles.input, styles.timeInput]}
-                    placeholder="Minutes"
-                    type="numeric"
-                    min={0}
-                    max={59}
-                    value={minutes}
-                    onChangeText={setMinutes}
-                />
-            </View>
             </XStack>
 
-            <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
-            <Label style={styles.label}>Medium</Label>
-            <Dropdown
-                maxHeight={300}
-                data={mediums}
-                placeholder='Select Medium'
-                value={medium}
-                onChange={item => { setMedium(item.value)}}
-                style={styles.input}
-                labelField={'label'}
-                valueField={'value'}
-            />
-            </XStack>
-
-            <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
-            <Label style={styles.label}>Channel</Label>
+            <XStack alignItems="center" gap="$4" paddingBottom="$4">
+            <Label >Channel</Label>
             <Input
-                style={[styles.input]}
+                
                 placeholder="Enter Channel"
             />
             </XStack>
 
-            <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
-            <Label style={styles.label}>Intentional?</Label>
+            <XStack alignItems="center" gap="$4" paddingBottom="$4">
+            <Label >Intentional?</Label>
             <Text> No </Text>
-            <Switch onClick={() => setIsIntentional(!isIntentional)} value={isIntentional} defaultChecked={isIntentional}>
-            <Switch.Thumb animation="quicker" />
+            <Switch onValueChange={setIsIntentional} value={isIntentional}>
             </Switch>
             <Text> Yes </Text>
             </XStack>
 
-            <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
-            <Label style={styles.label}>Primary Motivation</Label>
+            <XStack alignItems="center" gap="$4" paddingBottom="$4">
+            <Label>Primary Motivation</Label>
             <Dropdown
                 maxHeight={300}
                 data={motivations}
+                style={{ width: 200, alignContent: 'center' }}
                 placeholder='Select Motivation'
                 value={primaryMotivation}
                 onChange={item => { setPrimaryMotivation(item.value)}}
-                style={styles.input}
+                placeholderStyle={{ color: '#888', fontSize: 16 }}
+                selectedTextProps={{ style: { color: '#888', fontSize: 16 } }}
+
                 labelField={'label'}
                 valueField={'value'}
             />
             </XStack>
 
             <YStack paddingBottom="$4">
-            <Label style={styles.label}>Description</Label>
+            <Label >Description</Label>
             <TextArea
                 size="$4" borderWidth={2}
-                width="70%"
+                width="100%"
                 paddingBottom="$4"
-                style={[styles.input, styles.descriptionInput]}
+                height={250}
                 placeholder="Enter description"
                 value={description}
                 onChangeText={setDescription}
             />
             </YStack>
 
-            <Button style={styles.button} onPress={handleSubmit}>Submit</Button>
+            <Button onPress={handleSubmit}>Submit</Button>
+            <XStack minHeight={100} maxHeight={200}>
+
+            </XStack>
         </YStack>
         </ScrollView>
+        </View>
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-        backgroundColor: '#fff',
-    },
-    backButton: {
-        marginRight: 10,
-        padding: 6,
-    },
-    backArrow: {
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    logTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    label: {
-        marginTop: 16,
-        marginBottom: 4,
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 6,
-        padding: 10,
-        backgroundColor: '#f9f9f9',
-    },
-    timeSpentRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    timeInput: {
-        flex: 1,
-        marginRight: 4,
-        marginLeft: 4,
-    },
-    timeSeparator: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    descriptionInput: {
-        height: 80,
-        textAlignVertical: 'top',
-    },
-    button: {
-        backgroundColor: 'forestgreen',
-    }
-});
 
 export default ReportPage;
