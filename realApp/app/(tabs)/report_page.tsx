@@ -61,7 +61,6 @@ const ReportPage = () => {
     };
 
     const onChangeTime = (_: any, selectedTime?: Date) => {
-        setShowTimePicker(Platform.OS === 'ios');
         if (selectedTime) setTime(selectedTime);
     };
 
@@ -82,7 +81,7 @@ const ReportPage = () => {
 
     return (
         <View paddingTop={50} paddingHorizontal={10}>
-            <XStack alignItems="center" paddingBottom={20} width="100%">
+            <XStack alignItems="center" paddingBottom={20} >
                 <TouchableOpacity onPress={() => router.replace('/home')} style={{ flex: 1 }}>
                     <Text style={{ fontSize: 28, fontWeight: 'bold', textAlign: 'left' }}>{'←'}</Text>
                 </TouchableOpacity>
@@ -122,7 +121,7 @@ const ReportPage = () => {
                         is24Hour={false}
                         display="default"
                         onChange={(event, selectedTime) => {
-                            setShowTimePicker(Platform.OS === 'ios');
+                            setShowTimePicker(true);
                             if (selectedTime) setTime(selectedTime);
                         }}
                     />
