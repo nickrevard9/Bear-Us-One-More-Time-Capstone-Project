@@ -17,8 +17,7 @@ const ReportPage = () => {
     const [time, setTime] = useState<Date>(new Date());
     const [showTimePicker, setShowTimePicker] = useState(false);
 
-    const [hours, setHours] = useState('');
-    const [minutes, setMinutes] = useState('');
+    const [duration, setDuration] = useState(new Date);
     const [description, setDescription] = useState('');
 
     const [medium, setMedium] = useState('');
@@ -55,14 +54,6 @@ const ReportPage = () => {
         { label: "Other", value: "Other" },
     ];
 
-    const onChangeDate = (_: any, selectedDate?: Date) => {
-        setShowDatePicker(Platform.OS === 'ios');
-        if (selectedDate) setDate(selectedDate);
-    };
-
-    const onChangeTime = (_: any, selectedTime?: Date) => {
-        if (selectedTime) setTime(selectedTime);
-    };
 
     const handleSubmit = () => {
         // Handle form submission logic here
@@ -70,8 +61,7 @@ const ReportPage = () => {
         console.log({
             date: date.toDateString(),
             time: time.toLocaleTimeString(),
-            hours,
-            minutes,
+            duration: duration.toTimeString().split(' ')[0], // Format as HH:MM:SS
             medium,
             isIntentional,
             primaryMotivation,
@@ -113,7 +103,8 @@ const ReportPage = () => {
             </XStack>
 
             <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                <Label>Time (Hour)</Label>
+                <Label style={{ minWidth: 90 }}>Time</Label>
+                <XStack alignItems="center" gap="$2">
                     <DateTimePicker
                         value={time}
                         minuteInterval={30}
@@ -125,32 +116,25 @@ const ReportPage = () => {
                             if (selectedTime) setTime(selectedTime);
                         }}
                     />
-                
+                </XStack>
             </XStack>
 
+            
             <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                <Label style={{ minWidth: 90 }}>Time Spent</Label>
-                <XStack alignItems="center" gap="$2">
-                    <Input
-                        placeholder="Hr"
-                        keyboardType={(Platform.OS == 'ios') ? "number-pad" : "numeric"}
-                        min={0}
-                        max={23}
-                        value={hours} // TODO: Add error handling for hours > 23
-                        onChangeText={setHours}
-                        style={{ width: 60, textAlign: 'center' }}
+                <Label>Duration</Label>
+                    <DateTimePicker
+                        value={time}
+                        locale="en_GB"
+                        minuteInterval={1}
+                        mode="time"
+                        is24Hour={true}
+                        display="default"
+                        onChange={(event, selectedTime) => {
+                            setShowTimePicker(true);
+                            if (selectedTime) setDuration(selectedTime);
+                        }}
                     />
-                    <Text>:</Text>
-                    <Input
-                        placeholder="Min"
-                        keyboardType={(Platform.OS == 'ios') ? "number-pad" : "numeric"}
-                        min={0}
-                        max={59}
-                        value={minutes}
-                        onChangeText={setMinutes} // TODO: Add error handling for minutes > 59
-                        style={{ width: 60, textAlign: 'center' }}
-                    />
-                </XStack>
+                
             </XStack>
 
             <XStack alignItems="center" gap="$4" paddingBottom="$4">
