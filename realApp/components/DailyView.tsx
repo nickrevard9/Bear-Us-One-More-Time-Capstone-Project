@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, Button, XStack, H3, H4, H6, YStack, Label, ScrollView } from "tamagui";
 import { BarChart } from "react-native-chart-kit";
+import ScreenTimeChart from "./ScreenTime";
 
 interface DailyViewProps {
     initialDate?: Date;
@@ -14,12 +15,13 @@ const formatDate = (date: Date) =>
     });
 
 const dailyMedia = [
-    { channel: "Spotify", medium: "Phone", duration: "1:00:00", time: "8:00:00" },
-    { channel: "Netflix", medium: "Television", duration: "2:28:00",  time: "4:00:00"  },
-    { channel: "Overleaf", medium: "Laptop Computer", duration: "1:32:00",  time: "8:00:00"  },
-    { channel: "Safari", medium: "Laptop Computer", duration: "4:30:00", time: "12:00:00" },
+    { channel: "Spotify", medium: "Phone", duration: "1:00:00", time: "8:00:00 AM" },
+    { channel: "Netflix", medium: "Television", duration: "2:28:00",  time: "4:00:00 PM"  },
+    { channel: "Overleaf", medium: "Laptop Computer", duration: "1:32:00",  time: "8:00:00 AM"  },
+    { channel: "Safari", medium: "Laptop Computer", duration: "4:30:00", time: "12:00:00 PM" },
 ];
 
+// Used to format the duration for the Daily Media Report and Recommended sections
 function formatDuration(duration: string): string {
     // Expects 'HH:MM:SS' or 'H:MM:SS'
     const [h, m] = duration.split(':');
@@ -32,33 +34,8 @@ function formatDuration(duration: string): string {
 }
 
 const recommendedMedia = [
-    { channel: "Amazon Prime", medium: "Phone", duration: "2:01:00" },
+    { channel: "Amazon Prime", medium: "Phone", duration: "2:01:00 PM" },
 ];
-
-
-function aggregateDurationsByTime(media) {
-  const timeTotals = {};
-  media.forEach(item => {
-    const [h, m, s] = item.duration.split(':').map(Number);
-    const minutes = h * 60 + m + s / 60;
-    if (!timeTotals[item.time]) {
-      timeTotals[item.time] = 0;
-    }
-    timeTotals[item.time] += minutes;
-  });
-  const labels = Object.keys(timeTotals);
-  const data = labels.map(time => timeTotals[time]);
-
-  // Adding more labels to cover the full day
-
-  return { labels, data };
-}
-
-const { labels, data } = aggregateDurationsByTime(dailyMedia);
-                    
-// ...rest of imports
-
-// ...rest of code
 
 
 const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
@@ -103,7 +80,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
             </XStack>
             <ScrollView>
                 <YStack alignItems="center" paddingBottom={20}>
-                    <BarChart
+                    {/* <BarChart
                         data={{
                             labels: labels,
                             datasets: [{
@@ -132,7 +109,9 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
                             marginVertical: 8,
                             borderRadius: 16
                         }}
-                    />
+                    /> */}
+
+                    <ScreenTimeChart/>
                 </YStack>
                 <YStack>
                     <YStack>
