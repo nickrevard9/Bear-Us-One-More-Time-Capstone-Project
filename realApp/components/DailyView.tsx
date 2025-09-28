@@ -39,39 +39,37 @@ const formatDate = (date: Date) =>
     });
 
 function makeChartData(media: any[]): number[] {
-  // Initialize array for 24 hours
   const data: number[] = Array.from({ length: 24 }, () => 0);
 
   media.forEach((item) => {
     const [timePart, period] = item.time.split(" "); // e.g. "3:30", "PM"
     const [hourStr, minuteStr] = timePart.split(":");
     let hour = parseInt(hourStr, 10);
-    const minute = parseInt(minuteStr, 10);
+    let minute = parseInt(minuteStr, 10);
 
     // Convert to 24-hour format
     if (period === "PM" && hour !== 12) hour += 12;
     if (period === "AM" && hour === 12) hour = 0;
 
-    // Parse duration (HH:MM)
+    // Duration in minutes
     const [durH, durM] = item.duration.split(":");
-    const durationInMinutes = parseInt(durH, 10) * 60 + parseInt(durM, 10);
+    let remaining = parseInt(durH, 10) * 60 + parseInt(durM, 10);
 
-    // Check if duration spills into next hour
-    if (minute + durationInMinutes > 60) {
-        // TODO: Fix spillover logic
-        
-        const firstHourMinutes = 60 - minute;
-        const nextHourMinutes = durationInMinutes - firstHourMinutes;
+    // Distribute across hours
+    while (remaining > 0) {
+      const minutesThisHour = Math.min(60 - minute, remaining);
+      data[hour] += minutesThisHour;
 
-        data[hour] += firstHourMinutes;
-        data[(hour + 1) % 24] += nextHourMinutes;
-    } else {
-        data[hour] += durationInMinutes;
+      // Move to next hour
+      remaining -= minutesThisHour;
+      hour = (hour + 1) % 24;
+      minute = 0;
     }
   });
 
   return data;
 }
+
 
 const usage =  makeChartData(dailyMedia);
 
