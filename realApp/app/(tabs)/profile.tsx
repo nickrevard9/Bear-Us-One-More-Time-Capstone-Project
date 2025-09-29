@@ -13,7 +13,7 @@ export default function Profile() {
         <YStack gap="$3">
           <H2 alignSelf="center">Your Name</H2>
           <Image
-            source={require("../assets/images/pat-neff.png")}
+            source={require("../../assets/images/pat-neff.png")}
             width={120}
             height={120}
             borderRadius={60}
@@ -46,7 +46,14 @@ export default function Profile() {
           </Button>
 
           <Separator marginVertical={10} />
-          <Button backgroundColor="automatic" icon={LogOut}>
+          <Button backgroundColor="automatic" icon={LogOut}
+            backgroundColor="automatic"
+            
+            onPress={() => {
+              console.log("Settings pressed");
+              router.push("/login")
+            }}
+          >
             Log Out
           </Button>
 

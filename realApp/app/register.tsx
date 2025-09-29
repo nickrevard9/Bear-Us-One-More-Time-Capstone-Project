@@ -6,8 +6,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
+  Alert,
 } from 'react-native'
 import { Button, Input, YStack, XStack, Text, H2 } from 'tamagui'
+
+const DEMO_MODE = false
 
 export default function Register() {
   // states for all fields
@@ -19,37 +22,72 @@ export default function Register() {
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+
   async function handleRegistration() {
     if (submitting) return
     setSubmitting(true)
     setMessage('🔄 Registering…')
 
-    try {
-      const res = await fetch('http://192.168.68.112:8888/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          USERNAME: username.trim(),
-          EMAIL: email.trim(),
-          PASSWORD: password,
-          FIRST_NAME: firstName.trim(),
-          LAST_NAME: lastName.trim(),
-        }),
-      })
+    if(DEMO_MODE){
+        setMessage('Registration successful!')
+        Alert.alert(
+        'Registration Complete',
+        'Your account has been successfully created!',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // optional: navigate to login
+              // router.push('/login')
+            },
+          },
+        ]
+      )
+    }
+      else{
+    
+      try {
+        const res = await fetch('http://192.168.68.112:8888/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            USERNAME: username.trim(),
+            EMAIL: email.trim(),
+            PASSWORD: password,
+            FIRST_NAME: firstName.trim(),
+            LAST_NAME: lastName.trim(),
+          }),
+        })
 
-      const data = await res.json()
+        const data = await res.json()
 
-      if (res.ok) {
-        setMessage('✅ Registration successful!')
-      } else {
-        setMessage(data?.error || '❌ Registration failed.')
+        
+
+        if (res.ok) {
+          setMessage('Registration successful!')
+          Alert.alert(
+          'Registration Complete',
+          'Your account has been successfully created!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // optional: navigate to login
+                // router.push('/login')
+              },
+            },
+          ]
+          )
+        } else {
+          setMessage(data?.error || '❌ Registration failed.')
+        }
+      } catch (err: any) {
+        setMessage(`🌐 Network error: ${err.message || err}`)
+      } finally {
+        setSubmitting(false)
       }
-    } catch (err: any) {
-      setMessage(`🌐 Network error: ${err.message || err}`)
-    } finally {
-      setSubmitting(false)
     }
   }
 

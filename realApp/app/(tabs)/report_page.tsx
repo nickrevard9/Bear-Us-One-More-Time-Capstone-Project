@@ -105,35 +105,14 @@ const ReportPage = () => {
             <XStack alignItems="center" gap="$4" paddingBottom="$4">
                 <Label style={{ minWidth: 90 }}>Time</Label>
                 <XStack alignItems="center" gap="$2">
-                    <DateTimePicker
-                        value={time}
-                        minuteInterval={30}
-                        mode="time"
-                        is24Hour={false}
-                        display="default"
-                        onChange={(event, selectedTime) => {
-                            setShowTimePicker(true);
-                            if (selectedTime) setTime(selectedTime);
-                        }}
-                    />
+                    
                 </XStack>
             </XStack>
 
             
             <XStack alignItems="center" gap="$4" paddingBottom="$4">
                 <Label>Duration</Label>
-                    <DateTimePicker
-                        value={time}
-                        locale="en_GB"
-                        minuteInterval={1}
-                        mode="time"
-                        is24Hour={true}
-                        display="default"
-                        onChange={(event, selectedTime) => {
-                            setShowTimePicker(true);
-                            if (selectedTime) setDuration(selectedTime);
-                        }}
-                    />
+                    
                 
             </XStack>
 

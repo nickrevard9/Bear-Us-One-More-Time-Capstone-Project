@@ -34,6 +34,14 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           {/* Optional: 404 fallback */}
           <Stack.Screen name="+not-found" />
+          <Stack.Screen
+            name="settings"
+            options={{
+              title: "Settings",
+              headerBackTitle: "Back",        
+              headerBackTitleVisible: true,
+            }}
+          />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

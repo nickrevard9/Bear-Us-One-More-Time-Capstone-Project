@@ -21,9 +21,9 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="report_page"
         options={{
-          title: "Two",
+          title: "report",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="search-outline" color={color} size={size} />
           ),
@@ -39,9 +39,9 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="four"
+        name="profile"
         options={{
-          title: "Four",
+          title: "profile",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" color={color} size={size} />
           ),
