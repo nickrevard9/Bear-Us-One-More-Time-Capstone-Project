@@ -8,6 +8,7 @@
     "@react-navigation/native": "^7.1.6",
     "@tamagui/babel-plugin": "1.134.2",
     "@tamagui/config": "1.134.2",
+    "@tamagui/lucide-icons": "^1.134.2",
     "@tamagui/metro-plugin": "1.134.2",
     "@tamagui/portal": "1.134.2",
     "date-fns": "^4.1.0",
@@ -45,6 +46,7 @@
     "@types/react": "~19.0.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
+    "is-directory": "^0.3.1",
     "typescript": "~5.8.3"
   },
   "resolutions": {

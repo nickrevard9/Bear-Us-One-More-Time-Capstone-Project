@@ -1,137 +1,131 @@
 // app/register.tsx
-import React from "react";
-import { Link } from "expo-router";
-import { Keyboard, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from "react-native";
-import { Button, Input, YStack, XStack, Text, H2 } from "tamagui";
-import { useState } from "react";
+import React, { useState } from 'react'
+import { Link } from 'expo-router'
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+} from 'react-native'
+import { Button, Input, YStack, XStack, Text, H2 } from 'tamagui'
 
 export default function Register() {
-
   // states for all fields
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   async function handleRegistration() {
-    console.log('tryin it')
+    if (submitting) return
+    setSubmitting(true)
+    setMessage('🔄 Registering…')
+
     try {
-      
-      // replace this with your public ip (until we have a real server)
-      const res = await fetch("http://192.168.68.112:8888/register", {
-        method: "POST",
+      const res = await fetch('http://192.168.68.112:8888/register', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json"
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          USERNAME: username,
-          EMAIL: email,
+          USERNAME: username.trim(),
+          EMAIL: email.trim(),
           PASSWORD: password,
-          FIRST_NAME: firstName,
-          LAST_NAME: lastName,
+          FIRST_NAME: firstName.trim(),
+          LAST_NAME: lastName.trim(),
         }),
-      });
-      
-      const data = await res.json();
+      })
+
+      const data = await res.json()
 
       if (res.ok) {
-        setMessage("boom");
+        setMessage('✅ Registration successful!')
       } else {
-        setMessage("nooo");
+        setMessage(data?.error || '❌ Registration failed.')
       }
     } catch (err: any) {
-      setMessage("error");
+      setMessage(`🌐 Network error: ${err.message || err}`)
+    } finally {
+      setSubmitting(false)
     }
   }
+
+  const canSubmit =
+    firstName && lastName && username && email && password && !submitting
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <XStack
-          flex={1}
-          justifyContent={'center'}
-          alignItems={'center'}
-        >
-          <YStack
-            gap={'$6'}
-            width={'80%'}
-          >
-            <H2
-              alignSelf="center"
-            >
-              Welcome to Pawse!
-            </H2>
+        <XStack flex={1} justifyContent="center" alignItems="center">
+          <YStack gap="$6" width="80%" maxWidth={520}>
+            <H2 alignSelf="center">Create Your Pawse Account</H2>
 
-        <YStack
-          gap={'$3'}
-        >
-          <Input placeholder="First Name" value={firstName} onChangeText={setFirstName}/>
-          <Input placeholder="Last Name" value={lastName} onChangeText={setLastName}/>
-          <Input placeholder="Username" value={username} onChangeText={setUsername}/>
-          <Input placeholder="Email" value={email} onChangeText={setEmail}/>
-          <Input 
-            placeholder="Password"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-        </YStack>
-            <YStack
-              gap={'$3'}
-            >
-              <Input placeholder="First Name" />
-              <Input placeholder="Last Name" />
-              <Input placeholder="Email" />
-              <Input placeholder="Password" />
+            <YStack gap="$3">
+              <Input
+                placeholder="First Name"
+                value={firstName}
+                onChangeText={setFirstName}
+                autoCapitalize="words"
+              />
+              <Input
+                placeholder="Last Name"
+                value={lastName}
+                onChangeText={setLastName}
+                autoCapitalize="words"
+              />
+              <Input
+                placeholder="Username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Input
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+              />
+              <Input
+                placeholder="Password"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+              {!!message && (
+                <Text
+                  fontSize="$4"
+                  color={message.startsWith('✅') ? '$green10' : '$red10'}
+                >
+                  {message}
+                </Text>
+              )}
             </YStack>
 
-        <YStack
-          gap={'$3'}
-        >
-          <Button onPress={handleRegistration}>Register User</Button>
-          <Link 
-            href="/login"
-            alignSelf="center"
-            hoverStyle={{
-              color: '$blue10'
-            }}
-          >
-            <Text 
-              fontStyle="italic" 
-              width={'100%'}
-              hoverStyle={{
-                color: '$blue10'
-              }}
-            >
-              Already have an account? Log in here...
-            </Text>
-          </Link>
-        </YStack>
-      </YStack>
-    </XStack>
-            <YStack
-              gap={'$3'}
-            >
+            <YStack gap="$3">
               <Button
-                backgroundColor={'$green10'}
+                onPress={handleRegistration}
+                disabled={!canSubmit}
+                opacity={!canSubmit ? 0.7 : 1}
               >
-                Register User
+                {submitting ? 'Registering…' : 'Register'}
               </Button>
-              <Link 
-                href="/login"
-                alignSelf="center"
-              >
-                <Text 
-                  fontStyle="italic" 
-                  width={'100%'}
-                  color={'$green10'}
+
+              <Link href="/login" alignSelf="center">
+                <Text
+                  fontStyle="italic"
+                  color="$blue10"
+                  hoverStyle={{ color: '$blue11' }}
                 >
-                  Already have an account? Log in here...
+                  Already have an account? Log in here…
                 </Text>
               </Link>
             </YStack>
@@ -139,5 +133,5 @@ export default function Register() {
         </XStack>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
-  );
+  )
 }
