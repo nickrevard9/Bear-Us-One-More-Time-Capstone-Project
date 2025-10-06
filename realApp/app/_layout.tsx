@@ -29,10 +29,19 @@ export default function RootLayout() {
           {/* Standalone pages */}
            <Stack.Screen name="login" options={{ headerShown: false }} />
            <Stack.Screen name="register" options={{ headerShown: false }} />
+           <Stack.Screen name="profile" options={{ headerShown: false }} />
           {/* The tabs group */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           {/* Optional: 404 fallback */}
           <Stack.Screen name="+not-found" />
+          <Stack.Screen
+            name="settings"
+            options={{
+              title: "Settings",
+              headerBackTitle: "Back",        
+              headerBackTitleVisible: true,
+            }}
+          />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

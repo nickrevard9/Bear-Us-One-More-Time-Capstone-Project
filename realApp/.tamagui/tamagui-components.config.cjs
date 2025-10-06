@@ -26280,6 +26280,7 @@ function useButton({
     color
   }), [themedIcon, themedIconAfter] = [icon, iconAfter].map(getThemedIcon), spaceSize = space ?? (0, import_web12.getVariableValue)(iconSize) * scaleSpace, contents = noTextWrap ? [propsIn.children] : wrapChildrenInText(Text6, {
     children: propsIn.children,
+    color,
     fontFamily,
     fontSize,
     textProps,
