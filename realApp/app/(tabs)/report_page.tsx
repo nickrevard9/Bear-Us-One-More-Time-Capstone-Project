@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import {StyleSheet, Platform, TouchableOpacity, Switch } from 'react-native';
+import {StyleSheet, Platform, TouchableOpacity, TouchableWithoutFeedback, Switch, ScrollView} from 'react-native';
 import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, 
-    ScrollView, Popover } from "tamagui";
+ Popover } from "tamagui";
 import { useRouter } from 'expo-router';
 import { Calendar } from "@/components/calendar";
 import { TimePicker } from "@/components/timepicker";
 import { DateType } from 'react-native-ui-datepicker';
-import DateTimePicker from '@react-native-community/datetimepicker'
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import {Dropdown} from 'react-native-element-dropdown';
 
 const ReportPage = () => {
@@ -14,11 +14,14 @@ const ReportPage = () => {
     const [date, setDate] = useState<Date>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
 
-    const [time, setTime] = useState<Date>(new Date());
+    const [time, setTime] = useState<Date>(new Date("2023-10-05T12:30:00"));
     const [showTimePicker, setShowTimePicker] = useState(false);
 
-    const [duration, setDuration] = useState(new Date);
+    const [duration, setDuration] = useState(new Date("2023-10-05T1:00:00"));
+    const [showDurationPicker, setShowDurationPicker] = useState(false);
     const [description, setDescription] = useState('');
+
+    const [channel, setChannel] = useState('')
 
     const [medium, setMedium] = useState('');
     const [focus, setIsFocus] = useState(false);
@@ -83,6 +86,7 @@ const ReportPage = () => {
             <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
                 <Label>Date</Label>
                 <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+                    <TouchableOpacity onPress={() => setShowDatePicker(true)}>
                     <Popover.Trigger asChild>
                         <Input
                             value={date.toDateString()}
@@ -91,6 +95,7 @@ const ReportPage = () => {
                             style={{ width: 150 }}
                         />
                     </Popover.Trigger>
+                    </TouchableOpacity>
                     <Popover.Content>
                         <Calendar
                             onclick={function (selected: DateType): void {
@@ -103,17 +108,34 @@ const ReportPage = () => {
             </XStack>
 
             <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                <Label style={{ minWidth: 90 }}>Time</Label>
-                <XStack alignItems="center" gap="$2">
+                <Label>Time</Label>
+                <TouchableOpacity background="none" onPress={() => setShowTimePicker(true)}>
+                    <Input onPress={() => setShowTimePicker(true)} value={time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} editable={false}/>
+                </TouchableOpacity>
+                <DateTimePickerModal
+                    isVisible={showTimePicker}
+                    mode="time"
+                    minuteInterval={30}
+                    onConfirm={(time) => {setShowTimePicker(false); setTime(time)}}
                     
-                </XStack>
+                    onCancel={() => setShowTimePicker(false)}
+                />
             </XStack>
 
             
             <XStack alignItems="center" gap="$4" paddingBottom="$4">
                 <Label>Duration</Label>
-                    
-                
+                <TouchableOpacity activeOpacity={1} onPress={() => setShowDurationPicker(true)}>
+                    <Input onPress={() => setShowDurationPicker(true)} value={(duration.toTimeString().split(' ')[0])} editable={false}/>
+                </TouchableOpacity>
+                <DateTimePickerModal
+                    isVisible={showDurationPicker}
+                    mode="time"
+                    locale="en_GB"
+                    onConfirm={(time) => {setShowDurationPicker(false); setDuration(time)}}
+                    is24Hour={true}
+                    onCancel={() => setShowDurationPicker(false)}
+                />                
             </XStack>
 
             <XStack alignItems="center" gap="$4" paddingBottom="$4">
@@ -135,7 +157,7 @@ const ReportPage = () => {
             <XStack alignItems="center" gap="$4" paddingBottom="$4">
             <Label >Channel</Label>
             <Input
-                
+                onChangeText={setChannel} value={channel}
                 placeholder="Enter Channel"
             />
             </XStack>
