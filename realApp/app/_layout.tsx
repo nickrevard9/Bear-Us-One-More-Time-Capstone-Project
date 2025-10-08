@@ -1,51 +1,30 @@
 // app/_layout.tsx
-import React from 'react';
-import '../tamagui-web.css';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'react-native';
-import { TamaguiProvider } from 'tamagui';
-import { tamaguiConfig } from '../tamagui.config';
-import { PortalProvider } from '@tamagui/portal'
-
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
+import { Stack } from 'expo-router'
+import { useColorScheme, View, ActivityIndicator } from 'react-native'
+import { useFonts } from 'expo-font'
+import { SQLiteProvider } from 'expo-sqlite'
+import { initDb } from '../lib/db'   // ✅ from app/ to lib/
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme()
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
+  })
   if (!loaded) {
-    return null;
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator /></View>
   }
 
   return (
-    <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme!}>
-      <PortalProvider shouldAddRootHost>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <SQLiteProvider databaseName="pawse.db" onInit={initDb}>
         <Stack>
-          {/* Standalone pages */}
-           <Stack.Screen name="login" options={{ headerShown: false }} />
-           <Stack.Screen name="register" options={{ headerShown: false }} />
-           <Stack.Screen name="profile" options={{ headerShown: false }} />
-          {/* The tabs group */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          {/* Optional: 404 fallback */}
+          <Stack.Screen name="login" options={{ title: 'Login' }} />
+          <Stack.Screen name="register" options={{ title: 'Register' }} />
           <Stack.Screen name="+not-found" />
-          <Stack.Screen
-            name="settings"
-            options={{
-              title: "Settings",
-              headerBackTitle: "Back",        
-              headerBackTitleVisible: true,
-            }}
-          />
         </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-      </PortalProvider>
-    </TamaguiProvider>
-  );
+      </SQLiteProvider>
+    </ThemeProvider>
+  )
 }

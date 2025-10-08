@@ -10,10 +10,20 @@ import {
 } from 'react-native'
 import { Button, Input, YStack, XStack, Text, H2 } from 'tamagui'
 
-const DEMO_MODE = false
+// ✅ import SQLite helpers
+import { useSQLiteContext } from 'expo-sqlite'
+import {
+  addLocalUser,
+  emailExists,
+  usernameExists,
+  setCurrentUserId,
+} from '../lib/db'
+
+const USE_LOCAL_STORAGE = true // 👈 change this to false to go back to server mode
 
 export default function Register() {
-  // states for all fields
+  const db = useSQLiteContext()
+
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [username, setUsername] = useState('')
@@ -22,72 +32,87 @@ export default function Register() {
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-
   async function handleRegistration() {
     if (submitting) return
     setSubmitting(true)
     setMessage('🔄 Registering…')
 
-    if(DEMO_MODE){
-        setMessage('Registration successful!')
-        Alert.alert(
-        'Registration Complete',
-        'Your account has been successfully created!',
-        [
+    // ---------- LOCAL STORAGE MODE ----------
+    if (USE_LOCAL_STORAGE) {
+      try {
+        // simple validation
+        if (!firstName || !lastName || !username || !email || !password) {
+          setMessage('❌ Please fill out all fields.')
+          return
+        }
+
+        if (await usernameExists(db, username)) {
+          setMessage('❌ Username already exists.')
+          return
+        }
+
+        if (await emailExists(db, email)) {
+          setMessage('❌ Email already registered.')
+          return
+        }
+
+        const newUser = await addLocalUser(db, {
+          username,
+          email,
+          firstName,
+          lastName,
+          password, // only for demo
+        })
+
+        // store current user id for “logged in” session
+        await setCurrentUserId(newUser.id)
+
+        setMessage('✅ Registration successful!')
+        Alert.alert('Registration Complete', 'Account saved locally.', [
           {
             text: 'OK',
             onPress: () => {
-              // optional: navigate to login
               // router.push('/login')
             },
           },
-        ]
-      )
-    }
-      else{
-    
-      try {
-        const res = await fetch('http://192.168.68.112:8888/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            USERNAME: username.trim(),
-            EMAIL: email.trim(),
-            PASSWORD: password,
-            FIRST_NAME: firstName.trim(),
-            LAST_NAME: lastName.trim(),
-          }),
-        })
-
-        const data = await res.json()
-
-        
-
-        if (res.ok) {
-          setMessage('Registration successful!')
-          Alert.alert(
-          'Registration Complete',
-          'Your account has been successfully created!',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                // optional: navigate to login
-                // router.push('/login')
-              },
-            },
-          ]
-          )
-        } else {
-          setMessage(data?.error || '❌ Registration failed.')
-        }
+        ])
       } catch (err: any) {
-        setMessage(`🌐 Network error: ${err.message || err}`)
+        console.error(err)
+        setMessage(`❌ Local DB error: ${err.message || err}`)
       } finally {
         setSubmitting(false)
       }
+      return
+    }
+
+    // ---------- SERVER MODE ----------
+    try {
+      const res = await fetch('http://192.168.68.112:8888/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          USERNAME: username.trim(),
+          EMAIL: email.trim(),
+          PASSWORD: password,
+          FIRST_NAME: firstName.trim(),
+          LAST_NAME: lastName.trim(),
+        }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        setMessage('✅ Registration successful!')
+        Alert.alert('Registration Complete', 'Your account has been created!', [
+          { text: 'OK' },
+        ])
+      } else {
+        setMessage(data?.error || '❌ Registration failed.')
+      }
+    } catch (err: any) {
+      setMessage(`🌐 Network error: ${err.message || err}`)
+    } finally {
+      setSubmitting(false)
     }
   }
 
