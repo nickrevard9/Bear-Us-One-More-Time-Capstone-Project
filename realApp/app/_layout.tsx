@@ -10,6 +10,11 @@ import '../tamagui-web.css';
 import { TamaguiProvider } from 'tamagui';
 import { tamaguiConfig } from '../tamagui.config';
 
+// toggle between local (SQLite) and server mode
+export const USE_LOCAL_STORAGE = true
+export const API_BASE = 'http://192.168.68.112:8888'
+export const LOGIN_URL = `${API_BASE}/login`
+
 export default function RootLayout() {
   const colorScheme = useColorScheme()
   const [loaded] = useFonts({

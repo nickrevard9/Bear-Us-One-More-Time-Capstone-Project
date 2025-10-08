@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 // Abstraction for Log Data
 export interface LogData {
   date: string;
-  start_time: string;
+  time: string;
   duration: string;
   medium: string;
   channel: string;
@@ -138,7 +138,7 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
 
     const params = [
       log.date,
-      log.start_time,
+      log.time,
       log.duration,
       log.medium,
       log.channel,

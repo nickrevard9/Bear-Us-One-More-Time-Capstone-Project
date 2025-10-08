@@ -1,0 +1,129 @@
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, XStack, H3, H6, YStack, Label, ScrollView } from "tamagui";
+import ScreenTimeChart from "../components/ScreenTime";
+import { getLogsByUserDate, LogData } from "../lib/db";
+import { useSQLiteContext } from "expo-sqlite";
+
+export const USE_LOCAL_STORAGE = true;
+
+interface DailyViewProps {
+  initialDate?: Date;
+}
+
+const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
+  const db = useSQLiteContext();
+  const [date, setDate] = useState<Date>(initialDate || new Date());
+  const [dailyMedia, setDailyMedia] = useState<LogData[]>([]);
+
+  const recommendedMedia = [
+    { channel: "Amazon Prime", medium: "Phone", duration: "2:01:00" },
+  ];
+
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+  const retrieveLogs = useCallback(async () => {
+    try {
+      if (USE_LOCAL_STORAGE) {
+        const media = await getLogsByUserDate(db, date.toDateString());
+        setDailyMedia(media);
+      } else {
+        // TODO: Fetch from API
+      }
+    } catch (error: any) {
+      console.log(`Error retrieving reports: ${error.message}`);
+    }
+  }, [db, date]);
+
+  useEffect(() => {
+    retrieveLogs();
+  }, [retrieveLogs]);
+
+function makeChartData(media: LogData[]): number[] {
+  const data: number[] = Array.from({ length: 24 }, () => 0);
+
+  media.forEach((item) => {
+    const [timePart, period] = item.time.split(" "); // e.g. "3:30", "PM"
+    const [hourStr, minuteStr] = timePart.split(":");
+    let hour = parseInt(hourStr, 10);
+    let minute = parseInt(minuteStr, 10);
+
+    // Convert to 24-hour format
+    if (period === "PM" && hour !== 12) hour += 12;
+    if (period === "AM" && hour === 12) hour = 0;
+
+    // Duration in minutes
+    const [durH, durM] = item.duration.split(":");
+    let remaining = parseInt(durH, 10) * 60 + parseInt(durM, 10);
+
+    // Distribute across hours
+    while (remaining > 0) {
+      const minutesThisHour = Math.min(60 - minute, remaining);
+      data[hour] += minutesThisHour;
+
+      // Move to next hour
+      remaining -= minutesThisHour;
+      hour = (hour + 1) % 24;
+      minute = 0;
+    }
+  });
+
+  return data;
+}
+
+const usage = makeChartData(dailyMedia);
+
+  const changeDay = (delta: number) => {
+    const newDate = new Date(date);
+    newDate.setDate(date.getDate() + delta);
+    setDate(newDate);
+  };
+
+  return (
+    <View style={{ flex: 1, padding: 25, width: "100%", margin: "0 auto" }}>
+      <XStack justifyContent="center" width="100%" alignItems="center" marginBottom={24} marginTop={100}>
+        <H3 onPress={() => changeDay(-1)}>&#8592;</H3>
+        <H6 style={{ textAlign: "center", flex: 5 }}>{formatDate(date)}</H6>
+        <H3 onPress={() => changeDay(1)}>&#8594;</H3>
+      </XStack>
+
+      <ScrollView>
+        <YStack alignItems="center" paddingBottom={20}>
+          <ScreenTimeChart usageData={usage} />
+        </YStack>
+
+        <YStack>
+          <Label size="$4" style={{ paddingTop: 10, textAlign: "center" }} fontWeight="bold">
+            Your Daily Media
+          </Label>
+          {dailyMedia.map((item, index) => (
+            <YStack key={index} paddingVertical={10}>
+              <XStack justifyContent="space-between" paddingHorizontal={20}>
+                <Text>{item.channel}</Text>
+                <Text>{item.duration}</Text>
+              </XStack>
+            </YStack>
+          ))}
+
+          <Label size="$4" style={{ paddingTop: 10, textAlign: "center" }} fontWeight="bold">
+            Recommended
+          </Label>
+          {recommendedMedia.map((item, index) => (
+            <YStack key={index}>
+              <XStack justifyContent="space-between" paddingHorizontal={20}>
+                <Text>{item.channel}</Text>
+                <Text>{item.duration}</Text>
+              </XStack>
+            </YStack>
+          ))}
+        </YStack>
+      </ScrollView>
+    </View>
+  );
+};
+
+export default DailyView;
