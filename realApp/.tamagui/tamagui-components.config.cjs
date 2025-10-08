@@ -2445,29 +2445,34 @@ var require_compiler = __commonJS({
         }
         // Polyfill for additional 'pointer-events' values
         // See d13f78622b233a0afc0c7a200c0a0792c8ca9e58
+        // See https://reactnative.dev/docs/view#pointerevents
         case "pointerEvents": {
           var finalValue = value;
-          if (value === "auto" || value === "box-only") {
+          if (value === "auto") {
             finalValue = "auto!important";
-            if (value === "box-only") {
-              var _block2 = createDeclarationBlock({
-                pointerEvents: "none"
-              });
-              rules.push(selector + ">*" + _block2);
-            }
-          } else if (value === "none" || value === "box-none") {
+          } else if (value === "none") {
             finalValue = "none!important";
-            if (value === "box-none") {
-              var _block3 = createDeclarationBlock({
-                pointerEvents: "auto"
-              });
-              rules.push(selector + ">*" + _block3);
-            }
+            var _block2 = createDeclarationBlock({
+              pointerEvents: "none"
+            });
+            rules.push(selector + " * " + _block2);
+          } else if (value === "box-none") {
+            finalValue = "none!important";
+            var _block3 = createDeclarationBlock({
+              pointerEvents: "auto"
+            });
+            rules.push(selector + " * " + _block3);
+          } else if (value === "box-only") {
+            finalValue = "auto!important";
+            var _block4 = createDeclarationBlock({
+              pointerEvents: "none"
+            });
+            rules.push(selector + " * " + _block4);
           }
-          var _block4 = createDeclarationBlock({
+          var _block5 = createDeclarationBlock({
             pointerEvents: finalValue
           });
-          rules.push("" + selector + _block4);
+          rules.push("" + selector + _block5);
           break;
         }
         // Polyfill for draft spec
@@ -2476,17 +2481,17 @@ var require_compiler = __commonJS({
           if (value === "none") {
             rules.push(selector + "::-webkit-scrollbar{display:none}");
           }
-          var _block5 = createDeclarationBlock({
+          var _block6 = createDeclarationBlock({
             scrollbarWidth: value
           });
-          rules.push("" + selector + _block5);
+          rules.push("" + selector + _block6);
           break;
         }
         default: {
-          var _block6 = createDeclarationBlock({
+          var _block7 = createDeclarationBlock({
             [property]: value
           });
-          rules.push("" + selector + _block6);
+          rules.push("" + selector + _block7);
           break;
         }
       }
@@ -4784,6 +4789,9 @@ var require_Platform = __commonJS({
           return true;
         }
         return false;
+      },
+      get Version() {
+        return "0.0.0";
       }
     };
     var _default = exports2.default = Platform2;
@@ -12022,6 +12030,7 @@ var require_AnimatedProps = __commonJS({
         if (this.__isNative && this._animatedView) {
           this.__disconnectAnimatedView();
         }
+        this._animatedView = null;
         for (var key in this._props) {
           var value = this._props[key];
           if (value instanceof _AnimatedNode.default) {
@@ -15390,6 +15399,7 @@ var require_AnimatedImplementation = __commonJS({
             }
             current++;
             if (current === animations.length) {
+              current = 0;
               callback && callback(result);
               return;
             }
@@ -17936,7 +17946,7 @@ var require_ModalPortal = __commonJS({
     exports2.__esModule = true;
     exports2.default = void 0;
     var React85 = _interopRequireWildcard(require("react"));
-    var _reactDom = _interopRequireDefault(require("react-dom"));
+    var _reactDom = require("react-dom");
     var _canUseDom = _interopRequireDefault(require_canUseDom());
     function ModalPortal(props) {
       var children = props.children;
@@ -17958,7 +17968,7 @@ var require_ModalPortal = __commonJS({
           };
         }
       }, []);
-      return elementRef.current && _canUseDom.default ? /* @__PURE__ */ _reactDom.default.createPortal(children, elementRef.current) : null;
+      return elementRef.current && _canUseDom.default ? /* @__PURE__ */ (0, _reactDom.createPortal)(children, elementRef.current) : null;
     }
     __name(ModalPortal, "ModalPortal");
     var _default = exports2.default = ModalPortal;
@@ -24681,46 +24691,49 @@ var SheetImplementationCustom = import_react25.default.forwardRef(function(props
   const forcedContentHeight = hasFit ? void 0 : snapPointsMode === "percent" ? `${maxSnapPoint}${isWeb ? "dvh" : "%"}` : maxSnapPoint, setHasScrollView = import_react25.default.useCallback((val) => {
     hasScrollView.current = val;
   }, []);
-  let contents = /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(ParentSheetContext.Provider, {
-    value: nextParentContext,
-    children: /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(SheetProvider, {
-      ...providerProps,
-      setHasScrollView,
-      children: [/* @__PURE__ */ (0, import_jsx_runtime18.jsx)(AnimatePresence, {
-        custom: {
-          open
-        },
-        children: shouldHideParentSheet || !open ? null : overlayComponent
-      }), snapPointsMode !== "percent" && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(import_react_native_web.View, {
-        style: {
-          opacity: 0,
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          pointerEvents: "none"
-        },
-        onLayout: handleMaxContentViewLayout
-      }), /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(AnimatedView, {
-        ref,
-        ...panResponder?.panHandlers,
-        onLayout: handleAnimationViewLayout,
-        animation: isDragging || disableAnimation ? null : animation,
-        disableClassName: true,
-        style: [{
-          position: "absolute",
-          zIndex,
-          width: "100%",
-          height: forcedContentHeight,
-          minHeight: forcedContentHeight,
-          opacity: shouldHideParentSheet ? 0 : opacity,
-          ...(shouldHideParentSheet || !open) && {
+  let contents = /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(import_core9.LayoutMeasurementController, {
+    disable: !open,
+    children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(ParentSheetContext.Provider, {
+      value: nextParentContext,
+      children: /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(SheetProvider, {
+        ...providerProps,
+        setHasScrollView,
+        children: [/* @__PURE__ */ (0, import_jsx_runtime18.jsx)(AnimatePresence, {
+          custom: {
+            open
+          },
+          children: shouldHideParentSheet || !open ? null : overlayComponent
+        }), snapPointsMode !== "percent" && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(import_react_native_web.View, {
+          style: {
+            opacity: 0,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             pointerEvents: "none"
-          }
-        }, animatedStyle],
-        children: props.children
-      })]
+          },
+          onLayout: handleMaxContentViewLayout
+        }), /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(AnimatedView, {
+          ref,
+          ...panResponder?.panHandlers,
+          onLayout: handleAnimationViewLayout,
+          animation: isDragging || disableAnimation ? null : animation,
+          disableClassName: true,
+          style: [{
+            position: "absolute",
+            zIndex,
+            width: "100%",
+            height: forcedContentHeight,
+            minHeight: forcedContentHeight,
+            opacity: shouldHideParentSheet ? 0 : opacity,
+            ...(shouldHideParentSheet || !open) && {
+              pointerEvents: "none"
+            }
+          }, animatedStyle],
+          children: props.children
+        })]
+      })
     })
   });
   const shouldMountChildren = unmountChildrenWhenHidden ? !!opacity : true;
@@ -25322,15 +25335,18 @@ var DialogPortal = React33.forwardRef((props, forwardRef26) => {
     // NOTE: we remove the inner frame, but not the portal itself
     // saw a bug when we removed and re-added portals that caused stale inner contents of the portal
     // seems like a React bug itself but leaving this for now as it fixes
-    isFullyHidden && !isAdapted ? null : /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(DialogPortalFrame, {
-      ref,
-      ...isWeb && isMountedOrOpen && {
-        "aria-modal": true
-      },
-      pointerEvents: isMountedOrOpen ? "auto" : "none",
-      ...frameProps,
-      className: "_no_backdrop " + (frameProps.className || ""),
-      children: contents
+    isFullyHidden && !isAdapted ? null : /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(import_core14.LayoutMeasurementController, {
+      disable: !isMountedOrOpen,
+      children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(DialogPortalFrame, {
+        ref,
+        ...isWeb && isMountedOrOpen && {
+          "aria-modal": true
+        },
+        pointerEvents: isMountedOrOpen ? "auto" : "none",
+        ...frameProps,
+        className: "_no_backdrop " + (frameProps.className || ""),
+        children: contents
+      })
     })
   );
   return isWeb ? /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Portal, {
@@ -26645,7 +26661,7 @@ var useLabelContext = /* @__PURE__ */ __name((element) => {
   }, [element, controlRef]), context2.id;
 }, "useLabelContext");
 
-// node_modules/@tamagui/checkbox-headless/dist/esm/useCheckbox.mjs
+// node_modules/@tamagui/checkbox/node_modules/@tamagui/checkbox-headless/dist/esm/useCheckbox.mjs
 var import_react34 = __toESM(require("react"), 1);
 
 // node_modules/@tamagui/use-previous/dist/esm/index.mjs
@@ -26659,10 +26675,10 @@ function usePrevious(value) {
 }
 __name(usePrevious, "usePrevious");
 
-// node_modules/@tamagui/checkbox-headless/dist/esm/BubbleInput.mjs
+// node_modules/@tamagui/checkbox/node_modules/@tamagui/checkbox-headless/dist/esm/BubbleInput.mjs
 var React41 = __toESM(require("react"), 1);
 
-// node_modules/@tamagui/checkbox-headless/dist/esm/utils.mjs
+// node_modules/@tamagui/checkbox/node_modules/@tamagui/checkbox-headless/dist/esm/utils.mjs
 function isIndeterminate(checked) {
   return checked === "indeterminate";
 }
@@ -26672,7 +26688,7 @@ function getState4(checked) {
 }
 __name(getState4, "getState");
 
-// node_modules/@tamagui/checkbox-headless/dist/esm/BubbleInput.mjs
+// node_modules/@tamagui/checkbox/node_modules/@tamagui/checkbox-headless/dist/esm/BubbleInput.mjs
 var import_jsx_runtime29 = require("react/jsx-runtime");
 var BubbleInput = /* @__PURE__ */ __name((props) => {
   const {
@@ -26713,7 +26729,7 @@ var BubbleInput = /* @__PURE__ */ __name((props) => {
   });
 }, "BubbleInput");
 
-// node_modules/@tamagui/checkbox-headless/dist/esm/useCheckbox.mjs
+// node_modules/@tamagui/checkbox/node_modules/@tamagui/checkbox-headless/dist/esm/useCheckbox.mjs
 var import_jsx_runtime30 = require("react/jsx-runtime");
 function useCheckbox(props, [checked, setChecked], ref) {
   const {
@@ -29359,14 +29375,14 @@ function Popper(props) {
     passThrough,
     open,
     scope
-  } = props, [arrowEl, setArrow] = React48.useState(null), [arrowSize, setArrowSize] = React48.useState(0), offsetOptions = offset7 ?? arrowSize, floatingStyle = React48.useRef({});
+  } = props, [arrowEl, setArrow] = React48.useState(null), [arrowSize, setArrowSize] = React48.useState(0), offsetOptions = offset7 ?? arrowSize, floatingStyle = React48.useRef({}), isOpen = passThrough ? false : open || true;
   let floating = useFloating2({
-    open: passThrough ? false : open || true,
+    open: isOpen,
     strategy,
     placement,
     sameScrollView: false,
     // this only takes effect on native
-    whileElementsMounted: passThrough || !open ? void 0 : autoUpdate,
+    whileElementsMounted: isOpen ? autoUpdate : void 0,
     platform: disableRTL ?? setupOptions.disableRTL ? {
       ...platform,
       isRTL(element) {
@@ -29412,10 +29428,13 @@ function Popper(props) {
     open: !!open,
     ...floating
   }), [open, size5, floating.x, floating.y, floating.placement, JSON.stringify(middlewareData.arrow || null), floating.isPositioned]);
-  return /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(PopperProvider, {
-    scope,
-    ...popperContext,
-    children
+  return /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(import_core26.LayoutMeasurementController, {
+    disable: !isOpen,
+    children: /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(PopperProvider, {
+      scope,
+      ...popperContext,
+      children
+    })
   });
 }
 __name(Popper, "Popper");
@@ -32102,10 +32121,10 @@ var RadioGroupFrame = (0, import_core29.styled)(ThemeableStack, {
 var import_react46 = __toESM(require("react"), 1);
 var import_core31 = require("@tamagui/core");
 
-// node_modules/@tamagui/radio-headless/dist/esm/useRadioGroup.mjs
+// node_modules/@tamagui/radio-group/node_modules/@tamagui/radio-headless/dist/esm/useRadioGroup.mjs
 var import_react45 = require("react");
 
-// node_modules/@tamagui/radio-headless/dist/esm/BubbleInput.mjs
+// node_modules/@tamagui/radio-group/node_modules/@tamagui/radio-headless/dist/esm/BubbleInput.mjs
 var import_react44 = __toESM(require("react"), 1);
 var import_jsx_runtime41 = require("react/jsx-runtime");
 var BubbleInput2 = /* @__PURE__ */ __name((props) => {
@@ -32148,13 +32167,13 @@ var BubbleInput2 = /* @__PURE__ */ __name((props) => {
   });
 }, "BubbleInput");
 
-// node_modules/@tamagui/radio-headless/dist/esm/utils.mjs
+// node_modules/@tamagui/radio-group/node_modules/@tamagui/radio-headless/dist/esm/utils.mjs
 function getState6(checked) {
   return checked ? "checked" : "unchecked";
 }
 __name(getState6, "getState");
 
-// node_modules/@tamagui/radio-headless/dist/esm/useRadioGroup.mjs
+// node_modules/@tamagui/radio-group/node_modules/@tamagui/radio-headless/dist/esm/useRadioGroup.mjs
 var import_jsx_runtime42 = require("react/jsx-runtime");
 function useRadioGroup(params) {
   const {

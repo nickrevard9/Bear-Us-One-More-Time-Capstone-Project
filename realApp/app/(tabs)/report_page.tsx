@@ -11,7 +11,7 @@ import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
 import { insertLog, LogData } from "../../lib/db";
 
-
+/*
 const ReportPage = () => {
     const router = useRouter();
     const db = useSQLiteContext();
@@ -227,5 +227,5 @@ const ReportPage = () => {
     );
 };
 
-
+*/
 export default ReportPage;
