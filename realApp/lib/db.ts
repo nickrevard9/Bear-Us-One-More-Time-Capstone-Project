@@ -11,7 +11,17 @@ export interface LogData {
   intentional: number; // 1 = true, 0 = false
   primary_motivation: number;
   description: string;
-  user_id: string;
+  user_id?: string;
+}
+
+export interface UserData {
+  id?: string;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+  createdAt: Date;
 }
 
 export async function initDb(db: SQLiteDatabase) {
@@ -76,7 +86,7 @@ export async function emailExists(db: SQLiteDatabase, email: string) {
   return !!row
 }
 
-export async function addLocalUser(db: SQLiteDatabase, user: any) {
+export async function addLocalUser(db: SQLiteDatabase, user: UserData) {
   const id = randomId()
   await db.runAsync(
     'INSERT INTO users (id, username, email, firstName, lastName, password, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -110,6 +120,12 @@ export async function findUserByUsernameOrEmail(db: SQLiteDatabase, ident: strin
 
 // ******* MAKING LOGS ******** //
 
+/**
+ * Add a user's log to the database
+ * 
+ * @param db - The open SQLite database
+ * @param log - The user's log to be inserted into the database
+ */
 export async function insertLog(db: SQLiteDatabase, log: LogData) {
   try {
     const query = `
@@ -117,6 +133,8 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
       (date, start_time, duration, medium, channel, intentional, primary_motivation, description, user_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
+
+    const id = await AsyncStorage.getItem('pawse.currentUserId')
 
     const params = [
       log.date,
@@ -127,7 +145,7 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
       log.intentional,
       log.primary_motivation,
       log.description,
-      log.user_id,
+      id,
     ];
 
     await db.runAsync(query, params);
@@ -139,9 +157,21 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
   }
 }
 
-export async function getLogsByUser(db: SQLiteDatabase, user_id: string): Promise<LogData[]> {
+/**
+ * Get logs for a user, optionally filtered by a specific date.
+ * 
+ * @param db - The open SQLite database
+ * @param user_id - The user's ID
+ * @param date - (Optional) A date string like "2025-10-08"
+ * @returns Array of log entries
+ */
+export async function getLogsByUserDate(
+  db: SQLiteDatabase,
+  date?: string
+): Promise<LogData[]> {
   try {
-    const query = `
+    const id = await AsyncStorage.getItem('pawse.currentUserId')
+    let query = `
       SELECT 
         log_id,
         date,
@@ -155,12 +185,22 @@ export async function getLogsByUser(db: SQLiteDatabase, user_id: string): Promis
         user_id
       FROM log_data
       WHERE user_id = ?
-      ORDER BY date DESC, start_time DESC;
     `;
+    const params: any[] = [id];
 
-    const rows = await db.getAllAsync<LogData>(query, [user_id]);
+    if (date) {
+      query += ` AND date = ?`;
+      params.push(date);
+    }
 
-    console.log(`Retrieved ${rows.length} logs for user: ${user_id}`);
+    query += ` ORDER BY date DESC, start_time DESC;`;
+
+    const rows = await db.getAllAsync<LogData>(query, params);
+
+    console.log(
+      `Retrieved ${rows.length} logs for user: ${id}${date ? ` on ${date}` : ''}`
+    );
+
     return rows;
   } catch (error) {
     console.error('Failed to get logs by user:', error);
