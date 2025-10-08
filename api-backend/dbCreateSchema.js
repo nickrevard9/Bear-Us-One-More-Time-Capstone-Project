@@ -1,9 +1,8 @@
-
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 
-const schemaSqlPathname = path.join(__dirname, 'schema.sql');
+const schemaSqlPathname = path.join(__dirname, '/models/schema.sql');
 const schemaStyle = fs.readFileSync(schemaSqlPathname, 'utf8');
 
 
