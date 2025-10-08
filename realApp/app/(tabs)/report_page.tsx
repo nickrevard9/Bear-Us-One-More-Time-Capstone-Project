@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import {StyleSheet, Platform, TouchableOpacity, TouchableWithoutFeedback, Switch, ScrollView} from 'react-native';
+import {StyleSheet, Platform, TouchableOpacity, TouchableWithoutFeedback, Switch, ScrollView, Alert} from 'react-native';
 import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, 
  Popover } from "tamagui";
 import { useRouter } from 'expo-router';
@@ -8,9 +8,14 @@ import { TimePicker } from "@/components/timepicker";
 import { DateType } from 'react-native-ui-datepicker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import {Dropdown} from 'react-native-element-dropdown';
+import { useSQLiteContext } from "expo-sqlite";
+import { insertLog, LogData } from "../../lib/db";
+
 
 const ReportPage = () => {
     const router = useRouter();
+    const db = useSQLiteContext();
+    
     const [date, setDate] = useState<Date>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -61,15 +66,27 @@ const ReportPage = () => {
     const handleSubmit = () => {
         // Handle form submission logic here
         // Example: send data to backend or update state
-        console.log({
+        const log = {
             date: date.toDateString(),
             time: time.toLocaleTimeString(),
             duration: duration.toTimeString().split(' ')[0], // Format as HH:MM:SS
             medium,
-            isIntentional,
-            primaryMotivation,
+            channel,
+            intentional: isIntentional? 1 : 0,
+            primary_motivation: primaryMotivation,
             description,
-        });
+        };
+
+        console.log(log);
+
+        try {        
+            insertLog(db, log);
+            router.push('/(tabs)/home')
+            return;
+        }
+        catch (error){
+            Alert.alert("Could not save log")
+        }
     };
 
     return (
@@ -144,7 +161,7 @@ const ReportPage = () => {
                         data={mediums}
                         placeholder='Select Medium'
                         value={medium}
-                        onChange={item => setMedium(item)}
+                        onChange={item => setMedium(item.value)}
                         style={{ width: 200, alignContent: 'center' }}
                         labelField={'label'}
                         valueField={'value'}

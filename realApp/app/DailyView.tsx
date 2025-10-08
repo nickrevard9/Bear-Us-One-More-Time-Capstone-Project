@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, XStack, H3, H6, YStack, Label, ScrollView } from "tamagui";
 import ScreenTimeChart from "../components/ScreenTime";
 import { getLogsByUserDate, LogData } from "../lib/db";
+import { Alert } from "react-native";
+import { useFocusEffect }  from "expo-router"
 import { useSQLiteContext } from "expo-sqlite";
 
 export const USE_LOCAL_STORAGE = true;
@@ -35,13 +37,13 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
         // TODO: Fetch from API
       }
     } catch (error: any) {
-      console.log(`Error retrieving reports: ${error.message}`);
+      Alert.alert(`Error retrieving reports: ${error.message}`);
     }
   }, [db, date]);
 
-  useEffect(() => {
+  useFocusEffect(() => {
     retrieveLogs();
-  }, [retrieveLogs]);
+  });
 
 function makeChartData(media: LogData[]): number[] {
   const data: number[] = Array.from({ length: 24 }, () => 0);

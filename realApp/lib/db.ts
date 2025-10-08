@@ -9,7 +9,7 @@ export interface LogData {
   medium: string;
   channel: string;
   intentional: number; // 1 = true, 0 = false
-  primary_motivation: number;
+  primary_motivation: string;
   description: string;
   user_id?: string;
 }
@@ -54,6 +54,7 @@ export async function initDb(db: SQLiteDatabase) {
 
   // Log data table
   await db.execAsync(`
+    DROP TABLE IF EXISTS log_data;
     CREATE TABLE IF NOT EXISTS log_data (
       log_id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT NOT NULL,
@@ -62,7 +63,7 @@ export async function initDb(db: SQLiteDatabase) {
       medium TEXT NOT NULL,
       channel TEXT NOT NULL,
       intentional INTEGER NOT NULL, 
-      primary_motivation INTEGER NOT NULL,
+      primary_motivation TEXT NOT NULL,
       description TEXT NOT NULL, 
       user_id TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES users(id)
