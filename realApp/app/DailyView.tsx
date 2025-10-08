@@ -45,36 +45,54 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
     retrieveLogs();
   });
 
+// Used to format the duration for the Daily Media Report and Recommended sections
+function formatDuration(duration: string): string {
+    // Expects 'HH:MM:SS' or 'H:MM:SS'
+    const [h, m] = duration.split(':');
+    const hours = parseInt(h, 10);
+    const mins = parseInt(m, 10);
+    let result = '';
+    if (hours > 0) result += `${hours} hr${hours > 1 ? 's' : ''}`;
+    if (mins > 0) result += `${result ? ' ' : ''}${mins} min${mins > 1 ? 's' : ''}`;
+    return result || '0 mins';
+}
+
+
 function makeChartData(media: LogData[]): number[] {
-  const data: number[] = Array.from({ length: 24 }, () => 0);
+    const data: number[] = Array.from({ length: 24 }, () => 0);
 
-  media.forEach((item) => {
-    const [timePart, period] = item.time.split(" "); // e.g. "3:30", "PM"
-    const [hourStr, minuteStr] = timePart.split(":");
-    let hour = parseInt(hourStr, 10);
-    let minute = parseInt(minuteStr, 10);
+    try{ 
+        media.forEach((item) => {
+        const [timePart, period] = item.time.split(" "); // e.g. "3:30", "PM"
+        const [hourStr, minuteStr] = timePart.split(":");
+        let hour = parseInt(hourStr, 10);
+        let minute = parseInt(minuteStr, 10);
 
-    // Convert to 24-hour format
-    if (period === "PM" && hour !== 12) hour += 12;
-    if (period === "AM" && hour === 12) hour = 0;
+        // Convert to 24-hour format
+        if (period === "PM" && hour !== 12) hour += 12;
+        if (period === "AM" && hour === 12) hour = 0;
 
-    // Duration in minutes
-    const [durH, durM] = item.duration.split(":");
-    let remaining = parseInt(durH, 10) * 60 + parseInt(durM, 10);
+        // Duration in minutes
+        const [durH, durM] = item.duration.split(":");
+        let remaining = parseInt(durH, 10) * 60 + parseInt(durM, 10);
 
-    // Distribute across hours
-    while (remaining > 0) {
-      const minutesThisHour = Math.min(60 - minute, remaining);
-      data[hour] += minutesThisHour;
+        // Distribute across hours
+        while (remaining > 0) {
+        const minutesThisHour = Math.min(60 - minute, remaining);
+        data[hour] += minutesThisHour;
 
-      // Move to next hour
-      remaining -= minutesThisHour;
-      hour = (hour + 1) % 24;
-      minute = 0;
+        // Move to next hour
+        remaining -= minutesThisHour;
+        hour = (hour + 1) % 24;
+        minute = 0;
+        }
+    });
     }
-  });
+    catch(error: any){
+        console.log(`Error: ${error.message}`);
+    }
 
-  return data;
+    return data;
 }
 
 const usage = makeChartData(dailyMedia);
@@ -94,36 +112,44 @@ const usage = makeChartData(dailyMedia);
       </XStack>
 
       <ScrollView>
-        <YStack alignItems="center" paddingBottom={20}>
-          <ScreenTimeChart usageData={usage} />
-        </YStack>
-
-        <YStack>
-          <Label size="$4" style={{ paddingTop: 10, textAlign: "center" }} fontWeight="bold">
-            Your Daily Media
-          </Label>
-          {dailyMedia.map((item, index) => (
-            <YStack key={index} paddingVertical={10}>
-              <XStack justifyContent="space-between" paddingHorizontal={20}>
-                <Text>{item.channel}</Text>
-                <Text>{item.duration}</Text>
-              </XStack>
-            </YStack>
-          ))}
-
-          <Label size="$4" style={{ paddingTop: 10, textAlign: "center" }} fontWeight="bold">
-            Recommended
-          </Label>
-          {recommendedMedia.map((item, index) => (
-            <YStack key={index}>
-              <XStack justifyContent="space-between" paddingHorizontal={20}>
-                <Text>{item.channel}</Text>
-                <Text>{item.duration}</Text>
-              </XStack>
-            </YStack>
-          ))}
-        </YStack>
-      </ScrollView>
+                <YStack alignItems="center" paddingBottom={20}>
+                    <ScreenTimeChart usageData={usage} />
+                </YStack>
+                <YStack>
+                    <YStack>
+                    <Label size="$4" style={{paddingTop: 10, textAlign: "center"}} fontWeight="bold">Your Daily Media</Label>
+                    <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#99999996"/>
+                    {/* Add daily media here */}
+                    {dailyMedia.map((item, index) => (
+                        <YStack key={index} paddingVertical={10}>
+                        <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
+                            <Text>{item.channel}</Text>
+                            <Text>{formatDuration(item.duration)}</Text>
+                        </XStack>
+                        <XStack justifyContent="space-between" paddingHorizontal={20} fontSize={11} opacity={0.7}>
+                            <Text>{item.medium}</Text>
+                        </XStack>
+                        </YStack>
+                    ))}
+                    </YStack>
+                    <YStack>
+                    <Label size="$4" style={{paddingTop: 10, textAlign: "center"}} fontWeight="bold">Recommended</Label>
+                    <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#99999996"/>
+                    {/* Add recommended media here */}
+                    {recommendedMedia.map((item, index) => (
+                        <YStack key={index}>
+                        <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
+                            <Text>{item.channel}</Text>
+                            <Text>{formatDuration(item.duration)}</Text>
+                        </XStack>
+                        <XStack justifyContent="space-between" paddingHorizontal={20} fontSize={11} opacity={0.7}>
+                            <Text>{item.medium}</Text>
+                        </XStack>
+                        </YStack>
+                    ))}
+                    </YStack>
+                </YStack>
+            </ScrollView>
     </View>
   );
 };
