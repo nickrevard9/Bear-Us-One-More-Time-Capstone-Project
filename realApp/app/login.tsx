@@ -12,15 +12,14 @@ import { Button, Input, YStack, XStack, Text, H2 } from 'tamagui'
 import { useSQLiteContext } from 'expo-sqlite'
 import * as SecureStore from 'expo-secure-store'
 
+import { API_BASE, USE_LOCAL_STORAGE } from './_layout'// toggle between local (SQLite) and server mode
+
 // 🧱 import from local DB helpers
 import {
   findUserByUsernameOrEmail,
   setCurrentUserId,
 } from '../lib/db'
 
-// toggle between local (SQLite) and server mode
-const USE_LOCAL_STORAGE = true
-const API_BASE = 'http://192.168.68.112:8888'
 const LOGIN_URL = `${API_BASE}/login`
 
 async function saveKV(key: string, val: string) {
