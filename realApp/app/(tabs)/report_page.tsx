@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {StyleSheet, Platform, TouchableOpacity, TouchableWithoutFeedback, Switch, ScrollView, Alert} from 'react-native';
 import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, 
  Popover } from "tamagui";
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Calendar } from "@/components/calendar";
 import { TimePicker } from "@/components/timepicker";
 import { DateType } from 'react-native-ui-datepicker';
@@ -12,9 +12,15 @@ import { useSQLiteContext } from "expo-sqlite";
 import { insertLog, LogData } from "../../lib/db";
 
 
-const ReportPage = () => {
+interface ReportPageProps {
+  log?: LogData;
+}
+
+const ReportPage: React.FC<ReportPageProps> = ({ log }) =>{
     const router = useRouter();
     const db = useSQLiteContext();
+
+    const [editMode, setEditMode] = useState(false);
     
     const [date, setDate] = useState<Date>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -62,13 +68,40 @@ const ReportPage = () => {
         { label: "Other", value: "Other" },
     ];
 
+    useFocusEffect(
+        useCallback(() => {
+        if( log ){
+            setEditMode(true);
+            setChannel(log.channel);
+            setDuration(new Date("2023-10-05T"+log.duration));
+            setTime(new Date("2023-10-05T"+log.start_time));
+            setDescription(log.description);
+            setIsIntentional(log.intentional == 1? true : false);
+            setMedium(log.medium);
+            setPrimaryMotivation(log.primary_motivation);
+            setDate(new Date(log.date));
+        }
+        else{
+            setEditMode(false);
+            setChannel("");
+            setDuration(new Date("2023-10-05T1:00:00"));
+            setTime(new Date("2023-10-05T12:30:00"));
+            setDescription("");
+            setIsIntentional(false);
+            setMedium("");
+            setPrimaryMotivation("");
+            setDate(new Date());
+        }
 
-    const handleSubmit = () => {
+    }, [setEditMode, setChannel, setDate, setDuration, setTime, setIsIntentional, setMedium, setPrimaryMotivation, setDescription])
+    );
+
+    const handleSubmit = async () => {
         // Handle form submission logic here
         // Example: send data to backend or update state
-        const log = {
+        const log: LogData = {
             date: date.toDateString(),
-            time: time.toLocaleTimeString(),
+            start_time: time.toLocaleTimeString(),
             duration: duration.toTimeString().split(' ')[0], // Format as HH:MM:SS
             medium,
             channel,
@@ -79,8 +112,11 @@ const ReportPage = () => {
 
         console.log(log);
 
-        try {        
-            insertLog(db, log);
+        try {   
+            if(editMode){
+
+            }     
+            await insertLog(db, log);
             router.push('/(tabs)/home')
             return;
         }

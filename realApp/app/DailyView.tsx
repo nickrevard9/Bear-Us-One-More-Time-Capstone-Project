@@ -28,22 +28,25 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
       day: "numeric",
     });
 
-  const retrieveLogs = useCallback(async () => {
-    try {
-      if (USE_LOCAL_STORAGE) {
-        const media = await getLogsByUserDate(db, date.toDateString());
-        setDailyMedia(media);
-      } else {
-        // TODO: Fetch from API
-      }
-    } catch (error: any) {
-      Alert.alert(`Error retrieving reports: ${error.message}`);
+  async function retrieveLogs() {
+  try {
+    if (USE_LOCAL_STORAGE) {
+      const media = await getLogsByUserDate(db, date.toDateString());
+      setDailyMedia(media);
+    } else {
+      // TODO: Fetch from API
     }
-  }, [db, date]);
+  } catch (error: any) {
+    Alert.alert(`Error retrieving reports: ${error.message}`);
+  }
+}
 
-  useFocusEffect(() => {
+useFocusEffect(
+  useCallback(() => {
     retrieveLogs();
-  });
+  }, [date])
+);
+
 
 // Used to format the duration for the Daily Media Report and Recommended sections
 function formatDuration(duration: string): string {
@@ -62,8 +65,9 @@ function makeChartData(media: LogData[]): number[] {
     const data: number[] = Array.from({ length: 24 }, () => 0);
 
     try{ 
-        media.forEach((item) => {
-        const [timePart, period] = item.time.split(" "); // e.g. "3:30", "PM"
+        media.forEach((item: LogData) => {
+        console.log(item);
+        const [timePart, period] = item.start_time.split(" "); // e.g. "3:30", "PM"
         const [hourStr, minuteStr] = timePart.split(":");
         let hour = parseInt(hourStr, 10);
         let minute = parseInt(minuteStr, 10);

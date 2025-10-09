@@ -3,8 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Abstraction for Log Data
 export interface LogData {
+  log_id?: number;
   date: string;
-  time: string;
+  start_time: string;
   duration: string;
   medium: string;
   channel: string;
@@ -54,7 +55,6 @@ export async function initDb(db: SQLiteDatabase) {
 
   // Log data table
   await db.execAsync(`
-    DROP TABLE IF EXISTS log_data;
     CREATE TABLE IF NOT EXISTS log_data (
       log_id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT NOT NULL,
@@ -130,7 +130,7 @@ export async function findUserByUsernameOrEmail(db: SQLiteDatabase, ident: strin
 export async function insertLog(db: SQLiteDatabase, log: LogData) {
   try {
     const query = `
-      INSERT INTO log_data 
+      INSERT OR REPLACE INTO log_data 
       (date, start_time, duration, medium, channel, intentional, primary_motivation, description, user_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `;
@@ -139,7 +139,7 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
 
     const params = [
       log.date,
-      log.time,
+      log.start_time,
       log.duration,
       log.medium,
       log.channel,
@@ -147,6 +147,48 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
       log.primary_motivation,
       log.description,
       id,
+    ];
+
+    await db.runAsync(query, params);
+
+    console.log('Log inserted successfully');
+  } catch (error) {
+    console.error('Failed to insert log:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a user's log to the database
+ * 
+ * @param db - The open SQLite database
+ * @param log - The user's log to be updated in the database
+ */
+export async function updateLog(db: SQLiteDatabase, log: LogData) {
+  try {
+    if(!log.log_id){
+      throw Error("no log_id present")
+    }
+    const query = `
+      UPDATE log_data SET
+      date = ?, start_time = ?, duration = ?, medium = ?, channel = ?, 
+      intentional = ?, primary_motivation = ?, description = ?, user_id = ?
+      WHERE log_id = ?;
+    `;
+
+    const id = await AsyncStorage.getItem('pawse.currentUserId')
+
+    const params = [
+      log.date,
+      log.start_time,
+      log.duration,
+      log.medium,
+      log.channel,
+      log.intentional,
+      log.primary_motivation,
+      log.description,
+      id,
+      log.log_id,
     ];
 
     await db.runAsync(query, params);
