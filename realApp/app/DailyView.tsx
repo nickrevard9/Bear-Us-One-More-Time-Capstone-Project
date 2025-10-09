@@ -33,7 +33,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
     async function retrieveLogs() {
         try {
             if (USE_LOCAL_STORAGE) {
-                const media = await getLogsByUserDate(db, date.toDateString());
+                const media = await getLogsByUserDate(db, date.toLocaleDateString());
                 setDailyMedia(media);
             } else {
                 // TODO: Fetch from API
@@ -69,7 +69,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
         try{ 
             media.forEach((item: LogData) => {
             console.log(item);
-            const [timePart, period] = item.start_time.split(" "); // e.g. "3:30", "PM"
+            const [timePart, period] = (new Date(item.start_time)).toLocaleTimeString().split(" "); // e.g. "3:30", "PM"
             const [hourStr, minuteStr] = timePart.split(":");
             let hour = parseInt(hourStr, 10);
             let minute = parseInt(minuteStr, 10);

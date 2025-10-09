@@ -264,23 +264,17 @@ export async function getLogByLogID(
 ): Promise<LogData | null> {
   try {
     let query = `
-      SELECT 
-        log_id,
-        date,
-        start_time,
-        duration,
-        medium,
-        channel,
-        intentional,
-        primary_motivation,
-        description,
-        user_id
+      SELECT *
       FROM log_data
       WHERE log_id = ?
     `;
     const params: any[] = [log_id];
 
     const log = await db.getFirstAsync<LogData>(query, params);
+
+    if(!log){
+      throw Error("Log does not exist");
+    }
 
     console.log(
       `Retrieved log ${log_id}`

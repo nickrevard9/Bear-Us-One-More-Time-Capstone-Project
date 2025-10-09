@@ -65,26 +65,35 @@ const ReportPage = () => {
         { label: "Other", value: "Other" },
     ];
 
+    async function obtainLog(log_id: number) {
+        const log: LogData | null = await getLogByLogID(db, log_id);
+        if(!log){
+            throw Error("cannot retrieve log data");
+        }
+        console.log(`Got the log ${log_id}`)
+        setEditMode(true);
+        setChannel(log.channel);
+        setDuration(new Date("2023-10-05T"+log.duration));
+        setTime(new Date(log.start_time));
+        setDescription(log.description);
+        setIsIntentional(log.intentional == 1? true : false);
+        setMedium(log.medium);
+        setPrimaryMotivation(log.primary_motivation);
+        const [month, day, year] = log.date.split('/');
+        const date = new Date(+year, +month - 1, +day);
+        setDate(new Date(date));
+    }
+
     useFocusEffect(
         useCallback(() => {
         if( log_id ){
             try{
-                const log: LogData = getLogByLogID(db, log_id);
-                setEditMode(true);
-                setChannel(log.channel);
-                setDuration(new Date("2023-10-05T"+log.duration));
-                setTime(new Date("2023-10-05T"+log.start_time));
-                setDescription(log.description);
-                setIsIntentional(log.intentional == 1? true : false);
-                setMedium(log.medium);
-                setPrimaryMotivation(log.primary_motivation);
-                setDate(new Date(log.date));
+                obtainLog(parseInt(log_id))
             }
             catch (error){
                 Alert.alert("Cannot retrieve log");
                 throw error;
             }
-            
         }
         else{
             setEditMode(false);
@@ -105,8 +114,8 @@ const ReportPage = () => {
         // Handle form submission logic here
         // Example: send data to backend or update state
         const log: LogData = {
-            date: date.toDateString(),
-            start_time: time.toLocaleTimeString(),
+            date: date.toLocaleDateString(),
+            start_time: time.toISOString(),
             duration: duration.toTimeString().split(' ')[0], // Format as HH:MM:SS
             medium,
             channel,
@@ -114,6 +123,9 @@ const ReportPage = () => {
             primary_motivation: primaryMotivation,
             description,
         };
+        if (log_id){
+            log.log_id = parseInt(log_id)
+        }
 
         console.log(log);
 
