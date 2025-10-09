@@ -250,3 +250,44 @@ export async function getLogsByUserDate(
     throw error;
   }
 }
+
+/**
+ * Get logs for a user, optionally filtered by a specific date.
+ * 
+ * @param db - The open SQLite database
+ * @param log_id - The log's ID
+ * @returns Array of log entries
+ */
+export async function getLogByLogID(
+  db: SQLiteDatabase,
+  log_id: number
+): Promise<LogData | null> {
+  try {
+    let query = `
+      SELECT 
+        log_id,
+        date,
+        start_time,
+        duration,
+        medium,
+        channel,
+        intentional,
+        primary_motivation,
+        description,
+        user_id
+      FROM log_data
+      WHERE log_id = ?
+    `;
+    const params: any[] = [log_id];
+
+    const log = await db.getFirstAsync<LogData>(query, params);
+
+    console.log(
+      `Retrieved log ${log_id}`
+    );
+    return log;
+  } catch (error) {
+    console.error(`Failed to get log by id ${log_id}:`, error);
+    throw error;
+  }
+}

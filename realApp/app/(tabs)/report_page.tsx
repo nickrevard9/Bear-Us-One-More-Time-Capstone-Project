@@ -2,23 +2,20 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {StyleSheet, Platform, TouchableOpacity, TouchableWithoutFeedback, Switch, ScrollView, Alert} from 'react-native';
 import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, 
  Popover } from "tamagui";
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Calendar } from "@/components/calendar";
 import { TimePicker } from "@/components/timepicker";
 import { DateType } from 'react-native-ui-datepicker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
-import { insertLog, LogData } from "../../lib/db";
+import { getLogByLogID, insertLog, LogData, updateLog } from "../../lib/db";
 
-
-interface ReportPageProps {
-  log?: LogData;
-}
-
-const ReportPage: React.FC<ReportPageProps> = ({ log }) =>{
+const ReportPage = () => {
     const router = useRouter();
     const db = useSQLiteContext();
+
+    const { log_id } = useLocalSearchParams()
 
     const [editMode, setEditMode] = useState(false);
     
@@ -70,16 +67,24 @@ const ReportPage: React.FC<ReportPageProps> = ({ log }) =>{
 
     useFocusEffect(
         useCallback(() => {
-        if( log ){
-            setEditMode(true);
-            setChannel(log.channel);
-            setDuration(new Date("2023-10-05T"+log.duration));
-            setTime(new Date("2023-10-05T"+log.start_time));
-            setDescription(log.description);
-            setIsIntentional(log.intentional == 1? true : false);
-            setMedium(log.medium);
-            setPrimaryMotivation(log.primary_motivation);
-            setDate(new Date(log.date));
+        if( log_id ){
+            try{
+                const log: LogData = getLogByLogID(db, log_id);
+                setEditMode(true);
+                setChannel(log.channel);
+                setDuration(new Date("2023-10-05T"+log.duration));
+                setTime(new Date("2023-10-05T"+log.start_time));
+                setDescription(log.description);
+                setIsIntentional(log.intentional == 1? true : false);
+                setMedium(log.medium);
+                setPrimaryMotivation(log.primary_motivation);
+                setDate(new Date(log.date));
+            }
+            catch (error){
+                Alert.alert("Cannot retrieve log");
+                throw error;
+            }
+            
         }
         else{
             setEditMode(false);
@@ -93,7 +98,7 @@ const ReportPage: React.FC<ReportPageProps> = ({ log }) =>{
             setDate(new Date());
         }
 
-    }, [setEditMode, setChannel, setDate, setDuration, setTime, setIsIntentional, setMedium, setPrimaryMotivation, setDescription])
+    }, [db, log_id, setEditMode, setChannel, setDate, setDuration, setTime, setIsIntentional, setMedium, setPrimaryMotivation, setDescription])
     );
 
     const handleSubmit = async () => {
@@ -114,15 +119,22 @@ const ReportPage: React.FC<ReportPageProps> = ({ log }) =>{
 
         try {   
             if(editMode){
-
-            }     
-            await insertLog(db, log);
+                await updateLog(db, log);
+            }   
+            else{
+                await insertLog(db, log);
+            }  
             router.push('/(tabs)/home')
             return;
         }
         catch (error){
             Alert.alert("Could not save log")
         }
+    };
+
+    // TODO: handle delete logic
+    const handleDelete = async () => {
+
     };
 
     return (
