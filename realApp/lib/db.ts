@@ -252,7 +252,7 @@ export async function getLogsByUserDate(
 }
 
 /**
- * Get logs for a user, optionally filtered by a specific date.
+ * Get a log based on its ID
  * 
  * @param db - The open SQLite database
  * @param log_id - The log's ID
@@ -283,5 +283,37 @@ export async function getLogByLogID(
   } catch (error) {
     console.error(`Failed to get log by id ${log_id}:`, error);
     throw error;
+  }
+}
+
+/**
+ * Delete a log based on its ID
+ * 
+ * @param db - The open SQLite database
+ * @param log_id - The log's ID
+ */
+export async function deleteLogByLogID(
+  db: SQLiteDatabase,
+  log_id: number
+): Promise<Boolean> {
+  try {
+    let query = `
+      DELETE FROM log_data WHERE log_id = ?
+    `;
+    const params: any[] = [log_id];
+
+    const result = await db.runAsync(query, params);
+
+    if(result.changes == 0){
+      throw Error("Log does not exist");
+    }
+
+    console.log(
+      `Deleted log ${log_id}`
+    );
+    return true;
+  } catch (error) {
+    console.error(`Failed to get log by id ${log_id}:`, error);
+    return false;
   }
 }

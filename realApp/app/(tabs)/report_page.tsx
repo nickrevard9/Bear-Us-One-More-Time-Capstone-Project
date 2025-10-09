@@ -9,7 +9,7 @@ import { DateType } from 'react-native-ui-datepicker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
-import { getLogByLogID, insertLog, LogData, updateLog } from "../../lib/db";
+import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog } from "../../lib/db";
 
 const ReportPage = () => {
     const router = useRouter();
@@ -84,6 +84,7 @@ const ReportPage = () => {
         setDate(new Date(date));
     }
 
+    // TODO: Fix Report log stuff, make sure to make log_id null if not going there
     useFocusEffect(
         useCallback(() => {
         if( log_id ){
@@ -146,7 +147,19 @@ const ReportPage = () => {
 
     // TODO: handle delete logic
     const handleDelete = async () => {
-
+        try{
+            if(!editMode){
+                throw Error("Cannot delete a new log")
+            }
+            if(await deleteLogByLogID(db,parseInt(log_id))){
+                router.back();
+                return;
+            }
+            throw Error("Cannot delete this log")
+        }
+        catch(error){
+            Alert.alert("Cannot delete log");
+        }
     };
 
     return (
@@ -277,8 +290,16 @@ const ReportPage = () => {
             />
             </YStack>
 
-            <Button onPress={handleSubmit}>Submit</Button>
+            <YStack gap={"$2"}>
+                <Button onPress={handleSubmit}>
+                    {editMode? "Save" : "Submit"}
+                </Button>
+                {editMode && <Button onPress={handleDelete} variant='outlined'>
+                    Delete
+                </Button>}
+            </YStack>
             <XStack minHeight={100} maxHeight={200}>
+
 
             </XStack>
         </YStack>
