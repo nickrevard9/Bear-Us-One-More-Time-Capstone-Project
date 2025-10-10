@@ -15,7 +15,8 @@ const ReportPage = () => {
     const router = useRouter();
     const db = useSQLiteContext();
 
-    const { log_id } = useLocalSearchParams()
+    const { log_id }  = useLocalSearchParams()
+    const [logID, setLogID] = useState(null);
 
     const [editMode, setEditMode] = useState(false);
     
@@ -86,30 +87,44 @@ const ReportPage = () => {
 
     // TODO: Fix Report log stuff, make sure to make log_id null if not going there
     useFocusEffect(
-        useCallback(() => {
-        if( log_id ){
-            try{
-                obtainLog(parseInt(log_id))
-            }
-            catch (error){
-                Alert.alert("Cannot retrieve log");
-                throw error;
-            }
-        }
-        else{
-            setEditMode(false);
-            setChannel("");
-            setDuration(new Date("2023-10-05T1:00:00"));
-            setTime(new Date("2023-10-05T12:30:00"));
-            setDescription("");
-            setIsIntentional(false);
-            setMedium("");
-            setPrimaryMotivation("");
-            setDate(new Date());
-        }
+    useCallback(() => {
+      setLogID(log_id);
 
-    }, [db, log_id, setEditMode, setChannel, setDate, setDuration, setTime, setIsIntentional, setMedium, setPrimaryMotivation, setDescription])
-    );
+      if (log_id) {
+        try {
+          obtainLog(parseInt(log_id as string));
+        } catch (error) {
+          Alert.alert("Cannot retrieve log");
+          throw error;
+        }
+      } else {
+        // reset default values
+        setEditMode(false);
+        setChannel("");
+        setDuration(new Date("2023-10-05T1:00:00"));
+        setTime(new Date("2023-10-05T12:30:00"));
+        setDescription("");
+        setIsIntentional(false);
+        setMedium("");
+        setPrimaryMotivation("");
+        setDate(new Date());
+      }
+    }, [
+      db,
+      log_id,
+      setLogID,
+      setEditMode,
+      setChannel,
+      setDate,
+      setDuration,
+      setTime,
+      setIsIntentional,
+      setMedium,
+      setPrimaryMotivation,
+      setDescription,
+    ])
+  );
+
 
     const handleSubmit = async () => {
         // Handle form submission logic here
