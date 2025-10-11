@@ -4,7 +4,6 @@ import { CreditCard, Download, LogOut, Settings } from "@tamagui/lucide-icons";
 import { useRouter } from "expo-router";
 import {Calendar} from "@/components/calendar";
 import { DateType } from "react-native-ui-datepicker";
-import DailyView from "../DailyView";
 import { Alert } from "react-native";
 
 export default function CalendarPage() {
@@ -26,8 +25,8 @@ export default function CalendarPage() {
             }
 
             //router.setParams({ initialDate: selected.toString() });
-            router.prefetch({pathname:'/(tabs)/_day_view', params: {initialDate: selected.toString()}});
-            router.push({pathname:'/(tabs)/_day_view', params: {initialDate: selected.toString()}});
+            router.prefetch({pathname:'/(tabs)/calendar/_day_view', params: {initialDate: selected.toString()}});
+            router.push({pathname:'/(tabs)/calendar/_day_view', params: {initialDate: selected.toString()}});
         }}/>
         </YStack>
     </View>

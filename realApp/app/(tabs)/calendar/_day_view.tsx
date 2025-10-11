@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import DailyView from "../DailyView";
+import DailyView from "@/app/DailyView";
 
 export default function DayView() {
   const { initialDate } = useLocalSearchParams();
