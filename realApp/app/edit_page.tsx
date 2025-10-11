@@ -6,6 +6,6 @@ import { useLocalSearchParams } from "expo-router";
 export default function EditPage() {
     const { log_id } = useLocalSearchParams();
   return (
-    <Reporter log_id={parseInt(log_id)}/>
+    <Reporter log_id={parseInt(log_id)} key={log_id} />
   );
 }

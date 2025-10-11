@@ -142,8 +142,9 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                         <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#99999996"/>
                         {/* Add daily media here */}
                         {dailyMedia.map((item, index) => (
-                            <TouchableOpacity key={index} onPress={() => 
-                                router.push({pathname:'/edit_page', params: {log_id: item.log_id}})} 
+                            <TouchableOpacity key={index} onPress={() => {
+                                router.prefetch({pathname:'/edit_page', params: {log_id: item.log_id}});
+                                router.push({pathname:'/edit_page', params: {log_id: item.log_id}});}} 
                                 style={{ flex: 1 }}>
                             <YStack paddingVertical={10}>
                             <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
