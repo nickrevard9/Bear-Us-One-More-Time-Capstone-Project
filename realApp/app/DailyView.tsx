@@ -11,12 +11,15 @@ export const USE_LOCAL_STORAGE = true;
 
 interface DailyViewProps {
   initialDate?: Date;
+  notHome?: Boolean
 }
 
-const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
+const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     const router = useRouter();
     const db = useSQLiteContext();
+
     const [date, setDate] = useState<Date>(initialDate || new Date());
+    console.log(date.toDateString());
     const [dailyMedia, setDailyMedia] = useState<LogData[]>([]);
 
     const recommendedMedia = [
@@ -60,6 +63,17 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
         if (hours > 0) result += `${hours} hr${hours > 1 ? 's' : ''}`;
         if (mins > 0) result += `${result ? ' ' : ''}${mins} min${mins > 1 ? 's' : ''}`;
         return result || '0 mins';
+    }
+
+    const TopBar = () => {
+        return (
+        <XStack alignItems="center" paddingBottom={20} >
+            <TouchableOpacity onPress={() => router.back()} style={{ flex: 1 }}>
+                <Text style={{ fontSize: 28, fontWeight: 'bold', textAlign: 'left' }}>{'←'}</Text>
+            </TouchableOpacity>
+            <H6 style={{ flex: 2, textAlign: 'center', fontWeight: "600",}}>Log</H6>
+            <View style={{ flex: 1 }} />
+        </XStack>);
     }
 
 
@@ -111,7 +125,8 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
 
     return (
         <View style={{ flex: 1, padding: 25, width: "100%", margin: "0 auto" }}>
-        <XStack justifyContent="center" width="100%" alignItems="center" marginBottom={24} marginTop={100}>
+            {notHome && <TopBar/>}
+        <XStack justifyContent="center" width="100%" alignItems="center" marginBottom={24}>
             <H3 onPress={() => changeDay(-1)}>&#8592;</H3>
             <H6 style={{ textAlign: "center", flex: 5 }}>{formatDate(date)}</H6>
             <H3 onPress={() => changeDay(1)}>&#8594;</H3>
@@ -128,7 +143,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate }) => {
                         {/* Add daily media here */}
                         {dailyMedia.map((item, index) => (
                             <TouchableOpacity key={index} onPress={() => 
-                                router.push({pathname:'/(tabs)/report_page', params: {log_id: item.log_id}})} 
+                                router.push({pathname:'/edit_page', params: {log_id: item.log_id}})} 
                                 style={{ flex: 1 }}>
                             <YStack paddingVertical={10}>
                             <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>

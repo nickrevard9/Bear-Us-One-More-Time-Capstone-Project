@@ -28,8 +28,8 @@ export default function RootLayout() {
         <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme!}>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SQLiteProvider databaseName="pawse.db" onInit={initDb}>
-        <Stack>
-          <Stack.Screen name="login" options={{ title: 'Login' }} />
+        <Stack screenOptions={{headerShown: false }}>
+          <Stack.Screen name="login" options={{ title: 'Login' }}/>
           <Stack.Screen name="register" options={{ title: 'Register' }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
