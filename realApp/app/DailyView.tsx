@@ -6,6 +6,7 @@ import { getLogsByUserDate, LogData } from "../lib/db";
 import { Alert, TouchableOpacity } from "react-native";
 import { useRouter, useFocusEffect }  from "expo-router"
 import { useSQLiteContext } from "expo-sqlite";
+import { Platform } from 'react-native';
 
 export const USE_LOCAL_STORAGE = true;
 
@@ -161,19 +162,33 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                         <YStack>
                         <Label size="$4" style={{paddingTop: 10, textAlign: "center"}} fontWeight="bold">Suggested Media</Label>
                         <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#99999996"/>
-                        {/* Add recommended media here */}
-                        {recommendedMedia.map((item, index) => (
-                            <YStack key={index}>
+                        {Platform.OS === 'ios' ? (
+                            <YStack>
                             <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
-                                <Text>{item.channel}</Text>
-                                <Text>{formatDuration(item.duration)}</Text>
+                                <Text>Future Feature Incoming...</Text>
                             </XStack>
                             <XStack justifyContent="space-between" paddingHorizontal={20} fontSize={11} opacity={0.7}>
-                                <Text>{item.medium}</Text>
-                                <Button size={"$1"}><Plus/></Button>
+                                <Text>Screen Time data will be imported from your phone! 
+                                    To view this data, navigate to your phone's Settings App and then to the "Screen Time" tab.</Text>
                             </XStack>
                             </YStack>
-                        ))}
+                        ) : (
+                            <>
+                                {/* Add recommended media here */}
+                                {recommendedMedia.map((item, index) => (
+                                    <YStack key={index}>
+                                        <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
+                                            <Text>{item.channel}</Text>
+                                            <Text>{formatDuration(item.duration)}</Text>
+                                        </XStack>
+                                        <XStack justifyContent="space-between" paddingHorizontal={20} fontSize={11} opacity={0.7}>
+                                            <Text>{item.medium}</Text>
+                                            <Button size={"$1"}><Plus/></Button>
+                                        </XStack>
+                                    </YStack>
+                                ))}
+                            </>
+                        )}
                         </YStack>
                     </YStack>
                 </ScrollView>
