@@ -5,15 +5,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 // ---------- Data Models ----------
 
 export interface LogData {
-  date: string
-  time: string
-  duration: string
-  medium: string
-  channel: string
-  intentional: number // 1 = true, 0 = false
-  primary_motivation: string
-  description: string
-  user_id?: string
+  log_id?: number;
+  date: string;
+  start_time: string;
+  duration: string;
+  medium: string;
+  channel: string;
+  intentional: number; // 1 = true, 0 = false
+  primary_motivation: string;
+  description: string;
+  user_id?: string;
 }
 
 export interface UserData {
@@ -63,7 +64,6 @@ export async function initDb(db: SQLiteDatabase) {
 
   // Log data table (fresh each init; keep if you prefer)
   await db.execAsync(`
-    DROP TABLE IF EXISTS log_data;
     CREATE TABLE IF NOT EXISTS log_data (
       log_id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT NOT NULL,
@@ -204,7 +204,7 @@ export async function getCurrentUser(db: SQLiteDatabase): Promise<UserData | nul
 export async function insertLog(db: SQLiteDatabase, log: LogData) {
   try {
     const query = `
-      INSERT INTO log_data 
+      INSERT OR REPLACE INTO log_data 
       (date, start_time, duration, medium, channel, intentional, primary_motivation, description, user_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `
@@ -212,7 +212,7 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
 
     const params = [
       log.date,
-      log.time, // maps to start_time column
+      log.start_time,
       log.duration,
       log.medium,
       log.channel,
@@ -220,13 +220,56 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
       log.primary_motivation,
       log.description,
       id,
-    ]
+    ];
 
-    await db.runAsync(query, params)
-    console.log('Log inserted successfully')
+    await db.runAsync(query, params);
+
+    console.log('Log inserted successfully');
   } catch (error) {
-    console.error('Failed to insert log:', error)
-    throw error
+    console.error('Failed to insert log:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a user's log to the database
+ * 
+ * @param db - The open SQLite database
+ * @param log - The user's log to be updated in the database
+ */
+export async function updateLog(db: SQLiteDatabase, log: LogData) {
+  try {
+    if(!log.log_id){
+      throw Error("no log_id present")
+    }
+    const query = `
+      UPDATE log_data SET
+      date = ?, start_time = ?, duration = ?, medium = ?, channel = ?, 
+      intentional = ?, primary_motivation = ?, description = ?, user_id = ?
+      WHERE log_id = ?;
+    `;
+
+    const id = await AsyncStorage.getItem('pawse.currentUserId')
+
+    const params = [
+      log.date,
+      log.start_time,
+      log.duration,
+      log.medium,
+      log.channel,
+      log.intentional,
+      log.primary_motivation,
+      log.description,
+      id,
+      log.log_id,
+    ];
+
+    await db.runAsync(query, params);
+
+    console.log('Log inserted successfully');
+  } catch (error) {
+    console.error('Failed to insert log:', error);
+    throw error;
   }
 }
 
@@ -286,5 +329,72 @@ export async function getLogsByUserDate(
   } catch (error) {
     console.error('Failed to get logs by user:', error)
     throw error
+  }
+}
+
+/**
+ * Get a log based on its ID
+ * 
+ * @param db - The open SQLite database
+ * @param log_id - The log's ID
+ * @returns Array of log entries
+ */
+export async function getLogByLogID(
+  db: SQLiteDatabase,
+  log_id: number
+): Promise<LogData | null> {
+  try {
+    let query = `
+      SELECT *
+      FROM log_data
+      WHERE log_id = ?
+    `;
+    const params: any[] = [log_id];
+
+    const log = await db.getFirstAsync<LogData>(query, params);
+
+    if(!log){
+      throw Error("Log does not exist");
+    }
+
+    console.log(
+      `Retrieved log ${log_id}`
+    );
+    return log;
+  } catch (error) {
+    console.error(`Failed to get log by id ${log_id}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a log based on its ID
+ * 
+ * @param db - The open SQLite database
+ * @param log_id - The log's ID
+ */
+export async function deleteLogByLogID(
+  db: SQLiteDatabase,
+  log_id: number
+): Promise<Boolean> {
+  try {
+    let query = `
+      DELETE FROM log_data WHERE log_id = ?
+    `;
+    const params: any[] = [log_id];
+
+    const result = await db.runAsync(query, params);
+
+    if(result.changes == 0){
+      throw Error("Log does not exist");
+    }
+
+    console.log(
+      `Deleted log ${log_id}`
+    );
+    return true;
+  } catch (error) {
+    console.error(`Failed to get log by id ${log_id}:`, error);
+    return false;
   }
 }
