@@ -85,12 +85,13 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
             media.forEach((item: LogData) => {
             console.log(item);
             // const [timePart, period] = (new Date(item.start_time)).toLocaleTimeString().split(" "); // e.g. "3:30", "PM"
-            const timeString = new Date(item.start_time).toLocaleTimeString('en-US');
+            const timeString = new Date(item.start_time).toLocaleTimeString();
+            console.log(`HERE: ${timeString}`);
             const match = timeString.match(/(\d{1,2}:\d{2}:\d{2})\s*(AM|PM)?/);
             if (match) {
             const timePart = match[1]; // "10:30"
             const period = match[2]; // "AM" or "PM"
-            console.log({ timePart, period });
+            console.log("HERE: "+{ timePart, period });
             
 
             const [hourStr, minuteStr] = timePart.split(":");
@@ -127,6 +128,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     }
 
     const usage = makeChartData(dailyMedia);
+    console.log(usage);
 
     const changeDay = (delta: number) => {
         const newDate = new Date(date);
@@ -155,6 +157,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                         {dailyMedia.map((item, index) => (
                             <TouchableOpacity key={index} onPress={() => {
                                 router.prefetch({pathname:'/edit_page', params: {log_id: item.log_id}});
+                                console.log(`Going to: ${item.log_id}`)
                                 router.push({pathname:'/edit_page', params: {log_id: item.log_id}});}} 
                                 style={{ flex: 1 }}>
                             <YStack paddingVertical={10}>

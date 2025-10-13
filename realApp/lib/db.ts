@@ -311,7 +311,7 @@ export async function getLogsByUserDate(
 
     const mapped: LogData[] = rows.map((r: any) => ({
       date: r.date,
-      time: r.start_time,
+      start_time: r.start_time,
       duration: r.duration,
       medium: r.medium,
       channel: r.channel,
@@ -319,6 +319,7 @@ export async function getLogsByUserDate(
       primary_motivation: r.primary_motivation,
       description: r.description,
       user_id: r.user_id,
+      log_id: r.log_id,
     }))
 
     console.log(
