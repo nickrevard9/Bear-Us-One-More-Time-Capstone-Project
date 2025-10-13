@@ -1,5 +1,5 @@
 // app/login.tsx
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -12,26 +12,32 @@ import { Button, Input, YStack, XStack, Text, H2 } from 'tamagui'
 import { useSQLiteContext } from 'expo-sqlite'
 import * as SecureStore from 'expo-secure-store'
 
-import { API_BASE, USE_LOCAL_STORAGE } from './_layout'// toggle between local (SQLite) and server mode
+import { API_BASE, USE_LOCAL_STORAGE } from './_layout' // toggle between local (SQLite) and server mode
 
-// 🧱 import from local DB helpers
+// Local DB helpers
 import {
   findUserByUsernameOrEmail,
   setCurrentUserId,
+  ensureAuthStateRow,
+  getAuthState,
+  markLoggedIn,
 } from '../lib/db'
 
 const LOGIN_URL = `${API_BASE}/login`
 
-
 async function saveKV(key: string, val: string) {
   if (Platform.OS === 'web') {
-    try {
-      localStorage.setItem(key, val)
-    } catch {}
+    try { localStorage.setItem(key, val) } catch {}
   } else {
-    try {
-      await SecureStore.setItemAsync(key, val)
-    } catch {}
+    try { await SecureStore.setItemAsync(key, val) } catch {}
+  }
+}
+
+async function getKV(key: string) {
+  if (Platform.OS === 'web') {
+    try { return localStorage.getItem(key) } catch { return null }
+  } else {
+    try { return await SecureStore.getItemAsync(key) } catch { return null }
   }
 }
 
@@ -42,9 +48,7 @@ async function fetchX(url: string, init: RequestInit = {}, ms = 10000) {
     const res = await fetch(url, { ...init, signal: controller.signal })
     const text = await res.text()
     let json: any = null
-    try {
-      json = JSON.parse(text)
-    } catch {}
+    try { json = JSON.parse(text) } catch {}
     return { res, text, json }
   } finally {
     clearTimeout(t)
@@ -54,10 +58,36 @@ async function fetchX(url: string, init: RequestInit = {}, ms = 10000) {
 export default function Login() {
   const db = useSQLiteContext()
   const router = useRouter()
+
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [msg, setMsg] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [bootChecking, setBootChecking] = useState(true)
+
+  // 🔐 On mount: ensure auth table, then skip if DB says logged in
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        await ensureAuthStateRow(db)
+        const state = await getAuthState(db)
+        if (!cancelled && state.is_logged_in === 1) {
+          setMsg('🔐 Session found — opening app…')
+          router.replace('/(tabs)/home')
+          return
+        }
+
+        // Optional: token presence check (does NOT auto-skip)
+        // keeps behavior strict to DB flag, preventing bounce-back after logout
+        await getKV('accessToken') // read if you want to show UI hints
+        await getKV('user')
+      } finally {
+        if (!cancelled) setBootChecking(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [db, router])
 
   const canSubmit = identifier.trim().length > 0 && password.length > 0
 
@@ -70,19 +100,12 @@ export default function Login() {
       // ---------- LOCAL (SQLite) LOGIN ----------
       if (USE_LOCAL_STORAGE) {
         const user = await findUserByUsernameOrEmail(db, identifier)
-        if (!user) {
-          setMsg('❌ No user found with that username/email.')
-          return
-        }
-
-        // simple password check for demo purposes
-        if (user.password !== password) {
-          setMsg('❌ Incorrect password.')
-          return
-        }
+        if (!user) { setMsg('❌ No user found with that username/email.'); return }
+        if (user.password !== password) { setMsg('❌ Incorrect password.'); return }
 
         await setCurrentUserId(user.id)
         await saveKV('user', JSON.stringify(user))
+        await markLoggedIn(db, String(user.id))
 
         setMsg('✅ Login successful (local)')
         Alert.alert('Welcome', `Logged in as ${user.username}`)
@@ -117,6 +140,10 @@ export default function Login() {
       if (json?.accessToken) await saveKV('accessToken', json.accessToken)
       if (json?.user) await saveKV('user', JSON.stringify(json.user))
 
+      // mark DB flag even in server mode (prefer json.user.id if present)
+      const userId = json?.user?.id ?? json?.user?.user_id ?? ''
+      if (userId) await markLoggedIn(db, String(userId))
+
       setMsg('✅ Login successful')
       router.replace('/(tabs)/home')
     } catch (e: any) {
@@ -124,7 +151,7 @@ export default function Login() {
     } finally {
       setSubmitting(false)
     }
-  }, [USE_LOCAL_STORAGE, identifier, password, router, submitting])
+  }, [USE_LOCAL_STORAGE, identifier, password, router, submitting, db])
 
   return (
     <KeyboardAvoidingView
@@ -136,63 +163,71 @@ export default function Login() {
           <YStack gap="$6" width="80%" maxWidth={520}>
             <H2 alignSelf="center">Welcome to Pawse!</H2>
 
-            <YStack gap="$3">
-              <Input
-                placeholder="Email or Username"
-                value={identifier}
-                onChangeText={setIdentifier}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                returnKeyType="next"
-              />
-              <Input
-                placeholder="Password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                returnKeyType="go"
-                onSubmitEditing={() => {
-                  if (canSubmit) onLogin()
-                }}
-              />
-              {!!msg && (
-                <Text
-                  color={msg.startsWith('✅') ? '$green10' : '$red10'}
-                  fontSize="$4"
-                >
-                  {msg}
-                </Text>
-              )}
-              {USE_LOCAL_STORAGE && (
-                <Text fontSize="$2" color="$gray10">
-                  Using local SQLite login
-                </Text>
-              )}
-            </YStack>
+            {bootChecking ? (
+              <Text fontSize="$4" color="$gray10" alignSelf="center">
+                {msg || 'Checking session…'}
+              </Text>
+            ) : (
+              <>
+                <YStack gap="$3">
+                  <Input
+                    placeholder="Email or Username"
+                    value={identifier}
+                    onChangeText={setIdentifier}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    returnKeyType="next"
+                  />
+                  <Input
+                    placeholder="Password"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                    returnKeyType="go"
+                    onSubmitEditing={() => {
+                      if (canSubmit) onLogin()
+                    }}
+                  />
+                  {!!msg && (
+                    <Text
+                      color={msg.startsWith('✅') ? '$green10' : '$red10'}
+                      fontSize="$4"
+                    >
+                      {msg}
+                    </Text>
+                  )}
+                  {USE_LOCAL_STORAGE && (
+                    <Text fontSize="$2" color="$gray10">
+                      Using local SQLite login
+                    </Text>
+                  )}
+                </YStack>
 
-            <YStack gap="$3">
-              <Button
-                onPress={onLogin}
-                disabled={!canSubmit || submitting}
-                opacity={!canSubmit || submitting ? 0.7 : 1}
-              >
-                {submitting
-                  ? USE_LOCAL_STORAGE
-                    ? 'Checking…'
-                    : 'Logging in…'
-                  : 'Log In'}
-              </Button>
-              <Link href="/register" alignSelf="center">
-                <Text
-                  fontStyle="italic"
-                  color="$blue10"
-                  hoverStyle={{ color: '$blue11' }}
-                >
-                  New to Pawse? Register here…
-                </Text>
-              </Link>
-            </YStack>
+                <YStack gap="$3">
+                  <Button
+                    onPress={onLogin}
+                    disabled={!canSubmit || submitting}
+                    opacity={!canSubmit || submitting ? 0.7 : 1}
+                  >
+                    {submitting
+                      ? USE_LOCAL_STORAGE
+                        ? 'Checking…'
+                        : 'Logging in…'
+                      : 'Log In'}
+                  </Button>
+                  <Link href="/register" alignSelf="center">
+                    <Text
+                      fontStyle="italic"
+                      color="$blue10"
+                      hoverStyle={{ color: '$blue11' }}
+                    >
+                      New to Pawse? Register here…
+                    </Text>
+                  </Link>
+                </YStack>
+              </>
+            )}
           </YStack>
         </XStack>
       </TouchableWithoutFeedback>
