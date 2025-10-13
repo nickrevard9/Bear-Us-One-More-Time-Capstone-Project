@@ -84,7 +84,15 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
         try{ 
             media.forEach((item: LogData) => {
             console.log(item);
-            const [timePart, period] = (new Date(item.start_time)).toLocaleTimeString().split(" "); // e.g. "3:30", "PM"
+            // const [timePart, period] = (new Date(item.start_time)).toLocaleTimeString().split(" "); // e.g. "3:30", "PM"
+            const timeString = new Date(item.start_time).toLocaleTimeString('en-US');
+            const match = timeString.match(/(\d{1,2}:\d{2}:\d{2})\s*(AM|PM)?/);
+            if (match) {
+            const timePart = match[1]; // "10:30"
+            const period = match[2]; // "AM" or "PM"
+            console.log({ timePart, period });
+            
+
             const [hourStr, minuteStr] = timePart.split(":");
             let hour = parseInt(hourStr, 10);
             let minute = parseInt(minuteStr, 10);
@@ -107,6 +115,8 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
             hour = (hour + 1) % 24;
             minute = 0;
             }
+        }
+            
         });
         }
         catch(error: any){
@@ -125,7 +135,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     };
 
     return (
-        <View style={{ flex: 1, padding: 25, width: "100%", margin: "0 auto" }}>
+        <View style={{ flex: 1, padding: 25, marginTop:20, width: "100%", margin: "0 auto" }}>
             {notHome && <TopBar/>}
         <XStack justifyContent="center" width="100%" alignItems="center" marginBottom={24}>
             <H3 onPress={() => changeDay(-1)}>&#8592;</H3>
