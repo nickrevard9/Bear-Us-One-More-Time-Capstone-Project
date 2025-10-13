@@ -10,12 +10,29 @@ import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
 import { getCurrentUser, markLoggedOut } from "../../lib/db";
 
+// ---------- small helpers ----------
 async function delKV(key: string) {
   if (Platform.OS === "web") {
-    try { localStorage.removeItem(key); } catch {}
+    try {
+      localStorage.removeItem(key);
+    } catch {}
   } else {
-    try { await SecureStore.deleteItemAsync(key); } catch {}
+    try {
+      await SecureStore.deleteItemAsync(key);
+    } catch {}
   }
+}
+
+// CSV cell & join
+function csvCell(s: any): string {
+  const val = String(s ?? "");
+  const needsQuotes = /[",\n]/.test(val);
+  const escaped = val.replace(/"/g, '""');
+  return needsQuotes ? `"${escaped}"` : escaped;
+}
+
+function rowsToCSV(rows: (string | number | null | undefined)[][]): string {
+  return rows.map((r) => r.map(csvCell).join(",")).join("\n");
 }
 
 export default function Profile() {
@@ -43,41 +60,135 @@ export default function Profile() {
     }, [db])
   );
 
+  // -------- Export all data (users row for current user, streaks, logs) --------
   const onExportReport = async () => {
     try {
-      const rows = [
-        ["id", "title", "created_at", "status"],
-        ["1", "My First Item", "2025-10-08 13:05:00", "completed"],
-        ["2", "Another Item", "2025-10-08 13:06:00", "in_progress"],
-        ["3", "Last Item", "2025-10-08 13:07:00", "pending"],
-      ];
+      // 1) Identify current user
+      const user = await getCurrentUser(db);
+      if (!user?.id) {
+        Alert.alert("No user", "Please log in before exporting.");
+        return;
+      }
 
-      const csv = rows
-        .map((r) =>
-          r
-            .map((cell) => {
-              const s = String(cell ?? "");
-              const needsQuotes = /[",\n]/.test(s);
-              const escaped = s.replace(/"/g, '""');
-              return needsQuotes ? `"${escaped}"` : escaped;
-            })
-            .join(",")
-        )
-        .join("\n");
+      // 2) Pull table data for this user
+      const userRows = await db.getAllAsync<any>(
+        `SELECT id, username, email, firstName, lastName, createdAt
+           FROM users
+          WHERE id = ?`,
+        [user.id]
+      );
 
-      const fileName = `report_${Date.now()}.csv`;
+      const streakRows = await db.getAllAsync<any>(
+        `SELECT streak_id, start_date_streak, num_days
+           FROM streak
+          WHERE user_id = ?
+          ORDER BY streak_id ASC`,
+        [user.id]
+      );
+
+      const logRows = await db.getAllAsync<any>(
+        `SELECT log_id, date, start_time, duration, medium, channel,
+                intentional, primary_motivation, description
+           FROM log_data
+          WHERE user_id = ?
+          ORDER BY date DESC, start_time DESC, log_id DESC`,
+        [user.id]
+      );
+
+      // 3) Build CSV with labeled sections
+      const parts: string[] = [];
+
+      // users section
+      parts.push(
+        rowsToCSV([
+          ["SECTION", "users"],
+          ["id", "username", "email", "firstName", "lastName", "createdAt"],
+        ])
+      );
+      parts.push(
+        userRows.length
+          ? rowsToCSV(
+              userRows.map((r) => [
+                r.id,
+                r.username,
+                r.email,
+                r.firstName,
+                r.lastName,
+                r.createdAt,
+              ])
+            )
+          : ""
+      );
+
+      parts.push("");
+
+      // streak section
+      parts.push(
+        rowsToCSV([["SECTION", "streak"], ["streak_id", "start_date_streak", "num_days"]])
+      );
+      parts.push(
+        streakRows.length
+          ? rowsToCSV(streakRows.map((r) => [r.streak_id, r.start_date_streak, r.num_days]))
+          : ""
+      );
+
+      parts.push("");
+
+      // log_data section
+      parts.push(
+        rowsToCSV([
+          ["SECTION", "log_data"],
+          [
+            "log_id",
+            "date",
+            "start_time",
+            "duration",
+            "medium",
+            "channel",
+            "intentional",
+            "primary_motivation",
+            "description",
+          ],
+        ])
+      );
+      parts.push(
+        logRows.length
+          ? rowsToCSV(
+              logRows.map((r) => [
+                r.log_id,
+                r.date,
+                r.start_time,
+                r.duration,
+                r.medium,
+                r.channel,
+                r.intentional,
+                r.primary_motivation,
+                r.description,
+              ])
+            )
+          : ""
+      );
+
+      const csv = parts.join("\n");
+
+      // 4) Save & share
+      const fileName = `pawse_export_${Date.now()}.csv`;
       const file = new File(Paths.document, fileName);
-
-      try { file.create(); } catch {} // ignore if already exists
-      file.write(csv); // string or TypedArray
+      try {
+        file.create();
+      } catch {}
+      file.write(csv);
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(file.uri, {
           mimeType: "text/csv",
-          dialogTitle: "Export Report",
+          dialogTitle: "Export Pawse Data",
         });
       } else {
-        Alert.alert("CSV saved", `Saved to:\n${file.uri}`);
+        Alert.alert(
+          "CSV saved",
+          `Saved to:\n${file.uri}\n\nRows exported:\nusers: ${userRows.length}\nstreak: ${streakRows.length}\nlogs: ${logRows.length}`
+        );
       }
     } catch (err: any) {
       console.error("Export error:", err);
@@ -85,18 +196,15 @@ export default function Profile() {
     }
   };
 
+  // -------- Logout: clear DB flag + any stored session and replace route --------
   const onLogout = useCallback(async () => {
     try {
-      // Flip DB flag + clear any stored session
       await markLoggedOut(db);
       await delKV("user");
       await delKV("accessToken");
 
-      // Update UI immediately (in case there's a frame before navigation)
       setDisplayName("Your Name");
-
-      // Replace so there's no "back" into the tabs
-      router.replace("/login");
+      router.replace("/login"); // prevents "back" into tabs
     } catch (e: any) {
       Alert.alert("Logout failed", e?.message ?? "Unknown error");
     }
