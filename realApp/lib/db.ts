@@ -1,7 +1,9 @@
+// lib/db.ts
 import { type SQLiteDatabase } from 'expo-sqlite'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-// Abstraction for Log Data
+// ---------- Data Models ----------
+
 export interface LogData {
   log_id?: number;
   date: string;
@@ -16,17 +18,24 @@ export interface LogData {
 }
 
 export interface UserData {
-  id?: string;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  password: string;
-  createdAt: Date;
+  id?: string
+  username: string
+  email: string
+  firstName: string
+  lastName: string
+  password: string
+  createdAt: Date
 }
 
+export interface AuthState {
+  current_user_id: string | null
+  is_logged_in: number // 0 or 1
+}
+
+// ---------- DB Init ----------
+
 export async function initDb(db: SQLiteDatabase) {
-  await db.execAsync('PRAGMA journal_mode = WAL;');
+  await db.execAsync('PRAGMA journal_mode = WAL;')
 
   // Users table
   await db.execAsync(`
@@ -39,7 +48,7 @@ export async function initDb(db: SQLiteDatabase) {
       password TEXT,
       createdAt TEXT NOT NULL
     );
-  `);
+  `)
 
   // Streak table
   await db.execAsync(`
@@ -51,9 +60,9 @@ export async function initDb(db: SQLiteDatabase) {
       FOREIGN KEY (user_id) REFERENCES users(id)
         ON DELETE SET NULL ON UPDATE RESTRICT
     );
-  `);
+  `)
 
-  // Log data table
+  // Log data table (fresh each init; keep if you prefer)
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS log_data (
       log_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,16 +71,30 @@ export async function initDb(db: SQLiteDatabase) {
       duration TEXT NOT NULL,
       medium TEXT NOT NULL,
       channel TEXT NOT NULL,
-      intentional INTEGER NOT NULL, 
+      intentional INTEGER NOT NULL,
       primary_motivation TEXT NOT NULL,
-      description TEXT NOT NULL, 
+      description TEXT NOT NULL,
       user_id TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES users(id)
         ON DELETE CASCADE ON UPDATE RESTRICT
     );
-  `);
+  `)
+
+  // Auth/session state (single row)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS auth_state (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      current_user_id TEXT,
+      is_logged_in INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (current_user_id) REFERENCES users(id)
+        ON DELETE SET NULL ON UPDATE RESTRICT
+    );
+    INSERT OR IGNORE INTO auth_state (id, is_logged_in) VALUES (1, 0);
+  `)
 }
 
+// ---------- Helpers (Users) ----------
 
 function randomId() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
@@ -104,11 +127,12 @@ export async function addLocalUser(db: SQLiteDatabase, user: UserData) {
   return { id, ...user }
 }
 
+// Maintain a copy in AsyncStorage (legacy usage in your code)
 export async function setCurrentUserId(id: string) {
   await AsyncStorage.setItem('pawse.currentUserId', id)
 }
 
-// lib/db.ts (excerpt)
+// Find user by username/email (case-insensitive)
 export async function findUserByUsernameOrEmail(db: SQLiteDatabase, ident: string) {
   const id = ident.trim().toLowerCase()
   const row = await db.getFirstAsync(
@@ -118,14 +142,64 @@ export async function findUserByUsernameOrEmail(db: SQLiteDatabase, ident: strin
   return row ?? null
 }
 
+// ---------- Auth State Helpers ----------
 
-// ******* MAKING LOGS ******** //
+export async function ensureAuthStateRow(db: SQLiteDatabase) {
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS auth_state (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      current_user_id TEXT,
+      is_logged_in INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (current_user_id) REFERENCES users(id)
+        ON DELETE SET NULL ON UPDATE RESTRICT
+    );
+    INSERT OR IGNORE INTO auth_state (id, is_logged_in) VALUES (1, 0);
+  `)
+}
+
+export async function getAuthState(db: SQLiteDatabase): Promise<AuthState> {
+  const row = await db.getFirstAsync<AuthState>(
+    'SELECT current_user_id, is_logged_in FROM auth_state WHERE id = 1'
+  )
+  return row ?? { current_user_id: null, is_logged_in: 0 }
+}
+
+export async function markLoggedIn(db: SQLiteDatabase, userId: string) {
+  await db.runAsync(
+    'UPDATE auth_state SET current_user_id = ?, is_logged_in = 1, updated_at = datetime("now") WHERE id = 1',
+    [userId]
+  )
+  await AsyncStorage.setItem('pawse.currentUserId', userId)
+}
+
+export async function markLoggedOut(db: SQLiteDatabase) {
+  await db.runAsync(
+    'UPDATE auth_state SET current_user_id = NULL, is_logged_in = 0, updated_at = datetime("now") WHERE id = 1'
+  )
+  await AsyncStorage.removeItem('pawse.currentUserId')
+  // optional: clear cached user/token you store elsewhere
+  await AsyncStorage.removeItem('user')
+  await AsyncStorage.removeItem('accessToken')
+}
+
+export async function getCurrentUserId(): Promise<string | null> {
+  return await AsyncStorage.getItem('pawse.currentUserId')
+}
+
+export async function getCurrentUser(db: SQLiteDatabase): Promise<UserData | null> {
+  const id = await getCurrentUserId()
+  if (!id) return null
+  const row = await db.getFirstAsync<any>('SELECT * FROM users WHERE id = ? LIMIT 1', [id])
+  if (!row) return null
+  if (row.createdAt) row.createdAt = new Date(row.createdAt) // normalize
+  return row as UserData
+}
+
+// ---------- Logs ----------
 
 /**
  * Add a user's log to the database
- * 
- * @param db - The open SQLite database
- * @param log - The user's log to be inserted into the database
  */
 export async function insertLog(db: SQLiteDatabase, log: LogData) {
   try {
@@ -133,8 +207,7 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
       INSERT OR REPLACE INTO log_data 
       (date, start_time, duration, medium, channel, intentional, primary_motivation, description, user_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
-    `;
-
+    `
     const id = await AsyncStorage.getItem('pawse.currentUserId')
 
     const params = [
@@ -201,12 +274,8 @@ export async function updateLog(db: SQLiteDatabase, log: LogData) {
 }
 
 /**
- * Get logs for a user, optionally filtered by a specific date.
- * 
- * @param db - The open SQLite database
- * @param user_id - The user's ID
- * @param date - (Optional) A date string like "2025-10-08"
- * @returns Array of log entries
+ * Get logs for the current user, optionally filtered by a specific date.
+ * Returns data in the LogData shape (converts start_time -> time).
  */
 export async function getLogsByUserDate(
   db: SQLiteDatabase,
@@ -228,26 +297,38 @@ export async function getLogsByUserDate(
         user_id
       FROM log_data
       WHERE user_id = ?
-    `;
-    const params: any[] = [id];
+    `
+    const params: any[] = [id]
 
     if (date) {
-      query += ` AND date = ?`;
-      params.push(date);
+      query += ` AND date = ?`
+      params.push(date)
     }
 
-    query += ` ORDER BY date DESC, start_time DESC;`;
+    query += ` ORDER BY date DESC, start_time DESC;`
 
-    const rows = await db.getAllAsync<LogData>(query, params);
+    const rows = await db.getAllAsync<any>(query, params)
+
+    const mapped: LogData[] = rows.map((r: any) => ({
+      date: r.date,
+      time: r.start_time,
+      duration: r.duration,
+      medium: r.medium,
+      channel: r.channel,
+      intentional: r.intentional,
+      primary_motivation: r.primary_motivation,
+      description: r.description,
+      user_id: r.user_id,
+    }))
 
     console.log(
-      `Retrieved ${rows.length} logs for user: ${id}${date ? ` on ${date}` : ''}`
-    );
+      `Retrieved ${mapped.length} logs for user: ${id}${date ? ` on ${date}` : ''}`
+    )
 
-    return rows;
+    return mapped
   } catch (error) {
-    console.error('Failed to get logs by user:', error);
-    throw error;
+    console.error('Failed to get logs by user:', error)
+    throw error
   }
 }
 
