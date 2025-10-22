@@ -27,7 +27,7 @@ async function delKV(key: string) {
 }
 
 const onNotificationTest = () => {
-  scheduleNotification(3, '🔔 Test Notification 🔔', 'This is a notification!')
+  scheduleNotification(3, '🔔 Test Notification 🔔', 'This is a notification!', true)
     .catch(err => Alert.alert('Notifications', err?.message ?? 'Failed to schedule'));
 };
 
@@ -212,7 +212,7 @@ export default function Profile() {
       await delKV("accessToken");
 
       setDisplayName("Your Name");
-      router.replace("/login"); // prevents "back" into tabs
+      router.replace("/new user"); // prevents "back" into tabs
     } catch (e: any) {
       Alert.alert("Logout failed", e?.message ?? "Unknown error");
     }
