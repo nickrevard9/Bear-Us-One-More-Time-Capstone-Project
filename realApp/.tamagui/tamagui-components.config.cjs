@@ -24563,19 +24563,21 @@ var SheetImplementationCustom = import_react25.default.forwardRef(function(props
       type: "spring",
       ...animationConfig
     }));
-  }), isAbleToPosition = !(disableAnimation || !frameSize || !screenSize || isHidden2 || hasntMeasured && !open);
+  });
   useIsomorphicLayoutEffect(() => {
-    hasntMeasured && screenSize && frameSize && (at.current = screenSize, animatedNumber.setValue(screenSize, {
-      type: "timing",
-      duration: 0
-    }, () => {
-      setTimeout(() => {
-        setDisableAnimation(false);
-      }, 10);
-    }));
-  }, [hasntMeasured, screenSize, frameSize]), useIsomorphicLayoutEffect(() => {
-    isAbleToPosition && (animateTo(position), position === -1 && (scrollBridge.scrollLock = false, scrollBridge.scrollStartY = -1));
-  }, [isAbleToPosition, position]);
+    if (hasntMeasured && screenSize && frameSize) {
+      at.current = screenSize, animatedNumber.setValue(screenSize, {
+        type: "timing",
+        duration: 0
+      }, () => {
+        setTimeout(() => {
+          setDisableAnimation(false);
+        }, 10);
+      });
+      return;
+    }
+    disableAnimation || !frameSize || !screenSize || isHidden2 || hasntMeasured && !open || (animateTo(position), position === -1 && (scrollBridge.scrollLock = false, scrollBridge.scrollStartY = -1));
+  }, [hasntMeasured, disableAnimation, isHidden2, frameSize, screenSize, open, position]);
   const disableDrag = props.disableDrag ?? controller?.disableDrag, themeName = (0, import_core9.useThemeName)(), [isDragging, setIsDragging] = import_react25.default.useState(false), panResponder = import_react25.default.useMemo(() => {
     if (disableDrag || !frameSize || isShowingInnerSheet) return;
     const minY = positions[0];

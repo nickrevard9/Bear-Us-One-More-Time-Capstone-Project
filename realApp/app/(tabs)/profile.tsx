@@ -9,6 +9,9 @@ import * as SecureStore from "expo-secure-store";
 import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
 import { getCurrentUser, markLoggedOut } from "../../lib/db";
+import { scheduleNotification } from '../../lib/notifications';
+import { Bell } from '@tamagui/lucide-icons'; // ⬅️ add at top with other imports
+
 
 // ---------- small helpers ----------
 async function delKV(key: string) {
@@ -22,6 +25,11 @@ async function delKV(key: string) {
     } catch {}
   }
 }
+
+const onNotificationTest = () => {
+  scheduleNotification(3, '🔔 Test Notification 🔔', 'This is a notification!')
+    .catch(err => Alert.alert('Notifications', err?.message ?? 'Failed to schedule'));
+};
 
 // CSV cell & join
 function csvCell(s: any): string {
@@ -244,8 +252,16 @@ export default function Profile() {
           </Button>
 
           <Separator marginVertical={10} />
+          <Button icon={Bell} onPress={onNotificationTest}>
+            Notification Test
+          </Button>
+
         </Group>
       </YStack>
     </XStack>
   );
 }
+function sleep(arg0: number) {
+  throw new Error("Function not implemented.");
+}
+
