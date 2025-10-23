@@ -1,17 +1,33 @@
 // app/(tabs)/profile.tsx
 import React, { useCallback, useState } from "react";
 import { Alert, Platform } from "react-native";
-import { Button, YStack, XStack, H2, Image, Group, Separator } from "tamagui";
-import { CreditCard, Download, LogOut, Settings } from "@tamagui/lucide-icons";
+import {
+  Button,
+  YStack,
+  XStack,
+  H2,
+  H4,
+  Image,
+  Group,
+  Separator,
+  Text,
+  Progress,
+} from "tamagui";
+import {
+  CreditCard,
+  Download,
+  LogOut,
+  Settings,
+  Bell,
+  Flame,
+} from "@tamagui/lucide-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import * as SecureStore from "expo-secure-store";
 import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
 import { getCurrentUser, markLoggedOut } from "../../lib/db";
-import { scheduleNotification } from '../../lib/notifications';
-import { Bell } from '@tamagui/lucide-icons'; // ⬅️ add at top with other imports
-
+import { scheduleNotification } from "../../lib/notifications";
 
 // ---------- small helpers ----------
 async function delKV(key: string) {
@@ -27,8 +43,9 @@ async function delKV(key: string) {
 }
 
 const onNotificationTest = () => {
-  scheduleNotification(3, '🔔 Test Notification 🔔', 'This is a notification!')
-    .catch(err => Alert.alert('Notifications', err?.message ?? 'Failed to schedule'));
+  scheduleNotification(3, "🔔 Test Notification 🔔", "This is a notification!").catch(
+    (err) => Alert.alert("Notifications", err?.message ?? "Failed to schedule")
+  );
 };
 
 // CSV cell & join
@@ -38,7 +55,6 @@ function csvCell(s: any): string {
   const escaped = val.replace(/"/g, '""');
   return needsQuotes ? `"${escaped}"` : escaped;
 }
-
 function rowsToCSV(rows: (string | number | null | undefined)[][]): string {
   return rows.map((r) => r.map(csvCell).join(",")).join("\n");
 }
@@ -47,9 +63,10 @@ export default function Profile() {
   const router = useRouter();
   const db = useSQLiteContext();
 
-  const [displayName, setDisplayName] = useState<string>("Your Name");
+  const [displayName, setDisplayName] = useState("Your Name");
+  const [streakDays, setStreakDays] = useState<number>(0);
 
-  // Refresh the name every time this tab gains focus
+  // refresh display name + streak when tab focused
   useFocusEffect(
     useCallback(() => {
       (async () => {
@@ -58,91 +75,69 @@ export default function Profile() {
           if (user) {
             const full = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
             setDisplayName(full || user.username || user.email || "Your Name");
+
+            // streak query
+            const streak = await db.getFirstAsync<any>(
+              `SELECT num_days
+                 FROM streak
+                WHERE user_id = ?
+             ORDER BY streak_id DESC
+                LIMIT 1`,
+              [user.id]
+            );
+            //setStreakDays(streak?.num_days ?? 0);
+            setStreakDays(3);
           } else {
             setDisplayName("Your Name");
+            setStreakDays(0);
           }
         } catch {
           setDisplayName("Your Name");
+          setStreakDays(0);
         }
       })();
     }, [db])
   );
 
-  // -------- Export all data (users row for current user, streaks, logs) --------
+  // -------- Export all data --------
   const onExportReport = async () => {
     try {
-      // 1) Identify current user
       const user = await getCurrentUser(db);
       if (!user?.id) {
         Alert.alert("No user", "Please log in before exporting.");
         return;
       }
 
-      // 2) Pull table data for this user
       const userRows = await db.getAllAsync<any>(
-        `SELECT id, username, email, firstName, lastName, createdAt
-           FROM users
-          WHERE id = ?`,
+        `SELECT id, username, email, firstName, lastName, createdAt FROM users WHERE id = ?`,
         [user.id]
       );
-
       const streakRows = await db.getAllAsync<any>(
-        `SELECT streak_id, start_date_streak, num_days
-           FROM streak
-          WHERE user_id = ?
-          ORDER BY streak_id ASC`,
+        `SELECT streak_id, start_date_streak, num_days FROM streak WHERE user_id = ? ORDER BY streak_id ASC`,
         [user.id]
       );
-
       const logRows = await db.getAllAsync<any>(
-        `SELECT log_id, date, start_time, duration, medium, channel,
-                intentional, primary_motivation, description
+        `SELECT log_id, date, start_time, duration, medium, channel, intentional, primary_motivation, description
            FROM log_data
           WHERE user_id = ?
           ORDER BY date DESC, start_time DESC, log_id DESC`,
         [user.id]
       );
 
-      // 3) Build CSV with labeled sections
       const parts: string[] = [];
-
-      // users section
       parts.push(
         rowsToCSV([
           ["SECTION", "users"],
           ["id", "username", "email", "firstName", "lastName", "createdAt"],
         ])
       );
-      parts.push(
-        userRows.length
-          ? rowsToCSV(
-              userRows.map((r) => [
-                r.id,
-                r.username,
-                r.email,
-                r.firstName,
-                r.lastName,
-                r.createdAt,
-              ])
-            )
-          : ""
-      );
-
+      parts.push(rowsToCSV(userRows.map((r) => Object.values(r))));
       parts.push("");
-
-      // streak section
       parts.push(
         rowsToCSV([["SECTION", "streak"], ["streak_id", "start_date_streak", "num_days"]])
       );
-      parts.push(
-        streakRows.length
-          ? rowsToCSV(streakRows.map((r) => [r.streak_id, r.start_date_streak, r.num_days]))
-          : ""
-      );
-
+      parts.push(rowsToCSV(streakRows.map((r) => Object.values(r))));
       parts.push("");
-
-      // log_data section
       parts.push(
         rowsToCSV([
           ["SECTION", "log_data"],
@@ -159,27 +154,9 @@ export default function Profile() {
           ],
         ])
       );
-      parts.push(
-        logRows.length
-          ? rowsToCSV(
-              logRows.map((r) => [
-                r.log_id,
-                r.date,
-                r.start_time,
-                r.duration,
-                r.medium,
-                r.channel,
-                r.intentional,
-                r.primary_motivation,
-                r.description,
-              ])
-            )
-          : ""
-      );
-
+      parts.push(rowsToCSV(logRows.map((r) => Object.values(r))));
       const csv = parts.join("\n");
 
-      // 4) Save & share
       const fileName = `pawse_export_${Date.now()}.csv`;
       const file = new File(Paths.document, fileName);
       try {
@@ -204,15 +181,14 @@ export default function Profile() {
     }
   };
 
-  // -------- Logout: clear DB flag + any stored session and replace route --------
+  // -------- Logout --------
   const onLogout = useCallback(async () => {
     try {
       await markLoggedOut(db);
       await delKV("user");
       await delKV("accessToken");
-
       setDisplayName("Your Name");
-      router.replace("/login"); // prevents "back" into tabs
+      router.replace("/login");
     } catch (e: any) {
       Alert.alert("Logout failed", e?.message ?? "Unknown error");
     }
@@ -221,17 +197,36 @@ export default function Profile() {
   return (
     <XStack flex={1} justifyContent="center" alignItems="center">
       <YStack gap="$8" width="100%">
-        <YStack gap="$3">
-          <H2 alignSelf="center">{displayName}</H2>
+        {/* profile section */}
+        <YStack gap="$3" alignItems="center">
+          <H2>{displayName}</H2>
           <Image
             source={require("../../assets/images/pat-neff.png")}
             width={120}
             height={120}
             borderRadius={60}
-            alignSelf="center"
           />
+
+          {/* streak visual */}
+          <YStack alignItems="center" marginTop="$2">
+            <XStack alignItems="center" gap="$2">
+              <Flame color="orange" size={22} />
+              <H4>{streakDays}-day streak</H4>
+            </XStack>
+            <Progress
+              value={(streakDays % 5) * (100 / 5)}
+              width={200}
+              marginTop="$2"
+            >
+              <Progress.Indicator backgroundColor="orange" />
+            </Progress>
+            <Text fontSize="$2" color="$gray10">
+              Keep it going!
+            </Text>
+          </YStack>
         </YStack>
 
+        {/* buttons */}
         <Group>
           <Separator marginVertical={10} />
           <Button icon={CreditCard}>Edit Profile</Button>
@@ -255,13 +250,8 @@ export default function Profile() {
           <Button icon={Bell} onPress={onNotificationTest}>
             Notification Test
           </Button>
-
         </Group>
       </YStack>
     </XStack>
   );
 }
-function sleep(arg0: number) {
-  throw new Error("Function not implemented.");
-}
-
