@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {StyleSheet, Platform, TouchableOpacity, TouchableWithoutFeedback, Switch, ScrollView, Alert} from 'react-native';
-import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, 
- Popover } from "tamagui";
+import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, Select, Popover } from "tamagui";
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Calendar } from "@/components/calendar";
 import { TimePicker } from "@/components/timepicker";
@@ -39,6 +38,13 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     const [medium, setMedium] = useState('');
 
     const [dateError, setDateError] = useState(false);
+    const [mediumError, setMediumError] = useState(false);
+
+    const [channelError, setChannelError] = useState(false);
+
+    const [motivationError, setMotivationError] = useState(false);
+    const [descriptionError, setDescriptionError] = useState(false);
+
 
     // Dropdown options for mediums
     const mediums = [
@@ -140,6 +146,26 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
     // Handle form submission: insert or update log
     const handleSubmit = async () => {
+        if(dateError){
+            Alert.alert("Please fix date errors before submitting");
+            return;
+        }
+        if(medium === ""){
+            setMediumError(true);
+        }
+        if(channel === ""){
+            setChannelError(true);
+        }
+        if(primaryMotivation === ""){
+            setMotivationError(true);
+        }   
+        if(description === ""){
+            setDescriptionError(true);
+        }
+        if(medium === "" || channel === "" || primaryMotivation === "" || description === ""){
+            Alert.alert("Please fill in all required fields before submitting");
+            return;
+        }
         const log: LogData = {
             start_date: start_date.toISOString(),
             end_date: end_date.toISOString(), // Format as HH:MM:SS
@@ -205,36 +231,11 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             <ScrollView paddingBottom="$4">
             <YStack justifyContent="left">
 
-                {/* Date Picker */}
-                {/* <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
-                    <Label>Date</Label>
-                    <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
-                        <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-                        <Popover.Trigger asChild>
-                            <Input
-                                value={date.toDateString()}
-                                editable={false}
-                                onPress={() => setShowDatePicker(true)}
-                                style={{ width: 150 }}
-                            />
-                        </Popover.Trigger>
-                        </TouchableOpacity>
-                        <Popover.Content>
-                            <Calendar
-                                onclick={function (selected: DateType): void {
-                                    setDate(selected as Date);
-                                    setShowDatePicker(false);
-                                }}
-                            />
-                        </Popover.Content>
-                    </Popover>
-                </XStack> */}
-
                 {/* Time Picker */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
                     <Label>Started</Label>
                     <TouchableOpacity background="none" onPress={() => setShowTimePicker(true)}>
-                        <Input onPress={() => setShowTimePicker(true)} value={start_date.toLocaleString('en-US', {
+                        <Input color={dateError? "red" : "none"} onPress={() => setShowTimePicker(true)} value={start_date.toLocaleString('en-US', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -256,7 +257,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     <Label>Ended</Label>
                     <TouchableOpacity activeOpacity={1} onPress={() => setShowDurationPicker(true)}>
                         <YStack>
-                        <Input onPress={() => setShowDurationPicker(true)} value={end_date.toLocaleString('en-US', {
+                        <Input color={dateError? "red" : "none"} onPress={() => setShowDurationPicker(true)} value={end_date.toLocaleString('en-US', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -280,27 +281,38 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
                 {/* Medium Dropdown */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                <Label style={{ minWidth: 90 }}>Medium</Label>
+                <Label style={{ minWidth: 90 }}>Media Type</Label>
+                <YStack>
                     <Dropdown
                             data={mediums}
                             placeholder='Select Medium'
                             value={medium}
-                            onChange={item => setMedium(item.value)}
+                            onChange={item => {setMedium(item.value); setMediumError(false);}}
                             style={{ width: 200, alignContent: 'center' }}
                             labelField={'label'}
                             valueField={'value'}
-                            placeholderStyle={{ color: '#888', fontSize: 16 }}
-                            selectedTextProps={{ style: { color: '#888', fontSize: 16 } }}
+                            placeholderStyle={{ color: mediumError? "red" : '#888', fontSize: 16 }}
+                            selectedTextProps={{ style: { color: mediumError? "red" : '#888', fontSize: 16 } }}
                     />
+                    <Text paddingTop={5} style={{ color: mediumError ? 'red' : 'black', marginLeft: 10 }}>
+                        {mediumError ? 'Must have a Media Type' : ''}
+                    </Text>
+                    </YStack>
                 </XStack>
 
                 {/* Channel Input */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
                 <Label >Channel</Label>
-                <Input
-                    onChangeText={setChannel} value={channel}
-                    placeholder="Enter Channel"
-                />
+                <YStack>
+                    <Input
+                        width={200}
+                        onChangeText={(value) => {setChannel(value); setChannelError(false)}} value={channel}
+                        placeholder="Enter Channel"
+                    />
+                    <Text style={{ color: channelError ? 'red' : 'black', marginLeft: 10 }}>
+                        {channelError ? 'Must have a motivation' : ''}
+                    </Text>
+                </YStack>
                 </XStack>
 
                 {/* Intentional Switch */}
@@ -315,23 +327,34 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 {/* Primary Motivation Dropdown */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
                 <Label>Primary Motivation</Label>
+                <YStack>
                 <Dropdown
                     maxHeight={300}
                     data={motivations}
                     style={{ width: 200, alignContent: 'center' }}
                     placeholder='Select Motivation'
                     value={primaryMotivation}
-                    onChange={item => { setPrimaryMotivation(item.value)}}
-                    placeholderStyle={{ color: '#888', fontSize: 16 }}
-                    selectedTextProps={{ style: { color: '#888', fontSize: 16 } }}
+                    onChange={item => { setPrimaryMotivation(item.value); setMotivationError(false); }}
+                    placeholderStyle={{ color: motivationError? "red" : '#888', fontSize: 16 }}
+                    selectedTextProps={{ style: { color: motivationError? "red" : '#888', fontSize: 16 } }}
                     labelField={'label'}
                     valueField={'value'}
                 />
+                <Text paddingTop={5} style={{ color: motivationError ? 'red' : 'black', marginLeft: 10 }}>
+                        {motivationError ? 'Must have a motivation' : ''}
+                </Text>
+                    </YStack>
                 </XStack>
+                
 
                 {/* Description TextArea */}
                 <YStack paddingBottom="$4">
-                <Label >Description</Label>
+                    <XStack alignItems="center" gap="$4" paddingBottom="$2">
+                <Label >Description</Label> 
+                <Text style={{ color: descriptionError ? 'red' : 'black', marginLeft: 10 }}>
+                {descriptionError ? 'Must have a description' : ''}
+                </Text>
+                </XStack>
                 <TextArea
                     size="$4" borderWidth={2}
                     width="100%"
@@ -339,7 +362,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     height={250}
                     placeholder="Enter description"
                     value={description}
-                    onChangeText={setDescription}
+                    onChangeText={(value) => {setDescription(value); setDescriptionError(false)}}
                 />
                 </YStack>
 
