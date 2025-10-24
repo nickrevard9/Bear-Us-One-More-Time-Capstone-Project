@@ -23,8 +23,10 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     console.log(date.toDateString());
     const [dailyMedia, setDailyMedia] = useState<LogData[]>([]);
 
+    const incrementDate = new Date();
+    incrementDate.setHours(date.getHours() + 1);
     const recommendedMedia = [
-        { channel: "Amazon Prime", medium: "Phone", duration: "2:01:00" },
+        { channel: "Amazon Prime", medium: "Phone", start_date: (new Date().toISOString()), end_date: incrementDate.toISOString()},
     ];
 
     const formatDate = (date: Date) =>
@@ -37,7 +39,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     async function retrieveLogs() {
         try {
             if (USE_LOCAL_STORAGE) {
-                const media = await getLogsByUserDate(db, date.toLocaleDateString());
+                const media = await getLogsByUserDate(db, date);
                 setDailyMedia(media);
             } else {
                 // TODO: Fetch from API
@@ -53,17 +55,24 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     }, [date])
     );
 
+    function getDurationBetweenDates(date1: Date, date2: Date): number {
+        // Get the difference in milliseconds
+        const diffInMs = Math.abs(date2.getTime() - date1.getTime());
 
-    // Used to format the duration for the Daily Media Report and Recommended sections
-    function formatDuration(duration: string): string {
-        // Expects 'HH:MM:SS' or 'H:MM:SS'
-        const [h, m] = duration.split(':');
-        const hours = parseInt(h, 10);
-        const mins = parseInt(m, 10);
-        let result = '';
-        if (hours > 0) result += `${hours} hr${hours > 1 ? 's' : ''}`;
-        if (mins > 0) result += `${result ? ' ' : ''}${mins} min${mins > 1 ? 's' : ''}`;
-        return result || '0 mins';
+        // Convert milliseconds to minutes
+        const diffInMinutes = diffInMs / (1000 * 60);
+
+        return diffInMinutes;
+    }
+
+    function convertMinutesToHMS(totalMinutes: number): string {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = Math.floor(totalMinutes % 60);
+
+        const hr = hours > 0 ? `${hours} hr ` : '';
+        const mins = minutes > 0 ? `${minutes} mins` : '';
+
+        return `${hr} ${mins}`;
     }
 
     const TopBar = () => {
@@ -84,14 +93,21 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
         try{ 
             media.forEach((item: LogData) => {
             console.log(item);
-            // const [timePart, period] = (new Date(item.start_time)).toLocaleTimeString().split(" "); // e.g. "3:30", "PM"
-            const timeString = new Date(item.start_time).toLocaleTimeString();
-            console.log(`HERE: ${timeString}`);
+            // Get start time and date
+            const timeString = new Date(item.start_date).toLocaleTimeString();
+            
             const match = timeString.match(/(\d{1,2}:\d{2}:\d{2})\s*(AM|PM)?/);
+
             if (match) {
-            const timePart = match[1]; // "10:30"
-            const period = match[2]; // "AM" or "PM"
-            console.log("HERE: "+{ timePart, period });
+            let timePart = match[1]; // "10:30"
+            let period = match[2]; // "AM" or "PM"
+
+            const start = new Date(item.start_date).getDay();
+            const today = date.getDay();
+            if (today != start) {
+                timePart = "12:00";
+                period = "AM";
+            }
             
 
             const [hourStr, minuteStr] = timePart.split(":");
@@ -103,8 +119,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
             if (period === "AM" && hour === 12) hour = 0;
 
             // Duration in minutes
-            const [durH, durM] = item.duration.split(":");
-            let remaining = parseInt(durH, 10) * 60 + parseInt(durM, 10);
+            let remaining = getDurationBetweenDates(new Date(item.start_date), new Date(item.end_date));
 
             // Distribute across hours
             while (remaining > 0) {
@@ -113,7 +128,10 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
 
             // Move to next hour
             remaining -= minutesThisHour;
-            hour = (hour + 1) % 24;
+            if (hour === 23) {
+                break; // Stop if we reach the end of the day
+            }
+            hour = hour + 1;
             minute = 0;
             }
         }
@@ -163,7 +181,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                             <YStack paddingVertical={10}>
                             <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
                                 <Text>{item.channel}</Text>
-                                <Text>{formatDuration(item.duration)}</Text>
+                                <Text>{convertMinutesToHMS(getDurationBetweenDates(new Date(item.start_date), new Date(item.end_date)))}</Text>
                             </XStack>
                             <XStack justifyContent="space-between" paddingHorizontal={20} fontSize={11} opacity={0.7}>
                                 <Text>{item.medium}</Text>
@@ -192,7 +210,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                                     <YStack key={index}>
                                         <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
                                             <Text>{item.channel}</Text>
-                                            <Text>{formatDuration(item.duration)}</Text>
+                                            <Text>{convertMinutesToHMS(getDurationBetweenDates(new Date(item.start_date), new Date(item.end_date)))}</Text>
                                         </XStack>
                                         <XStack justifyContent="space-between" paddingHorizontal={20} fontSize={11} opacity={0.7}>
                                             <Text>{item.medium}</Text>

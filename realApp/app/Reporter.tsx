@@ -27,20 +27,18 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     const [editMode, setEditMode] = useState(false);
     
     // States for date and time pickers
-    const [date, setDate] = useState<Date>(new Date());
-    const [showDatePicker, setShowDatePicker] = useState(false);
-
-    const [time, setTime] = useState<Date>(new Date("2023-10-05T12:30:00"));
+    const [start_date, setStartDate] = useState<Date>(new Date("2023-10-05T12:30:00"));
     const [showTimePicker, setShowTimePicker] = useState(false);
 
-    const [duration, setDuration] = useState(new Date("2023-10-05T1:00:00"));
+    const [end_date, setEndDate] = useState(new Date("2023-10-05T1:00:00"));
     const [showDurationPicker, setShowDurationPicker] = useState(false);
 
     // Other form fields
     const [description, setDescription] = useState('');
     const [channel, setChannel] = useState('');
     const [medium, setMedium] = useState('');
-    const [focus, setIsFocus] = useState(false);
+
+    const [dateError, setDateError] = useState(false);
 
     // Dropdown options for mediums
     const mediums = [
@@ -76,6 +74,17 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         { label: "Ambient", value: "Ambient" },
         { label: "Other", value: "Other" },
     ];
+    
+    // Function to round date to  nearest 5 or 10 minutes
+    function roundToNearest5(date: Date): Date {
+        const ms = 1000 * 60 * 5; // 5 minutes in milliseconds
+        return new Date(Math.round(date.getTime() / ms) * ms);
+    }
+
+    // Function checking if start and end dates are valid
+    function validateDates(start_date: Date, end_date: Date) {
+        start_date > end_date ? setDateError(true) : setDateError(false);
+    }
 
     // Function to load an existing log from the database
     async function obtainLog(log_id: number) {
@@ -86,15 +95,12 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         console.log(`Got the log ${log_id}`)
         setEditMode(true); // Set edit mode since this is an existing log
         setChannel(log.channel);
-        setDuration(new Date("2023-10-05T"+log.duration));
-        setTime(new Date(log.start_time));
+        setEndDate(new Date(log.end_date));
+        setStartDate(new Date(log.start_date));
         setDescription(log.description);
         setIsIntentional(log.intentional == 1? true : false);
         setMedium(log.medium);
         setPrimaryMotivation(log.primary_motivation);
-        const [month, day, year] = log.date.split('/');
-        const date = new Date(+year, +month - 1, +day);
-        setDate(new Date(date));
     }
 
     // useFocusEffect runs whenever this screen gains focus
@@ -110,21 +116,21 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
       } else { // Reset form fields for a new log
         setEditMode(false);
         setChannel("");
-        setDuration(new Date("2023-10-05T1:00:00"));
-        setTime(new Date("2023-10-05T12:30:00"));
+        setStartDate(roundToNearest5(new Date()));
+        const incrementedDate = new Date();
+        incrementedDate.setHours(incrementedDate.getHours() + 1);
+        setEndDate(roundToNearest5(incrementedDate));
         setDescription("");
         setIsIntentional(false);
         setMedium("");
         setPrimaryMotivation("");
-        setDate(new Date());
       }
     }, [
       logId,
       setEditMode,
       setChannel,
-      setDate,
-      setDuration,
-      setTime,
+      setEndDate,
+      setStartDate,
       setIsIntentional,
       setMedium,
       setPrimaryMotivation,
@@ -135,9 +141,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     // Handle form submission: insert or update log
     const handleSubmit = async () => {
         const log: LogData = {
-            date: date.toLocaleDateString(),
-            start_time: time.toISOString(),
-            duration: duration.toTimeString().split(' ')[0], // Format as HH:MM:SS
+            start_date: start_date.toISOString(),
+            end_date: end_date.toISOString(), // Format as HH:MM:SS
             medium,
             channel,
             intentional: isIntentional? 1 : 0,
@@ -201,7 +206,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             <YStack justifyContent="left">
 
                 {/* Date Picker */}
-                <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
+                {/* <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
                     <Label>Date</Label>
                     <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
                         <TouchableOpacity onPress={() => setShowDatePicker(true)}>
@@ -223,35 +228,52 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                             />
                         </Popover.Content>
                     </Popover>
-                </XStack>
+                </XStack> */}
 
                 {/* Time Picker */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                    <Label>Time</Label>
+                    <Label>Started</Label>
                     <TouchableOpacity background="none" onPress={() => setShowTimePicker(true)}>
-                        <Input onPress={() => setShowTimePicker(true)} value={time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} editable={false}/>
+                        <Input onPress={() => setShowTimePicker(true)} value={start_date.toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            })} editable={false}/>
                     </TouchableOpacity>
                     <DateTimePickerModal
                         isVisible={showTimePicker}
-                        mode="time"
-                        minuteInterval={30}
-                        onConfirm={(time) => {setShowTimePicker(false); setTime(time)}}
+                        mode="datetime"
+                        minuteInterval={5}
+                        onConfirm={(time) => {setShowTimePicker(false); setStartDate(time); validateDates(time, end_date);}}
                         onCancel={() => setShowTimePicker(false)}
                     />
                 </XStack>
 
                 {/* Duration Picker */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                    <Label>Duration</Label>
+                    <Label>Ended</Label>
                     <TouchableOpacity activeOpacity={1} onPress={() => setShowDurationPicker(true)}>
-                        <Input onPress={() => setShowDurationPicker(true)} value={(duration.toTimeString().split(' ')[0])} editable={false}/>
+                        <YStack>
+                        <Input onPress={() => setShowDurationPicker(true)} value={end_date.toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            })} editable={false}/>
+                            <Text style={{ color: dateError ? 'red' : 'black', marginLeft: 10 }}>
+                        {dateError ? 'End time must be after start time' : ''}
+                    </Text>
+                    </YStack>
                     </TouchableOpacity>
                     <DateTimePickerModal
                         isVisible={showDurationPicker}
-                        mode="time"
+                        mode="datetime"
+                        minuteInterval={5}
                         locale="en_GB"
-                        onConfirm={(time) => {setShowDurationPicker(false); setDuration(time)}}
-                        is24Hour={true}
+                        onConfirm={(time) => {setShowDurationPicker(false); setEndDate(time); validateDates(start_date, time);}}
                         onCancel={() => setShowDurationPicker(false)}
                     />                
                 </XStack>

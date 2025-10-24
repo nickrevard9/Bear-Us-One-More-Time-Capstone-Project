@@ -6,9 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export interface LogData {
   log_id?: number;
-  date: string;
-  start_time: string;
-  duration: string;
+  start_date: string;
+  end_date: string;
   medium: string;
   channel: string;
   intentional: number; // 1 = true, 0 = false
@@ -66,9 +65,8 @@ export async function initDb(db: SQLiteDatabase) {
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS log_data (
       log_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      date TEXT NOT NULL,
-      start_time TEXT NOT NULL,
-      duration TEXT NOT NULL,
+      start_date INTEGER NOT NULL,
+      end_date INTEGER NOT NULL,
       medium TEXT NOT NULL,
       channel TEXT NOT NULL,
       intentional INTEGER NOT NULL,
@@ -205,15 +203,14 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
   try {
     const query = `
       INSERT OR REPLACE INTO log_data 
-      (date, start_time, duration, medium, channel, intentional, primary_motivation, description, user_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+      (start_date, end_date, medium, channel, intentional, primary_motivation, description, user_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?);
     `
     const id = await AsyncStorage.getItem('pawse.currentUserId')
 
     const params = [
-      log.date,
-      log.start_time,
-      log.duration,
+      log.start_date,
+      log.end_date,
       log.medium,
       log.channel,
       log.intentional,
@@ -244,7 +241,7 @@ export async function updateLog(db: SQLiteDatabase, log: LogData) {
     }
     const query = `
       UPDATE log_data SET
-      date = ?, start_time = ?, duration = ?, medium = ?, channel = ?, 
+      start_date = ?, end_date = ?, medium = ?, channel = ?, 
       intentional = ?, primary_motivation = ?, description = ?, user_id = ?
       WHERE log_id = ?;
     `;
@@ -252,9 +249,8 @@ export async function updateLog(db: SQLiteDatabase, log: LogData) {
     const id = await AsyncStorage.getItem('pawse.currentUserId')
 
     const params = [
-      log.date,
-      log.start_time,
-      log.duration,
+      log.start_date,
+      log.end_date,
       log.medium,
       log.channel,
       log.intentional,
@@ -268,51 +264,49 @@ export async function updateLog(db: SQLiteDatabase, log: LogData) {
 
     console.log('Log inserted successfully');
   } catch (error) {
-    console.error('Failed to insert log:', error);
+    console.error('Failed to update log:', error);
     throw error;
   }
 }
 
-/**
- * Get logs for the current user, optionally filtered by a specific date.
- * Returns data in the LogData shape (converts start_time -> time).
- */
 export async function getLogsByUserDate(
   db: SQLiteDatabase,
-  date?: string
+  date?: Date
 ): Promise<LogData[]> {
   try {
     const id = await AsyncStorage.getItem('pawse.currentUserId')
     let query = `
-      SELECT 
-        log_id,
-        date,
-        start_time,
-        duration,
-        medium,
-        channel,
-        intentional,
-        primary_motivation,
-        description,
-        user_id
+      SELECT *
       FROM log_data
       WHERE user_id = ?
     `
     const params: any[] = [id]
 
     if (date) {
-      query += ` AND date = ?`
-      params.push(date)
+      // Get the local date string in YYYY-MM-DD format
+      const localYear = date.getFullYear()
+      const localMonth = String(date.getMonth() + 1).padStart(2, '0')
+      const localDay = String(date.getDate()).padStart(2, '0')
+      const localDateString = `${localYear}-${localMonth}-${localDay}`
+
+      // Filter by the local date
+      // Note that I had to union because the AND and OR logic was not working as expected
+      query += `AND date(start_date, 'localtime') = ?
+        UNION
+        SELECT *
+        FROM log_data
+        WHERE user_id = ?
+        AND date(end_date, 'localtime') = ?`
+      params.push(localDateString, id, localDateString)
     }
 
-    query += ` ORDER BY date DESC, start_time DESC;`
+    query += ` ORDER BY start_date DESC;`
 
     const rows = await db.getAllAsync<any>(query, params)
 
     const mapped: LogData[] = rows.map((r: any) => ({
-      date: r.date,
-      start_time: r.start_time,
-      duration: r.duration,
+      start_date: r.start_date,
+      end_date: r.end_date,
       medium: r.medium,
       channel: r.channel,
       intentional: r.intentional,
@@ -322,16 +316,15 @@ export async function getLogsByUserDate(
       log_id: r.log_id,
     }))
 
-    console.log(
-      `Retrieved ${mapped.length} logs for user: ${id}${date ? ` on ${date}` : ''}`
-    )
-
+    console.log(`Retrieved ${mapped.length} logs for user`)
     return mapped
   } catch (error) {
     console.error('Failed to get logs by user:', error)
     throw error
   }
 }
+
+
 
 /**
  * Get a log based on its ID
