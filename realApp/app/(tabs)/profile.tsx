@@ -87,11 +87,11 @@ export default function Profile() {
       );
 
       const logRows = await db.getAllAsync<any>(
-        `SELECT log_id, date, start_time, duration, medium, channel,
+        `SELECT log_id, start_date, ROUND(ABS((julianday(start_date) - julianday(end_date))* 24 * 60)) AS duration, medium, channel,
                 intentional, primary_motivation, description
            FROM log_data
           WHERE user_id = ?
-          ORDER BY date DESC, start_time DESC, log_id DESC`,
+          ORDER BY start_date DESC, log_id DESC`,
         [user.id]
       );
 
@@ -140,8 +140,7 @@ export default function Profile() {
           ["SECTION", "log_data"],
           [
             "log_id",
-            "date",
-            "start_time",
+            "start_date",
             "duration",
             "medium",
             "channel",
@@ -156,8 +155,7 @@ export default function Profile() {
           ? rowsToCSV(
               logRows.map((r) => [
                 r.log_id,
-                r.date,
-                r.start_time,
+                r.start_date,
                 r.duration,
                 r.medium,
                 r.channel,
