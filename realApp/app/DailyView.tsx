@@ -7,6 +7,9 @@ import { Alert, TouchableOpacity } from "react-native";
 import { useRouter, useFocusEffect }  from "expo-router"
 import { useSQLiteContext } from "expo-sqlite";
 import { Platform,  Animated, Easing } from 'react-native';
+import PanGestureHandler from 'react-native-swipe-gestures';
+import GestureRecognizer from "react-native-swipe-gestures";
+
 
 export const USE_LOCAL_STORAGE = true;
 
@@ -191,6 +194,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
             { transform: [{ translateX }] }
           ]}
         >
+            <GestureRecognizer onSwipeLeft={changeDay.bind(this, 1)} onSwipeRight={changeDay.bind(this, -1)}>
                     <YStack alignItems="center" paddingBottom={20}>
                         <ScreenTimeChart usageData={usage} />
                     </YStack>
@@ -249,6 +253,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                         )}
                         </YStack>
                     </YStack>
+                    </GestureRecognizer>
                     </Animated.View>
                 </ScrollView>
         </View>
