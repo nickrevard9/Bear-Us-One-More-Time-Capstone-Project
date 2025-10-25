@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { View, Text, XStack, H3, H6, YStack, Label, ScrollView, Button } from "tamagui";
+import { View, Text, XStack, H3, H6, YStack, Label, ScrollView, Button, useTheme } from "tamagui";
 import ScreenTimeChart from "../components/ScreenTime";
 import { Edit3, Plus } from "@tamagui/lucide-icons"
 import { getLogsByUserDate, LogData } from "../lib/db";
@@ -7,7 +7,6 @@ import { Alert, TouchableOpacity } from "react-native";
 import { useRouter, useFocusEffect }  from "expo-router"
 import { useSQLiteContext } from "expo-sqlite";
 import { Platform,  Animated, Easing } from 'react-native';
-import PanGestureHandler from 'react-native-swipe-gestures';
 import GestureRecognizer from "react-native-swipe-gestures";
 
 
@@ -19,6 +18,7 @@ interface DailyViewProps {
 }
 
 const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
+    const theme = useTheme()
     const translateX = useRef(new Animated.Value(0)).current;
     const router = useRouter();
     const db = useSQLiteContext();
@@ -91,8 +91,9 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     }
 
 
-    function makeChartData(media: LogData[]): number[] {
+    function makeChartData(media: LogData[]): {value: number, time: string, label?: string, labelTextStyle?: {}}[] {
         const data: number[] = Array.from({ length: 24 }, () => 0);
+        const formatted_data: {value: number, time:string}[] = [];
 
         try{ 
             media.forEach((item: LogData) => {
@@ -141,26 +142,36 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
         }
             
         });
+
+        formatted_data.push(...data.map((value, index) => {
+            const hourLabel = index % 24;
+            const period = hourLabel >= 12 ? "PM" : "AM";
+            const hour12 = hourLabel % 12 === 0 ? 12 : hourLabel % 12;
+            if (hourLabel % 6 === 0) {
+                return { value, time: `${hour12} ${period}`, label: `${hour12} ${period}`, labelTextStyle: { color: theme.color.get(), width: 60}};
+            }
+            return { value, time: `${hour12} ${period}` };   
+        }) );
+
         }
         catch(error: any){
             console.log(`Error: ${error.message}`);
         }
 
-        return data;
+        return formatted_data;
     }
 
     const usage = makeChartData(dailyMedia);
-    console.log(usage);
 
     const changeDay = (delta: number) => {
         // Animate out
         Animated.timing(translateX, {
         toValue: delta === -1 ? 300 : -300, // swipe left
-        duration: 300,
+        duration: 400,
         useNativeDriver: true,
         easing: Easing.out(Easing.ease),
     }).start(() => {
-      // Change content after animation out
+        // Change content after animation out
         const newDate = new Date(date);
         newDate.setDate(date.getDate() + delta);
         setDate(newDate);
@@ -171,22 +182,24 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
         // Animate it into place
         Animated.timing(translateX, {
             toValue: 0,
-            duration: 300,
+            duration: 400,
             useNativeDriver: true,
             easing: Easing.out(Easing.ease),
       }).start();
     });
-        
     };
 
     return (
         <View style={{ flex: 1, padding: 25, marginTop:20, width: "100%", margin: "0 auto" }}>
             {notHome && <TopBar/>}
+            <YStack>
         <XStack justifyContent="center" width="100%" alignItems="center" marginBottom={24}>
             <H3 onPress={() => changeDay(-1)}>&#8592;</H3>
             <H6 style={{ textAlign: "center", flex: 5 }}>{formatDate(date)}</H6>
             <H3 onPress={() => changeDay(1)}>&#8594;</H3>
         </XStack>
+        {(new Date().getDate() != date.getDate()) &&  <Button size="$2" onPress={() => setDate(new Date())}>Show Today</Button>}
+        </YStack>
 
         <ScrollView>
             <Animated.View
@@ -196,7 +209,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
         >
             <GestureRecognizer onSwipeLeft={changeDay.bind(this, 1)} onSwipeRight={changeDay.bind(this, -1)}>
                     <YStack alignItems="center" paddingBottom={20}>
-                        <ScreenTimeChart usageData={usage} />
+                        <ScreenTimeChart usageData={usage} onFocus={false}/>
                     </YStack>
                     <YStack>
                         <YStack>

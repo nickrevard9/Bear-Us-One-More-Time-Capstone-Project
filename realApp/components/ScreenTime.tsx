@@ -1,75 +1,80 @@
 import React, { useState } from "react";
 import { View, Text } from "react-native";
-import { LineChart } from "react-native-chart-kit";
+import { LineChart } from "react-native-gifted-charts";
 
 type ScreenTimeChartProps = {
-  usageData: number[];
+  usageData: { value: number; time: string }[];
+  onFocus?: boolean;
 };
 
-export default function ScreenTimeChart({ usageData }: ScreenTimeChartProps) {
-  const usage = usageData;
-  const maxValue = 100;
-
-  // Generate hourly labels
-  const hours = Array.from({ length: 24 }, (_, i) => {
-    const hour = i % 12 === 0 ? 12 : i % 12;
-    const period = i < 12 ? "AM" : "PM";
-    return `${hour}${period}`;
-  });
-
-  // Replace all labels except 12AM, 6AM, 12PM, 6PM with ""
-  const displayLabels = hours.map((h) =>
-    ["12AM", "6AM", "12PM", "6PM"].includes(h) ? h : ""
-  );
-
-//   function* yLabel() {
-//   yield* ["", midValue, maxValue];
-// }
-//   const yLabelIterator = yLabel();
-
-
-  // Format data for LineChart
-  const data = {
-    labels: displayLabels,
-    datasets: [
-      {
-        data: usage,
-      },
-      {
-        data: [maxValue], // max
-        withDots: false,
-      },
-    ],
-  };
+export default function ScreenTimeChart({usageData, onFocus} : ScreenTimeChartProps) {
+  const data = usageData;
+  const maxValue = 120;
+  const focus = onFocus? onFocus : false;
 
   return (
     <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
       <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
-        Screen Time
+        Media Usage
       </Text>
-      <LineChart
-        data={data}
-        width={350}
-        height={300}
-        fromZero
-        // segments={2}
-        // formatYLabel={() => yLabelIterator.next().value}
-        bezier
-        chartConfig={{
-          backgroundColor: "#ffffff5d",
-          backgroundGradientFrom: "#ffffff5d",
-          backgroundGradientTo: "#ffffff5d",
-          decimalPlaces: 0,
-          color: (opacity = 1) => `rgba(76, 110, 245, ${opacity})`,
-          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-          style: { borderRadius: 16 },
-          propsForBackgroundLines: { stroke: "none" },
-        }}
-        style={{
-          marginVertical: 8,
-          borderRadius: 16,
-        }}
-      />
+          <LineChart
+          areaChart
+          data={data}
+          width={320}
+          spacing={13}
+          hideDataPoints
+          color="#007423ff"
+          curved
+          thickness={2}
+          startFillColor="rgba(0, 180, 60, 0.3)"
+          endFillColor="rgba(77, 49, 9, 0.01)"
+          startOpacity={0.9}
+          endOpacity={0.2}
+          initialSpacing={0}
+          noOfSections={6}
+          maxValue={maxValue}
+          yAxisColor="white"
+          yAxisThickness={0}
+          rulesType="dashed"
+          disableScroll
+          rulesColor="gray"
+          yAxisTextStyle={{color: 'gray'}}
+          xAxisColor="lightgray"
+          pointerConfig={{
+            pointerStripHeight: 160,
+            pointerStripColor: 'lightgray',
+            pointerStripWidth: 2,
+            persistPointer: focus,
+            pointerColor: 'lightgray',
+            radius: 6,
+            pointerLabelWidth: 100,
+            pointerLabelHeight: 90,
+            activatePointersOnLongPress: false,
+            autoAdjustPointerLabelPosition: false,
+            pointerLabelComponent: items => {
+              return (
+                <View
+                  style={{
+                    height: 90,
+                    width: 100,
+                    justifyContent: 'center',
+                    marginTop: -30,
+                    marginLeft: items[0].time.split(" ")[1] == "AM"  ? 0 : -80,
+                  }}>
+                  <Text style={{color: 'white', fontSize: 14, marginBottom:6,textAlign:'center'}}>
+                    {items[0].time}
+                  </Text>
+  
+                  <View style={{paddingHorizontal:14,paddingVertical:6, borderRadius:16, backgroundColor:'white'}}>
+                    <Text style={{fontWeight: 'bold',textAlign:'center'}}>
+                      {items[0].value + " mins at " + items[0].time}
+                    </Text>
+                  </View>
+                </View>
+              );
+            },
+          }}
+        />
     </View>
   );
 }
