@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, XStack, H3, H6, YStack, Label, ScrollView, Button } from "tamagui";
 import ScreenTimeChart from "../components/ScreenTime";
 import { Edit3, Plus } from "@tamagui/lucide-icons"
@@ -6,7 +6,7 @@ import { getLogsByUserDate, LogData } from "../lib/db";
 import { Alert, TouchableOpacity } from "react-native";
 import { useRouter, useFocusEffect }  from "expo-router"
 import { useSQLiteContext } from "expo-sqlite";
-import { Platform } from 'react-native';
+import { Platform,  Animated, Easing } from 'react-native';
 
 export const USE_LOCAL_STORAGE = true;
 
@@ -16,6 +16,7 @@ interface DailyViewProps {
 }
 
 const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
+    const translateX = useRef(new Animated.Value(0)).current;
     const router = useRouter();
     const db = useSQLiteContext();
 
@@ -149,9 +150,30 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     console.log(usage);
 
     const changeDay = (delta: number) => {
+        // Animate out
+        Animated.timing(translateX, {
+        toValue: delta === -1 ? 300 : -300, // swipe left
+        duration: 300,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
+    }).start(() => {
+      // Change content after animation out
         const newDate = new Date(date);
         newDate.setDate(date.getDate() + delta);
         setDate(newDate);
+
+        // Instantly move the next content in from the right
+        translateX.setValue(delta === -1 ? -300 : 300);
+
+        // Animate it into place
+        Animated.timing(translateX, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+            easing: Easing.out(Easing.ease),
+      }).start();
+    });
+        
     };
 
     return (
@@ -164,6 +186,11 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
         </XStack>
 
         <ScrollView>
+            <Animated.View
+          style={[
+            { transform: [{ translateX }] }
+          ]}
+        >
                     <YStack alignItems="center" paddingBottom={20}>
                         <ScreenTimeChart usageData={usage} />
                     </YStack>
@@ -222,6 +249,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                         )}
                         </YStack>
                     </YStack>
+                    </Animated.View>
                 </ScrollView>
         </View>
     );
