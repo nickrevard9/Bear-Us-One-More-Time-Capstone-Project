@@ -20,6 +20,15 @@ export default function TabsLayout() {
           ),
         }}
       />
+            <Tabs.Screen
+        name="screentime"
+        options={{
+          title: 'Screen Time',
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons name={focused ? 'stats-chart' : 'stats-chart-outline'} color={color} size={size} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="report_page"
         options={{
