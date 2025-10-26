@@ -72,7 +72,7 @@ export default function Profile() {
 
       // 2) Pull table data for this user
       const userRows = await db.getAllAsync<any>(
-        `SELECT id, username, email, firstName, lastName, createdAt
+        `SELECT username, email, firstName, lastName
            FROM users
           WHERE id = ?`,
         [user.id]
@@ -87,7 +87,7 @@ export default function Profile() {
       );
 
       const logRows = await db.getAllAsync<any>(
-        `SELECT log_id, start_date, ROUND(ABS((julianday(start_date) - julianday(end_date))* 24 * 60)) AS duration, medium, channel,
+        `SELECT date(start_date, 'localtime') as start_date, ROUND(ABS((julianday(start_date) - julianday(end_date))* 24 * 60)) || ' mins' AS duration, medium, channel,
                 intentional, primary_motivation, description
            FROM log_data
           WHERE user_id = ?
@@ -102,19 +102,17 @@ export default function Profile() {
       parts.push(
         rowsToCSV([
           ["SECTION", "users"],
-          ["id", "username", "email", "firstName", "lastName", "createdAt"],
+          ["username", "email", "firstName", "lastName",],
         ])
       );
       parts.push(
         userRows.length
           ? rowsToCSV(
               userRows.map((r) => [
-                r.id,
                 r.username,
                 r.email,
                 r.firstName,
                 r.lastName,
-                r.createdAt,
               ])
             )
           : ""
@@ -139,14 +137,13 @@ export default function Profile() {
         rowsToCSV([
           ["SECTION", "log_data"],
           [
-            "log_id",
-            "start_date",
-            "duration",
-            "medium",
-            "channel",
-            "intentional",
-            "primary_motivation",
-            "description",
+            "Start Date",
+            "Duration",
+            "Medium",
+            "Channel",
+            "Intentional",
+            "Primary Motivation",
+            "Desciription",
           ],
         ])
       );
@@ -154,12 +151,11 @@ export default function Profile() {
         logRows.length
           ? rowsToCSV(
               logRows.map((r) => [
-                r.log_id,
                 r.start_date,
                 r.duration,
                 r.medium,
                 r.channel,
-                r.intentional,
+                r.intentional == 1 ? "Yes" : "No",
                 r.primary_motivation,
                 r.description,
               ])
