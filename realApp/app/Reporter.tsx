@@ -82,6 +82,26 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         { label: "Other", value: "Other" },
     ];
 
+    // Placeholder Texts for Channel based on mediums selected
+    const channelPlaceholders: { [key: string]: string } = {
+        "": "e.g., Enter platform here",    
+        "Car Stereo": "e.g., FM Radio, Spotify",
+        "Desktop Computer": "e.g., YouTube, Netflix",
+        "eReader": "e.g., Kindle, Nook",
+        "Laptop Computer": "e.g., Hulu, Amazon Prime",
+        "Large Screen / Movie Theater": "e.g., AMC, Regal Cinemas",
+        "Print Newspaper": "e.g., The New York Times, The Guardian",
+        "Personal Computer": "e.g., Spotify, Audible",
+        "Radio": "e.g., NPR, BBC Radio",
+        "Stereo System": "e.g., Home Stereo, Bluetooth Speaker",
+        "Smart Phone": "e.g., TikTok, Instagram",
+        "Tablet": "e.g., Netflix, YouTube",
+        "Television": "e.g., HBO, Disney+",
+        "Other Handheld Device": "e.g., PS4, Portable DVD Player",
+        "Other Printed Material": "e.g., Magazine, Brochure",
+        "Other": "e.g., Enter platform here",
+    };
+
     // Placeholder Texts for Description based on options selected
     const descriptionPlaceholders: { [key: string]: string } = {
         "": "e.g., Describe your activity here",
@@ -404,9 +424,9 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 <Label >Platform</Label>
                 <YStack>
                     <Input
-                        width={200}
+                        maxW={600}
                         onChangeText={(value) => {setChannel(value); setChannelError(false)}} value={channel}
-                        placeholder="Enter Channel"
+                        placeholder={channelPlaceholders[medium]}
                     />
                     <Text style={{ color: channelError ? 'red' : theme.color.get(), marginLeft: 10 }}>
                         {channelError ? 'Must have a motivation' : ''}
