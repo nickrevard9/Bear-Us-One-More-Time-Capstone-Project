@@ -28,10 +28,12 @@ export default function RootLayout() {
         <TamaguiProvider config={tamaguiConfig} defaultTheme={colorScheme!}>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SQLiteProvider databaseName="pawse.db" onInit={initDb}>
-        <Stack screenOptions={{headerShown: false }}>
+        <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="login" options={{ title: 'Login' }}/>
           <Stack.Screen name="register" options={{ title: 'Register' }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="settings" options={{ headerShown: true, title: "Settings", headerBackTitle: "Back", headerBackTitleVisible: true }} />
+          <Stack.Screen name="notifications" options={{ headerShown: true, title: "Notifications", headerBackTitle: "Back", headerBackTitleVisible: true }} />
           <Stack.Screen name="+not-found" />
         </Stack>
       </SQLiteProvider>

@@ -226,20 +226,20 @@ export default function Profile() {
 
         <Group>
           <Separator marginVertical={10} />
-          <Button icon={CreditCard}>Edit Profile</Button>
+          <Button backgroundColor="automatic" icon={CreditCard}>Edit Profile</Button>
 
           <Separator marginVertical={10} />
-          <Button icon={Download} onPress={onExportReport}>
+          <Button backgroundColor="automatic" icon={Download} onPress={onExportReport}>
             Export Report
           </Button>
 
           <Separator marginVertical={10} />
-          <Button icon={Settings} onPress={() => router.push("/settings")}>
+          <Button backgroundColor="automatic" icon={Settings} onPress={() => router.push("/settings")}>
             Settings
           </Button>
 
           <Separator marginVertical={10} />
-          <Button icon={LogOut} onPress={onLogout}>
+          <Button backgroundColor="automatic" icon={LogOut} onPress={onLogout}>
             Log Out
           </Button>
 

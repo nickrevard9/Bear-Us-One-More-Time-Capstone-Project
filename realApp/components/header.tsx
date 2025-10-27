@@ -1,4 +1,3 @@
-// components/CustomHeader.tsx
 import React from 'react';
 import { Dimensions } from 'react-native';
 import { YStack, XStack, Text, Button } from 'tamagui';
@@ -9,7 +8,7 @@ const { height: screenHeight } = Dimensions.get('window');
 
 export function HeaderNotifications() {
   const router = useRouter();
-  const headerHeight = screenHeight * 0.12;
+  const headerHeight = screenHeight * 0.12; // making height of header reactive to the screen size
 
   return (
     <YStack
@@ -22,7 +21,9 @@ export function HeaderNotifications() {
       borderColor="$borderColor"
     >
       <XStack alignItems="center" justifyContent="space-between">
+        {/* TODO: add logo next to Pawse title? */}
         <Text fontSize="$7" fontWeight="600">{"Pawse"}</Text>
+        {/* TODO: make notification bubble appear or change color of bell if there are unread notifictations? */}
         <Button unstyled onPress={() => router.push('/notifications')}>
           <Bell size={26} />
         </Button>
