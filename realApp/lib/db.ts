@@ -392,3 +392,46 @@ export async function deleteLogByLogID(
     return false;
   }
 }
+
+
+/**
+ * Count the media types use in the logs based on month and year
+ * 
+ * @param db - The open SQLite database
+ * @param month - The month to check
+ * @param year - The year to check
+ */
+ export async function getMediumCountByDate(
+  db: SQLiteDatabase,
+  month: number,
+  year: number
+): Promise<{ medium: string; value: number }[]> {
+  try {
+    let query = `
+      SELECT 
+      medium,
+      ROUND(
+        100.0 * COUNT(medium) / 
+        (SELECT COUNT(*) FROM log_data),
+      2) AS value
+      FROM log_data
+      WHERE strftime('%m', start_date) = ? 
+      AND strftime('%Y', start_date) = ?
+      GROUP BY medium;
+    `;
+    const monthStr = month.toString().padStart(2, '0');
+    const yearStr = year.toString();
+    const params: any[] = [monthStr, yearStr];
+
+    const result = await db.getAllAsync<any>(query, params);
+    const mapped: {medium: string, value: number}[] = result.map((r: any) => ({
+      medium: r.medium,
+      value: r.value,
+    }))
+    return mapped;
+
+  } catch (error) {
+    console.error(`Failed to get medium counts`, error);
+    throw error;
+  }
+}

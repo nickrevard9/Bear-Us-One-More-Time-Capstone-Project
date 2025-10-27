@@ -1,4 +1,3 @@
-import ItemsLayout from "@/app/(tabs)/calendar/_layout";
 import React, { useState } from "react";
 import { View, Text } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
