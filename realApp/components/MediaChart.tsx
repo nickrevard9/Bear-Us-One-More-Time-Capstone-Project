@@ -72,7 +72,7 @@ export default function MediaChart({media_counts}: MediaChartProps) {
                             style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
-                                width: '45%', // ✅ two per row (roughly)
+                                width: '45%',
                                 marginVertical: 4,
                             }}
                             >

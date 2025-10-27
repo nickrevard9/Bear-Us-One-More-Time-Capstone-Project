@@ -20,7 +20,13 @@ export function Calendar(props: {onclick: (date: DateType) => void,
 };
 
   function onMonthChangeLeft(){
-    const m = (month-1) % 12;
+    const m = ((month-1) + 12) % 12;
+    if(m == 11) {
+      setYear(year - 1)
+      if(props.yearChange){
+        props.yearChange(year - 1)
+      }
+    }
     setMonth(m);
     if(props.monthChange){
       props.monthChange(m)
@@ -28,6 +34,12 @@ export function Calendar(props: {onclick: (date: DateType) => void,
   }
   function onMonthChangeRight(){
     const m = (month+1) % 12;
+    if(m == 0) {
+      setYear(year + 1)
+      if(props.yearChange){
+        props.yearChange(year + 1)
+      }
+    }
     setMonth(m);
     if(props.monthChange){
       props.monthChange(m)
@@ -38,7 +50,7 @@ export function Calendar(props: {onclick: (date: DateType) => void,
     <View>
     <XStack style={{ justifyContent:"center", width:"100%", alignItems:"center", margin: "0 auto"}}> 
       <H3 onPress={onMonthChangeLeft}><ChevronLeft/></H3>
-      <H6 style={{ textAlign: "center", flex: 5 }}>{getMonthNameFromDate(month)}</H6>
+      <H6 style={{ textAlign: "center", flex: 5 }}>{getMonthNameFromDate(month)} {year}</H6>
       <H3 onPress={onMonthChangeRight}><ChevronRight/></H3>
     </XStack>
     <DateTimePicker
