@@ -1,8 +1,10 @@
 
 import React, {useState } from  'react';
 import DateTimePicker, { DateType, useDefaultStyles } from 'react-native-ui-datepicker';
+import DateTimePickerModal  from 'react-native-modal-datetime-picker';
 import { View, Text, Button, H3, XStack, H6 } from "tamagui";
 import { ChevronLeft, ChevronRight } from '@tamagui/lucide-icons';
+import { TouchableOpacity } from 'react-native';
 
 
 export function Calendar(props: {onclick: (date: DateType) => void, 
@@ -11,8 +13,9 @@ export function Calendar(props: {onclick: (date: DateType) => void,
 }) {
   const defaultStyles = useDefaultStyles();
   const [selected, setSelected] = useState<DateType>();
-  const [month, setMonth] = useState(new Date().getMonth())
-  const [year, setYear] = useState(new Date().getFullYear())
+  const [month, setMonth] = useState(new Date().getMonth());
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
   const getMonthNameFromDate = (monthNumber: number): string => {
   const date = new Date(2000, monthNumber);
@@ -46,11 +49,36 @@ export function Calendar(props: {onclick: (date: DateType) => void,
     }
   }
 
+  const handleConfirm = (date) => {
+    console.log(date.getMonth())
+    setMonth(date.getMonth());
+    setYear(date.getFullYear());
+    if(props.monthChange){
+      props.monthChange(date.getMonth());
+    }
+    if(props.yearChange){
+      props.yearChange(date.getFullYear());
+    }
+    setDatePickerVisible(false);
+  }
+
+  function hideDatePicker(){
+    setDatePickerVisible(false);
+  }
+
   return (
     <View>
     <XStack style={{ justifyContent:"center", width:"100%", alignItems:"center", margin: "0 auto"}}> 
       <H3 onPress={onMonthChangeLeft}><ChevronLeft/></H3>
+      <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
       <H6 style={{ textAlign: "center", flex: 5 }}>{getMonthNameFromDate(month)} {year}</H6>
+      </TouchableOpacity>
+      <DateTimePickerModal 
+      isVisible={isDatePickerVisible}
+        mode="date"
+        display="spinner"
+        onConfirm={handleConfirm}
+        onCancel={hideDatePicker}/>
       <H3 onPress={onMonthChangeRight}><ChevronRight/></H3>
     </XStack>
     <DateTimePicker

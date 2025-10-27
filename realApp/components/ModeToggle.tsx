@@ -27,7 +27,6 @@ export default function ModeToggle ({ mode }: ModeToggleProps) {
     const router = useRouter();
 
     return (
-
         <ToggleGroupBase orientation="horizontal" type="single" unstyled justify={"center"} disableDeactivation={true} size="$7" defaultValue="day">
                 <Item value="day" aria-label="day" active={mode == "day"} disabled={mode == "day"} onPress={() => router.back()}>
                     <Text>Day</Text>
