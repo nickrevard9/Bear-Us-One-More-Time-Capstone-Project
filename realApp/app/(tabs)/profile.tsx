@@ -350,9 +350,6 @@ export default function Profile() {
           />
         </YStack>
 
-        <Group width="100%">
-          <Separator marginVertical={10} />
-          <Button icon={CreditCard}>Edit Profile</Button>
         <Group>
           <Separator marginVertical={10} width={'85%'} alignSelf="center" />
           <Button backgroundColor="automatic" icon={CreditCard}>Edit Profile</Button>
@@ -368,7 +365,7 @@ export default function Profile() {
           </Button>
 
           <Separator marginVertical={10} width={'85%'} alignSelf="center" />
-          <Button backgroundColor="automatic" icon={LogOut} onPress={onLogout}>
+          <Button backgroundColor="automatic" icon={LogOutIcon} onPress={onLogout}>
             Log Out
           </Button>
 
