@@ -1,10 +1,11 @@
 
 import React, {useState } from  'react';
 import DateTimePicker, { DateType, useDefaultStyles } from 'react-native-ui-datepicker';
-import DateTimePickerModal  from 'react-native-modal-datetime-picker';
 import { View, Text, Button, H3, XStack, H6 } from "tamagui";
+import MonthYearPicker from "aekimena-month-year-picker";
 import { ChevronLeft, ChevronRight } from '@tamagui/lucide-icons';
 import { TouchableOpacity } from 'react-native';
+import { hide } from 'expo-router/build/utils/splash';
 
 
 export function Calendar(props: {onclick: (date: DateType) => void, 
@@ -49,7 +50,8 @@ export function Calendar(props: {onclick: (date: DateType) => void,
     }
   }
 
-  const handleConfirm = (date) => {
+  const handleConfirm = (text: string) => {
+    const date = new Date(text)
     console.log(date.getMonth())
     setMonth(date.getMonth());
     setYear(date.getFullYear());
@@ -73,12 +75,13 @@ export function Calendar(props: {onclick: (date: DateType) => void,
       <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
       <H6 style={{ textAlign: "center", flex: 5 }}>{getMonthNameFromDate(month)} {year}</H6>
       </TouchableOpacity>
-      <DateTimePickerModal 
-      isVisible={isDatePickerVisible}
-        mode="date"
-        display="spinner"
+      {isDatePickerVisible && (<MonthYearPicker
+        visible={isDatePickerVisible}
+        onRequestClose={hideDatePicker}
+        onBackgroundPress={hideDatePicker}
+        showDays={false}
         onConfirm={handleConfirm}
-        onCancel={hideDatePicker}/>
+      />)}
       <H3 onPress={onMonthChangeRight}><ChevronRight/></H3>
     </XStack>
     <DateTimePicker
