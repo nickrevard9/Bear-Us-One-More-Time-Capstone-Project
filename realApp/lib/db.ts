@@ -55,6 +55,7 @@ export async function initDb(db: SQLiteDatabase) {
     CREATE TABLE IF NOT EXISTS streak (
       streak_id INTEGER PRIMARY KEY AUTOINCREMENT,
       start_date_streak TEXT,
+      last_updated TEXT,
       num_days INTEGER NOT NULL,
       user_id TEXT,
       FOREIGN KEY (user_id) REFERENCES users(id)
@@ -308,7 +309,7 @@ export async function getLogsByUserDate(
     query += ` ORDER BY date DESC, start_time DESC;`
 
     const rows = await db.getAllAsync<any>(query, params)
-
+    console.log(rows);
     const mapped: LogData[] = rows.map((r: any) => ({
       date: r.date,
       start_time: r.start_time,
@@ -397,5 +398,66 @@ export async function deleteLogByLogID(
   } catch (error) {
     console.error(`Failed to get log by id ${log_id}:`, error);
     return false;
+  }
+}
+
+/**
+ * Add a user's log to the database
+ */
+export async function insertStreak(db: SQLiteDatabase, log: LogData) {
+  try {
+    const query = `
+      INSERT OR REPLACE INTO log_data 
+      (date, start_time, duration, medium, channel, intentional, primary_motivation, description, user_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+    `
+    const id = await AsyncStorage.getItem('pawse.currentUserId')
+
+    const params = [
+      log.date,
+      log.start_time,
+      log.duration,
+      log.medium,
+      log.channel,
+      log.intentional,
+      log.primary_motivation,
+      log.description,
+      id,
+    ];
+
+    await db.runAsync(query, params);
+
+    console.log('Log inserted successfully');
+  } catch (error) {
+    console.error('Failed to insert log:', error);
+    throw error;
+  }
+}
+
+export async function getCurrentStreak(db: SQLiteDatabase, user_id: string) {
+  try {
+    console.log("getCurrentStreak: user_id =", user_id);
+
+    // use getFirstAsync to return a single row (or null)
+    const row = await db.getFirstAsync<any>(
+      `SELECT streak_id, user_id, num_days, start_date_streak
+         FROM streak
+        WHERE user_id = ?
+     ORDER BY streak_id DESC
+        LIMIT 1`,
+      [user_id]
+    );
+
+    if (row) {
+      console.log("getCurrentStreak row:", row);
+      console.log("getCurrentStreak num_days:", row.num_days);
+    } else {
+      console.log("getCurrentStreak: no row returned for user_id =", user_id);
+    }
+
+    return row || null;
+  } catch (err) {
+    console.error("getCurrentStreak error:", err);
+    return null;
   }
 }
