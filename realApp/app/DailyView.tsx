@@ -214,7 +214,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                     <YStack>
                         <YStack>
                         <Label size="$4" style={{paddingTop: 10, textAlign: "center"}} fontWeight="bold">Your Daily Media</Label>
-                        <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#99999996"/>
+                        <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#8fa47a"/>
                         {/* Add daily media here */}
                         {dailyMedia.map((item, index) => (
                             <TouchableOpacity key={index} onPress={() => {
@@ -235,7 +235,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                         </YStack>
                         <YStack>
                         <Label size="$4" style={{paddingTop: 10, textAlign: "center"}} fontWeight="bold">Suggested Media From Your Activity</Label>
-                        <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#99999996"/>
+                        <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#8fa47a"/>
                         {Platform.OS === 'ios' ? (
                             <YStack>
                             <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>

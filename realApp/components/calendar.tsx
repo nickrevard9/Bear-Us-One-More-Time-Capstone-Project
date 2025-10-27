@@ -96,7 +96,6 @@ export function Calendar(props: {onclick: (date: DateType) => void,
         setSelected(date); 
         props.onclick(date)}}
       styles={defaultStyles}
-      
     />
     </View>
   );

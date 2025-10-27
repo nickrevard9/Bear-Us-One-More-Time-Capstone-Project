@@ -11,8 +11,8 @@ const Item = styled(
       active: {
         false: {},
         true: {
-          backgroundColor: '$accent10',
-          color: '$color1',
+          backgroundColor: '$backgroundStrong',
+          color: '$color',
         },
       },
     },
@@ -27,7 +27,7 @@ export default function ModeToggle ({ mode }: ModeToggleProps) {
     const router = useRouter();
 
     return (
-        <ToggleGroupBase orientation="horizontal" type="single" unstyled justify={"center"} disableDeactivation={true} size="$7" defaultValue="day">
+        <ToggleGroupBase orientation="horizontal" type="single" justify={"center"} disableDeactivation={true} size="$7" defaultValue="day" alignSelf="center">
                 <Item value="day" aria-label="day" active={mode == "day"} disabled={mode == "day"} onPress={() => router.back()}>
                     <Text>Day</Text>
                 </Item>

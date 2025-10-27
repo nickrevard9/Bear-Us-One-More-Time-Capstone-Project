@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { View, Text } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
+import { View, Text, useColorScheme } from "react-native";
+import { tamaguiConfig } from '../tamagui.config';
 
 type ScreenTimeChartProps = {
   usageData: { value: number; time: string }[];
@@ -14,6 +15,23 @@ export default function ScreenTimeChart({usageData, focus, point} : ScreenTimeCh
   const [_focus, setFocus] = useState(focus || false);
   const [_point, set_Point] = useState(point || {value:0, time:""});  
 
+  const colorScheme = useColorScheme()
+  const colors = colorScheme === 'dark' 
+  ? {
+        background: "#2b2a23",
+        gradientFrom: "#2b2a23",
+        gradientTo: "#3a392f",
+        line: "#f7d774",
+        label: "#e4e0d5",
+      }
+    : {
+        background: "#f4efe6",
+        gradientFrom: "#f4efe6",
+        gradientTo: "#ebe3d2",
+        line: "#8fa47a",
+        label: "#3e3b32",
+      };
+
   return (
     <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
       <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
@@ -25,11 +43,10 @@ export default function ScreenTimeChart({usageData, focus, point} : ScreenTimeCh
           width={320}
           spacing={13}
           hideDataPoints
-          color="#007423ff"
-          curved
+          color={colors.line}
           thickness={2}
-          startFillColor="rgba(0, 180, 60, 0.3)"
-          endFillColor="rgba(77, 49, 9, 0.01)"
+          startFillColor={colors.line}
+          endFillColor={colors.gradientTo}
           startOpacity={0.9}
           endOpacity={0.2}
           initialSpacing={0}
