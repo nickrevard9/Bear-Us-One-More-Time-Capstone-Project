@@ -286,12 +286,6 @@ export default function Profile() {
 
   const onCancelTime = useCallback(() => setShowPicker(false), []);
 
-  /* Run diagnostics: seconds one-shot, calendar one-shot, and daily */
-  const onRunDiagnostics = useCallback(async () => {
-    const h = time.getHours();
-    const m = time.getMinutes();
-    await runNotificationDiagnostics(h, m);
-  }, [time]);
 
   /* ------------------------------------------
    * UI
@@ -366,11 +360,6 @@ export default function Profile() {
               </XStack>
             </>
           )}
-
-          <Separator marginVertical={10} />
-          <Button icon={Bell} onPress={onRunDiagnostics}>
-            Run Notification Diagnostics
-          </Button>
         </Group>
       </YStack>
     </ScrollView>
