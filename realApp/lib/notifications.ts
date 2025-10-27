@@ -34,21 +34,33 @@ export async function ensurePermission(): Promise<boolean> {
   return req.status === "granted";
 }
 
-/* One-shot (seconds) */
+/* One-shot (seconds) — uses TIME_INTERVAL type */
 export async function scheduleNotification(
   seconds: number,
   title: string,
   body: string,
   sound: boolean | string = true
 ) {
+  await ensureAndroidChannel();
   const ok = await ensurePermission();
   if (!ok) throw new Error("Notification permission not granted");
 
-  const trigger = { seconds, repeats: false };
+  const trigger: Notifications.TimeIntervalTriggerInput = {
+    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+    seconds,
+    repeats: false,
+    // channelId only matters on Android; safe to include
+    channelId: Platform.OS === "android" ? "daily-default" : undefined,
+  };
+
   console.log("[Notifications] Scheduling one-shot:", { seconds, title, body, trigger });
 
   const id = await Notifications.scheduleNotificationAsync({
-    content: { title, body, sound: sound === true ? "default" : sound || undefined },
+    content: {
+      title,
+      body,
+      sound: sound === true ? "default" : (sound || undefined),
+    },
     trigger,
   });
 
@@ -56,14 +68,19 @@ export async function scheduleNotification(
   return id;
 }
 
-/* NEW: Calendar ONE-SHOT (fires at a specific Date; useful for diagnostics) */
+/* Calendar ONE-SHOT (fires at a specific Date) — uses CALENDAR type */
 export async function scheduleCalendarOneShot(date: Date, title: string, body: string) {
   await ensureAndroidChannel();
   const ok = await ensurePermission();
   if (!ok) throw new Error("Notification permission not granted");
 
-  const trigger: Notifications.NotificationTriggerInput = { date }; // non-repeating
-  console.log("[Notifications] Scheduling calendar one-shot:", { date: date.toString(), title, body });
+  const trigger: Notifications.CalendarTriggerInput = {
+    type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+    date, // non-repeating
+    channelId: Platform.OS === "android" ? "daily-default" : undefined,
+  };
+
+  console.log("[Notifications] Scheduling calendar one-shot:", { date: date.toString(), title, body, trigger });
 
   const id = await Notifications.scheduleNotificationAsync({
     content: { title, body, sound: "default" },
@@ -73,7 +90,7 @@ export async function scheduleCalendarOneShot(date: Date, title: string, body: s
   return id;
 }
 
-/* Daily repeating (calendar-based) */
+/* Daily repeating (calendar-based) — uses CALENDAR type */
 export async function scheduleDailyNotification(
   hour: number,
   minute: number,
@@ -84,15 +101,15 @@ export async function scheduleDailyNotification(
   const ok = await ensurePermission();
   if (!ok) throw new Error("Notification permission not granted");
 
-  const trigger: Notifications.NotificationTriggerInput = Platform.select({
-    ios: { hour, minute, repeats: true },
-    android: { hour, minute, repeats: true, channelId: "daily-default" },
-    default: { hour, minute, repeats: true },
-  });
+  const trigger: Notifications.CalendarTriggerInput = {
+    type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+    hour,
+    minute,
+    repeats: true,
+    channelId: Platform.OS === "android" ? "daily-default" : undefined,
+  };
 
-  console.log("[Notifications] Scheduling daily reminder:", {
-    hour, minute, title, body, trigger,
-  });
+  console.log("[Notifications] Scheduling daily reminder:", { hour, minute, title, body, trigger });
 
   const id = await Notifications.scheduleNotificationAsync({
     content: { title, body, sound: "default" },
@@ -133,7 +150,7 @@ export async function listScheduled() {
   }
 }
 
-/* NEW: Diagnostics — schedules three things and polls the OS list */
+/* Diagnostics */
 export async function runNotificationDiagnostics(hour: number, minute: number) {
   console.log("[Diag] Starting notification diagnostics…");
 
@@ -151,9 +168,9 @@ export async function runNotificationDiagnostics(hour: number, minute: number) {
   await scheduleDailyNotification(hour, minute, "Diag: daily repeating", "Repeats daily at set time.");
 
   // Poll OS listing a few times with increasing delays
-  const sleeps = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
   for (const wait of [200, 600, 1200, 2000]) {
-    await sleeps(wait);
+    await sleep(wait);
     console.log(`[Diag] Listing after ${wait}ms…`);
     await listScheduled();
   }
