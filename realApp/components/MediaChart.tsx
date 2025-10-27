@@ -90,7 +90,7 @@ export default function MediaChart({media_counts}: MediaChartProps) {
        <View
     style={{
       flex: 1,
-    }}>
+    }} >
     <View
       style={{
         margin: 20,

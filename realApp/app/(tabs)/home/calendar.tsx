@@ -18,7 +18,7 @@ export default function CalendarPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [medium_counts, setMediumCounts] = useState<{
     medium: string, 
-    value: number}[]>([{medium: "Television", value: 0},]);
+    value: number}[]>([]);
 
   async function fetchMediumCounts(month: number, year: number) {
     try {
@@ -33,8 +33,13 @@ export default function CalendarPage() {
   useFocusEffect(
     useCallback(() => {
       fetchMediumCounts(month, year);
-    }, [])      
+    }, [setMediumCounts])      
   );
+
+  function onMonthChange(m: number){
+    setMonth(m);
+    fetchMediumCounts(m+1 % 12, year);
+  }
 
   return (
     <View style={{ flex: 1, padding: 25, marginTop:20, marginBottom:100, width: "100%", margin: "0 auto"}}>
@@ -52,11 +57,10 @@ export default function CalendarPage() {
             router.prefetch({pathname:'/home/home_page', params: {initialDate: selected.toString()}});
             router.push({pathname:'/home/home_page', params: {initialDate: selected.toString()}});
         }}
-          monthChange={setMonth}
+          monthChange={onMonthChange}
           yearChange={setYear}
         />
-
-        <MediaChart media_counts={medium_counts}/>
+        <MediaChart key={medium_counts[0]} media_counts={medium_counts}/>
         </ScrollView>
         </YStack>
     </View>
