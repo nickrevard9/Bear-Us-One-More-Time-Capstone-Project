@@ -63,7 +63,6 @@ export async function initDb(db: SQLiteDatabase) {
 
   // Log data table (fresh each init; keep if you prefer)
   await db.execAsync(`
-    DROP TABLE IF EXISTS log_data;
     CREATE TABLE IF NOT EXISTS log_data (
       log_id INTEGER PRIMARY KEY AUTOINCREMENT,
       start_date INTEGER NOT NULL,
