@@ -8,6 +8,7 @@ type ScreenTimeChartProps = {
 
 export default function ScreenTimeChart({ usageData }: ScreenTimeChartProps) {
   const usage = usageData;
+  const maxValue = 100;
 
   // Generate hourly labels
   const hours = Array.from({ length: 24 }, (_, i) => {
@@ -21,12 +22,22 @@ export default function ScreenTimeChart({ usageData }: ScreenTimeChartProps) {
     ["12AM", "6AM", "12PM", "6PM"].includes(h) ? h : ""
   );
 
+//   function* yLabel() {
+//   yield* ["", midValue, maxValue];
+// }
+//   const yLabelIterator = yLabel();
+
+
   // Format data for LineChart
   const data = {
     labels: displayLabels,
     datasets: [
       {
         data: usage,
+      },
+      {
+        data: [maxValue], // max
+        withDots: false,
       },
     ],
   };
@@ -41,17 +52,18 @@ export default function ScreenTimeChart({ usageData }: ScreenTimeChartProps) {
         width={350}
         height={300}
         fromZero
+        // segments={2}
+        // formatYLabel={() => yLabelIterator.next().value}
         bezier
-        withHorizontalLabels={false}
         chartConfig={{
-          backgroundColor: "#fff",
-          backgroundGradientFrom: "#fff",
-          backgroundGradientTo: "#fff",
+          backgroundColor: "#ffffff5d",
+          backgroundGradientFrom: "#ffffff5d",
+          backgroundGradientTo: "#ffffff5d",
           decimalPlaces: 0,
           color: (opacity = 1) => `rgba(76, 110, 245, ${opacity})`,
           labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
           style: { borderRadius: 16 },
-          propsForBackgroundLines: { stroke: "#e3e3e3" },
+          propsForBackgroundLines: { stroke: "none" },
         }}
         style={{
           marginVertical: 8,
