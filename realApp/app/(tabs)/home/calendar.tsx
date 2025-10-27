@@ -5,18 +5,15 @@ import { useRouter } from "expo-router";
 import {Calendar} from "@/components/calendar";
 import { DateType } from "react-native-ui-datepicker";
 import { Alert } from "react-native";
+import ModeToggle from "@/components/ModeToggle";
 
 export default function CalendarPage() {
   const router = useRouter(); 
 
   return (
-    <View style={{
-        flex: 1, // Makes the container take the full screen
-    justifyContent: 'center', // Centers content vertically
-    alignItems: 'center', // Centers content horizontally
-    padding:30,
-    }}>
-        <YStack>
+    <View style={{ flex: 1, padding: 25, marginTop:20, width: "100%", margin: "0 auto"}}>
+        <YStack space="$12" width="100%" >
+          <ModeToggle mode="month"/>
         <Calendar onclick={function (selected: DateType): void {
             if(!selected){
                 const error = "Must set a selected date to view";
@@ -25,8 +22,8 @@ export default function CalendarPage() {
             }
 
             //router.setParams({ initialDate: selected.toString() });
-            router.prefetch({pathname:'/(tabs)/calendar/_day_view', params: {initialDate: selected.toString()}});
-            router.push({pathname:'/(tabs)/calendar/_day_view', params: {initialDate: selected.toString()}});
+            router.prefetch({pathname:'/home/home_page', params: {initialDate: selected.toString()}});
+            router.push({pathname:'/home/home_page', params: {initialDate: selected.toString()}});
         }}/>
         </YStack>
     </View>

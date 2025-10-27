@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { View, Text, XStack, H3, H6, YStack, Label, ScrollView, Button, useTheme } from "tamagui";
+import { View, Text, XStack, H3, H6, YStack, Label, ScrollView, Button, useTheme, ToggleGroup } from "tamagui";
 import ScreenTimeChart from "../components/ScreenTime";
-import { Edit3, Plus } from "@tamagui/lucide-icons"
+import { Edit3, Plus, CalendarDays, Calendar1, Sun } from "@tamagui/lucide-icons"
 import { getLogsByUserDate, LogData } from "../lib/db";
 import { Alert, TouchableOpacity } from "react-native";
 import { useRouter, useFocusEffect }  from "expo-router"
 import { useSQLiteContext } from "expo-sqlite";
 import { Platform,  Animated, Easing } from 'react-native';
 import GestureRecognizer from "react-native-swipe-gestures";
+import ModeToggle from "@/components/ModeToggle";
 
 
 export const USE_LOCAL_STORAGE = true;
@@ -24,7 +25,6 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     const db = useSQLiteContext();
 
     const [date, setDate] = useState<Date>(initialDate || new Date());
-    console.log(date.toDateString());
     const [dailyMedia, setDailyMedia] = useState<LogData[]>([]);
 
     const incrementDate = new Date();
@@ -97,7 +97,6 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
 
         try{ 
             media.forEach((item: LogData) => {
-            console.log(item);
             // Get start time and date
             const timeString = new Date(item.start_date).toLocaleTimeString();
             
@@ -191,7 +190,8 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
 
     return (
         <View style={{ flex: 1, padding: 25, marginTop:20, width: "100%", margin: "0 auto" }}>
-            {notHome && <TopBar/>}
+            {/* {notHome && <TopBar/>} */}
+            <ModeToggle mode="day"/>
             <YStack>
         <XStack justifyContent="center" width="100%" alignItems="center" marginBottom={24}>
             <H3 onPress={() => changeDay(-1)}>&#8592;</H3>
@@ -209,7 +209,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
         >
             <GestureRecognizer onSwipeLeft={changeDay.bind(this, 1)} onSwipeRight={changeDay.bind(this, -1)}>
                     <YStack alignItems="center" paddingBottom={20}>
-                        <ScreenTimeChart usageData={usage} onFocus={false}/>
+                        <ScreenTimeChart usageData={usage} focus={false}/>
                     </YStack>
                     <YStack>
                         <YStack>
@@ -219,7 +219,6 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                         {dailyMedia.map((item, index) => (
                             <TouchableOpacity key={index} onPress={() => {
                                 router.prefetch({pathname:'/edit_page', params: {log_id: item.log_id}});
-                                console.log(`Going to: ${item.log_id}`)
                                 router.push({pathname:'/edit_page', params: {log_id: item.log_id}});}} 
                                 style={{ flex: 1 }}>
                             <YStack paddingVertical={10}>
@@ -235,7 +234,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                         ))}
                         </YStack>
                         <YStack>
-                        <Label size="$4" style={{paddingTop: 10, textAlign: "center"}} fontWeight="bold">Suggested Media</Label>
+                        <Label size="$4" style={{paddingTop: 10, textAlign: "center"}} fontWeight="bold">Suggested Media From Your Activity</Label>
                         <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#99999996"/>
                         {Platform.OS === 'ios' ? (
                             <YStack>

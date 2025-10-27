@@ -1,16 +1,19 @@
+import ItemsLayout from "@/app/(tabs)/calendar/_layout";
 import React, { useState } from "react";
 import { View, Text } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 
 type ScreenTimeChartProps = {
   usageData: { value: number; time: string }[];
-  onFocus?: boolean;
+  focus?: boolean;
+  point?: {value: number; time: string, label?: string, "labelTextStyle"?: {color: string, width?: number}} ;
 };
 
-export default function ScreenTimeChart({usageData, onFocus} : ScreenTimeChartProps) {
+export default function ScreenTimeChart({usageData, focus, point} : ScreenTimeChartProps) {
   const data = usageData;
   const maxValue = 120;
-  const focus = onFocus? onFocus : false;
+  const [_focus, setFocus] = useState(focus || false);
+  const [_point, set_Point] = useState(point || {value:0, time:""});  
 
   return (
     <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
@@ -44,7 +47,7 @@ export default function ScreenTimeChart({usageData, onFocus} : ScreenTimeChartPr
             pointerStripHeight: 160,
             pointerStripColor: 'lightgray',
             pointerStripWidth: 2,
-            persistPointer: focus,
+            persistPointer: _focus,
             pointerColor: 'lightgray',
             radius: 6,
             pointerLabelWidth: 100,
