@@ -222,7 +222,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             else{
                 await insertLog(db, log); // Insert new log
             }  
-            router.push('/(tabs)/home') // Navigate back to home
+            router.back() // Navigate back to home
             return;
         }
         catch (error){

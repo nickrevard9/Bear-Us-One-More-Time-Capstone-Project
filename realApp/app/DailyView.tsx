@@ -4,7 +4,7 @@ import ScreenTimeChart from "../components/ScreenTime";
 import { Edit3, Plus, CalendarDays, Calendar1, Sun } from "@tamagui/lucide-icons"
 import { getLogsByUserDate, LogData } from "../lib/db";
 import { Alert, TouchableOpacity } from "react-native";
-import { useRouter, useFocusEffect }  from "expo-router"
+import { useRouter, useFocusEffect }  from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { Platform,  Animated, Easing } from 'react-native';
 import GestureRecognizer from "react-native-swipe-gestures";
