@@ -1,7 +1,7 @@
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { PieChart } from "react-native-gifted-charts";
-import { View, Text } from "tamagui";
+import { View, Text, useTheme } from "tamagui";
 
 type MediaChartProps = {
     media_counts: {medium: string, value: number}[];
@@ -10,14 +10,13 @@ type MediaChartProps = {
 export default function MediaChart({media_counts}: MediaChartProps) {
     const [pieData, setPieData] = useState<{medium: string, value: number, color: string}[]>(apply_colors(media_counts));
     const [focused_media, setFocusedMedia] = useState<{medium: string, value: number} | null>(null);
+    const theme = useTheme()
     
-
     const DEFAULT_COLOR = "#838383ff";
 
     function apply_colors(
     data: { medium: string, value: number }[]
     ): { medium: string, value: number, color: string }[] {
-        console.log("i'm doing it", data)
         const color_list: {[key: string]: string} = {
             " ": "#838383ff",    
             "Car Stereo": "#FF7F97",
@@ -72,12 +71,12 @@ export default function MediaChart({media_counts}: MediaChartProps) {
                             style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
-                                width: '45%',
+                                width: '40%',
                                 marginVertical: 4,
                             }}
                             >
                             {renderDot(item.color)}
-                            <Text style={{color: '$color1'}}>{item.medium}</Text>
+                            <Text>{item.medium}</Text>
                         </View>
                     );
                     })}
@@ -108,17 +107,17 @@ export default function MediaChart({media_counts}: MediaChartProps) {
           donut
           focusOnPress
           onPress={(item, index) => setFocusedMedia(item)}
-          radius={90}
-          innerRadius={60}
-          innerCircleColor={'white'}
+          radius={100}
+          innerRadius={70}
+          innerCircleColor={theme.background.get()}
           centerLabelComponent={() => {
             return (
               <View style={{justifyContent: 'center', alignItems: 'center'}}>
                 <Text
-                  style={{fontSize: 22, color: '$color', fontWeight: 'bold'}}>
+                  style={{fontSize: 22, fontWeight: 'bold'}}>
                   {focused_media && focused_media.value.toString() + "%"}
                 </Text>
-                <Text style={{fontSize: 14, color: '$color'}}>
+                <Text style={{fontSize: 12}}>
                     {focused_media && focused_media.medium.toString()}
                 </Text>
               </View>
