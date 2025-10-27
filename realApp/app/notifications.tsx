@@ -2,7 +2,8 @@ import React from "react";
 import { YStack, XStack, Text, Button, Separator, H4 } from "tamagui";
 import { MessageSquare, UserPlus, CheckCircle, Lock } from "@tamagui/lucide-icons";
 
-// notification data may change after connecting with backend
+// TODO: assign and store notification icon? or assign it upon display?
+// notifications stored a bit differently, frontend mapping can be adjusted later
 const notifications = {
   today: [
     {
