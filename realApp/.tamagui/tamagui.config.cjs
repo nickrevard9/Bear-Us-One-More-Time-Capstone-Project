@@ -32198,8 +32198,9 @@ var earthyLight = {
   accentColor: "#3e3b32",
   warning: "#d4b15c",
   // mustard
-  secondary: "#d08c79"
+  secondary: "#d08c79",
   // terracotta
+  primary: "#8fa47a"
 };
 var earthyDark = {
   ...themes.dark,
@@ -32210,7 +32211,8 @@ var earthyDark = {
   accentBackground: "#7f8f67",
   accentColor: "#e4e0d5",
   warning: "#c7a84f",
-  secondary: "#b5735f"
+  secondary: "#b5735f",
+  primary: "#7f8f67"
 };
 var bodyFont = (0, import_core23.createFont)({
   family: "System",

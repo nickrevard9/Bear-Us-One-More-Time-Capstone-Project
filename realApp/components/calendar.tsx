@@ -12,8 +12,11 @@ export function Calendar(props: {onclick: (date: DateType) => void}) {
       date={selected}
       onChange={({ date }) =>  {
         setSelected(date); 
-        props.onclick(date)}}
-      styles={defaultStyles}
+        props.onclick(date)
+      }}
+      styles= {{
+        ...defaultStyles,
+      }}
     />
   );
 }

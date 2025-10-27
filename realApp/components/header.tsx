@@ -8,24 +8,24 @@ const { height: screenHeight } = Dimensions.get('window');
 
 export function HeaderNotifications() {
   const router = useRouter();
-  const headerHeight = screenHeight * 0.12; // making height of header reactive to the screen size
+  const headerHeight = screenHeight * 0.135; // making height of header reactive to the screen size
 
   return (
     <YStack
-      backgroundColor="$background"
+      backgroundColor="$backgroundStrong"
       height={headerHeight}
       justifyContent="flex-end"
       paddingHorizontal="$4"
       paddingBottom="$3"
       borderBottomWidth={1}
-      borderColor="$borderColor"
+      borderColor="$backgroundStrong"
     >
       <XStack alignItems="center" justifyContent="space-between">
         {/* TODO: add logo next to Pawse title? */}
         <Text fontSize="$7" fontWeight="600">{"Pawse"}</Text>
         {/* TODO: make notification bubble appear or change color of bell if there are unread notifictations? */}
         <Button unstyled onPress={() => router.push('/notifications')}>
-          <Bell size={26} />
+          <Bell size={26} color={'$primary'}/>
         </Button>
       </XStack>
     </YStack>

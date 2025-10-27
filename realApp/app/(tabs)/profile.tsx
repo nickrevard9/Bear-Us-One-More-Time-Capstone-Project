@@ -225,25 +225,25 @@ export default function Profile() {
         </YStack>
 
         <Group>
-          <Separator marginVertical={10} />
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
           <Button backgroundColor="automatic" icon={CreditCard}>Edit Profile</Button>
 
-          <Separator marginVertical={10} />
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
           <Button backgroundColor="automatic" icon={Download} onPress={onExportReport}>
             Export Report
           </Button>
 
-          <Separator marginVertical={10} />
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
           <Button backgroundColor="automatic" icon={Settings} onPress={() => router.push("/settings")}>
             Settings
           </Button>
 
-          <Separator marginVertical={10} />
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
           <Button backgroundColor="automatic" icon={LogOut} onPress={onLogout}>
             Log Out
           </Button>
 
-          <Separator marginVertical={10} />
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
         </Group>
       </YStack>
     </XStack>

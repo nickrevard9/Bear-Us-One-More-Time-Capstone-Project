@@ -38842,6 +38842,13 @@
             "val": "#d08c79",
             "variable": "var(--secondary)"
           },
+          "primary": {
+            "isVar": true,
+            "key": "primary",
+            "name": "primary",
+            "val": "#8fa47a",
+            "variable": "var(--primary)"
+          },
           "blue1Light": {
             "isVar": true,
             "key": "c-blue1Light",
@@ -41111,6 +41118,13 @@
             "name": "secondary",
             "val": "#b5735f",
             "variable": "var(--secondary)"
+          },
+          "primary": {
+            "isVar": true,
+            "key": "primary",
+            "name": "primary",
+            "val": "#7f8f67",
+            "variable": "var(--primary)"
           },
           "blue1Light": {
             "isVar": true,
@@ -43894,6 +43908,13 @@
               "val": "#d08c79",
               "variable": "var(--secondary)"
             },
+            "primary": {
+              "isVar": true,
+              "key": "primary",
+              "name": "primary",
+              "val": "#8fa47a",
+              "variable": "var(--primary)"
+            },
             "blue1Light": {
               "isVar": true,
               "key": "c-blue1Light",
@@ -46163,6 +46184,13 @@
               "name": "secondary",
               "val": "#b5735f",
               "variable": "var(--secondary)"
+            },
+            "primary": {
+              "isVar": true,
+              "key": "primary",
+              "name": "primary",
+              "val": "#7f8f67",
+              "variable": "var(--primary)"
             },
             "blue1Light": {
               "isVar": true,

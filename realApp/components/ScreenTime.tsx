@@ -1,12 +1,30 @@
 import React, { useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, useColorScheme } from "react-native";
 import { LineChart } from "react-native-chart-kit";
+import { tamaguiConfig } from '../tamagui.config';
 
 type ScreenTimeChartProps = {
   usageData: number[];
 };
 
 export default function ScreenTimeChart({ usageData }: ScreenTimeChartProps) {
+  const colorScheme = useColorScheme()
+  const colors = colorScheme === 'dark' 
+  ? {
+        background: "#2b2a23",
+        gradientFrom: "#2b2a23",
+        gradientTo: "#3a392f",
+        line: "#f7d774",
+        label: "#e4e0d5",
+      }
+    : {
+        background: "#f4efe6",
+        gradientFrom: "#f4efe6",
+        gradientTo: "#ebe3d2",
+        line: "#8fa47a",
+        label: "#3e3b32",
+      };
+
   const usage = usageData;
   const maxValue = 100;
 
@@ -44,7 +62,7 @@ export default function ScreenTimeChart({ usageData }: ScreenTimeChartProps) {
 
   return (
     <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
-      <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
+      <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10, color: colors.label }}>
         Screen Time
       </Text>
       <LineChart
@@ -56,12 +74,12 @@ export default function ScreenTimeChart({ usageData }: ScreenTimeChartProps) {
         // formatYLabel={() => yLabelIterator.next().value}
         bezier
         chartConfig={{
-          backgroundColor: "#ffffff5d",
-          backgroundGradientFrom: "#ffffff5d",
-          backgroundGradientTo: "#ffffff5d",
+          backgroundColor: colors.background,
+          backgroundGradientFrom: colors.gradientFrom,
+          backgroundGradientTo: colors.gradientTo,
           decimalPlaces: 0,
-          color: (opacity = 1) => `rgba(76, 110, 245, ${opacity})`,
-          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          color: (opacity = 1) => colors.line,
+          labelColor: (opacity = 1) => colors.label,
           style: { borderRadius: 16 },
           propsForBackgroundLines: { stroke: "none" },
         }}

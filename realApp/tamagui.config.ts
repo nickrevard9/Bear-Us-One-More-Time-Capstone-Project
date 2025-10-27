@@ -11,6 +11,7 @@ const earthyLight = {
   accentColor: '#3e3b32',
   warning: '#d4b15c',           // mustard
   secondary: '#d08c79',         // terracotta
+  primary: '#8fa47a',
 }
 
 const earthyDark = {
@@ -23,6 +24,7 @@ const earthyDark = {
   accentColor: '#e4e0d5',
   warning: '#c7a84f',
   secondary: '#b5735f',
+  primary: '#7f8f67',
 }
 
 const bodyFont = createFont({
