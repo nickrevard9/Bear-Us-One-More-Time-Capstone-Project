@@ -8,8 +8,6 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.container} style={{ marginTop: 50, marginLeft: 20, marginRight: 20}}>
-      <H6 style={styles.header}>Settings</H6>
-
       {/* Account Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>

@@ -2455,19 +2455,19 @@ var require_compiler = __commonJS({
             var _block2 = createDeclarationBlock({
               pointerEvents: "none"
             });
-            rules.push(selector + " * " + _block2);
+            rules.push(selector + ">* " + _block2);
           } else if (value === "box-none") {
             finalValue = "none!important";
             var _block3 = createDeclarationBlock({
               pointerEvents: "auto"
             });
-            rules.push(selector + " * " + _block3);
+            rules.push(selector + ">* " + _block3);
           } else if (value === "box-only") {
             finalValue = "auto!important";
             var _block4 = createDeclarationBlock({
               pointerEvents: "none"
             });
-            rules.push(selector + " * " + _block4);
+            rules.push(selector + ">* " + _block4);
           }
           var _block5 = createDeclarationBlock({
             pointerEvents: finalValue
@@ -4870,6 +4870,7 @@ var require_forwardedProps = __commonJS({
       "aria-pressed": true,
       "aria-readonly": true,
       "aria-required": true,
+      inert: true,
       role: true,
       "aria-roledescription": true,
       "aria-rowcount": true,
@@ -11990,7 +11991,6 @@ var require_AnimatedProps = __commonJS({
         }
         this._props = props;
         this._callback = callback;
-        this.__attach();
       }
       __getValue() {
         var props = {};
@@ -17987,7 +17987,7 @@ var require_ModalAnimation = __commonJS({
     var React85 = _interopRequireWildcard(require("react"));
     var _StyleSheet = _interopRequireDefault(require_StyleSheet());
     var _createElement = _interopRequireDefault(require_createElement());
-    var ANIMATION_DURATION = 300;
+    var ANIMATION_DURATION = 250;
     function getAnimationStyle(animationType, visible) {
       if (animationType === "slide") {
         return visible ? animatedSlideInStyles : animatedSlideOutStyles;
@@ -18049,12 +18049,12 @@ var require_ModalAnimation = __commonJS({
       },
       animatedIn: {
         animationDuration: ANIMATION_DURATION + "ms",
-        animationTimingFunction: "ease-in"
+        animationTimingFunction: "cubic-bezier(0.215, 0.61, 0.355, 1)"
       },
       animatedOut: {
         pointerEvents: "none",
         animationDuration: ANIMATION_DURATION + "ms",
-        animationTimingFunction: "ease-out"
+        animationTimingFunction: "cubic-bezier(0.47, 0, 0.745, 0.715)"
       },
       fadeIn: {
         opacity: 1,
@@ -20865,7 +20865,6 @@ var require_cjs = __commonJS({
 var require_dist = __commonJS({
   "node_modules/tabbable/dist/index.js"(exports2) {
     "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
     var candidateSelectors = ["input:not([inert])", "select:not([inert])", "textarea:not([inert])", "a[href]:not([inert])", "button:not([inert])", "[tabindex]:not(slot):not([inert])", "audio[controls]:not([inert])", "video[controls]:not([inert])", '[contenteditable]:not([contenteditable="false"]):not([inert])', "details>summary:first-of-type:not([inert])", "details:not([inert])"];
     var candidateSelector = /* @__PURE__ */ candidateSelectors.join(",");
     var NoElement = typeof Element === "undefined";
@@ -20877,14 +20876,14 @@ var require_dist = __commonJS({
     } : function(element) {
       return element === null || element === void 0 ? void 0 : element.ownerDocument;
     };
-    var isInert = /* @__PURE__ */ __name(function isInert2(node, lookUp) {
+    var _isInert = /* @__PURE__ */ __name(function isInert(node, lookUp) {
       var _node$getAttribute;
       if (lookUp === void 0) {
         lookUp = true;
       }
       var inertAtt = node === null || node === void 0 ? void 0 : (_node$getAttribute = node.getAttribute) === null || _node$getAttribute === void 0 ? void 0 : _node$getAttribute.call(node, "inert");
       var inert = inertAtt === "" || inertAtt === "true";
-      var result = inert || lookUp && node && isInert2(node.parentNode);
+      var result = inert || lookUp && node && _isInert(node.parentNode);
       return result;
     }, "isInert");
     var isContentEditable = /* @__PURE__ */ __name(function isContentEditable2(node) {
@@ -20893,7 +20892,7 @@ var require_dist = __commonJS({
       return attValue === "" || attValue === "true";
     }, "isContentEditable");
     var getCandidates = /* @__PURE__ */ __name(function getCandidates2(el, includeContainer, filter) {
-      if (isInert(el)) {
+      if (_isInert(el)) {
         return [];
       }
       var candidates = Array.prototype.slice.apply(el.querySelectorAll(candidateSelector));
@@ -20903,18 +20902,18 @@ var require_dist = __commonJS({
       candidates = candidates.filter(filter);
       return candidates;
     }, "getCandidates");
-    var getCandidatesIteratively = /* @__PURE__ */ __name(function getCandidatesIteratively2(elements, includeContainer, options) {
+    var _getCandidatesIteratively = /* @__PURE__ */ __name(function getCandidatesIteratively(elements, includeContainer, options) {
       var candidates = [];
       var elementsToCheck = Array.from(elements);
       while (elementsToCheck.length) {
         var element = elementsToCheck.shift();
-        if (isInert(element, false)) {
+        if (_isInert(element, false)) {
           continue;
         }
         if (element.tagName === "SLOT") {
           var assigned = element.assignedElements();
           var content = assigned.length ? assigned : element.children;
-          var nestedCandidates = getCandidatesIteratively2(content, true, options);
+          var nestedCandidates = _getCandidatesIteratively(content, true, options);
           if (options.flatten) {
             candidates.push.apply(candidates, nestedCandidates);
           } else {
@@ -20930,9 +20929,9 @@ var require_dist = __commonJS({
           }
           var shadowRoot = element.shadowRoot || // check for an undisclosed shadow
           typeof options.getShadowRoot === "function" && options.getShadowRoot(element);
-          var validShadowRoot = !isInert(shadowRoot, false) && (!options.shadowRootFilter || options.shadowRootFilter(element));
+          var validShadowRoot = !_isInert(shadowRoot, false) && (!options.shadowRootFilter || options.shadowRootFilter(element));
           if (shadowRoot && validShadowRoot) {
-            var _nestedCandidates = getCandidatesIteratively2(shadowRoot === true ? element.children : shadowRoot.children, true, options);
+            var _nestedCandidates = _getCandidatesIteratively(shadowRoot === true ? element.children : shadowRoot.children, true, options);
             if (options.flatten) {
               candidates.push.apply(candidates, _nestedCandidates);
             } else {
@@ -21042,6 +21041,24 @@ var require_dist = __commonJS({
     }, "isZeroArea");
     var isHidden2 = /* @__PURE__ */ __name(function isHidden3(node, _ref) {
       var displayCheck = _ref.displayCheck, getShadowRoot = _ref.getShadowRoot;
+      if (displayCheck === "full-native") {
+        if ("checkVisibility" in node) {
+          var visible = node.checkVisibility({
+            // Checking opacity might be desirable for some use cases, but natively,
+            // opacity zero elements _are_ focusable and tabbable.
+            checkOpacity: false,
+            opacityProperty: false,
+            contentVisibilityAuto: true,
+            visibilityProperty: true,
+            // This is an alias for `visibilityProperty`. Contemporary browsers
+            // support both. However, this alias has wider browser support (Chrome
+            // >= 105 and Firefox >= 106, vs. Chrome >= 121 and Firefox >= 122), so
+            // we include it anyway.
+            checkVisibilityCSS: true
+          });
+          return !visible;
+        }
+      }
       if (getComputedStyle(node).visibility === "hidden") {
         return true;
       }
@@ -21050,7 +21067,9 @@ var require_dist = __commonJS({
       if (matches.call(nodeUnderDetails, "details:not([open]) *")) {
         return true;
       }
-      if (!displayCheck || displayCheck === "full" || displayCheck === "legacy-full") {
+      if (!displayCheck || displayCheck === "full" || // full-native can run this branch when it falls through in case
+      // Element#checkVisibility is unsupported
+      displayCheck === "full-native" || displayCheck === "legacy-full") {
         if (typeof getShadowRoot === "function") {
           var originalNode = node;
           while (node) {
@@ -21101,7 +21120,7 @@ var require_dist = __commonJS({
       if (node.disabled || // we must do an inert look up to filter out any elements inside an inert ancestor
       //  because we're limited in the type of selectors we can use in JSDom (see related
       //  note related to `candidateSelectors`)
-      isInert(node) || isHiddenInput(node) || isHidden2(node, options) || // For a details element with a summary, the summary element gets the focus
+      _isInert(node) || isHiddenInput(node) || isHidden2(node, options) || // For a details element with a summary, the summary element gets the focus
       isDetailsWithSummary(node) || isDisabledFromFieldset(node)) {
         return false;
       }
@@ -21113,21 +21132,21 @@ var require_dist = __commonJS({
       }
       return true;
     }, "isNodeMatchingSelectorTabbable");
-    var isValidShadowRootTabbable = /* @__PURE__ */ __name(function isValidShadowRootTabbable2(shadowHostNode) {
+    var isShadowRootTabbable = /* @__PURE__ */ __name(function isShadowRootTabbable2(shadowHostNode) {
       var tabIndex = parseInt(shadowHostNode.getAttribute("tabindex"), 10);
       if (isNaN(tabIndex) || tabIndex >= 0) {
         return true;
       }
       return false;
-    }, "isValidShadowRootTabbable");
-    var sortByOrder = /* @__PURE__ */ __name(function sortByOrder2(candidates) {
+    }, "isShadowRootTabbable");
+    var _sortByOrder = /* @__PURE__ */ __name(function sortByOrder(candidates) {
       var regularTabbables = [];
       var orderedTabbables = [];
       candidates.forEach(function(item, i) {
         var isScope = !!item.scopeParent;
         var element = isScope ? item.scopeParent : item;
         var candidateTabindex = getSortOrderTabIndex(element, isScope);
-        var elements = isScope ? sortByOrder2(item.candidates) : element;
+        var elements = isScope ? _sortByOrder(item.candidates) : element;
         if (candidateTabindex === 0) {
           isScope ? regularTabbables.push.apply(regularTabbables, elements) : regularTabbables.push(element);
         } else {
@@ -21149,22 +21168,22 @@ var require_dist = __commonJS({
       options = options || {};
       var candidates;
       if (options.getShadowRoot) {
-        candidates = getCandidatesIteratively([container], options.includeContainer, {
+        candidates = _getCandidatesIteratively([container], options.includeContainer, {
           filter: isNodeMatchingSelectorTabbable.bind(null, options),
           flatten: false,
           getShadowRoot: options.getShadowRoot,
-          shadowRootFilter: isValidShadowRootTabbable
+          shadowRootFilter: isShadowRootTabbable
         });
       } else {
         candidates = getCandidates(container, options.includeContainer, isNodeMatchingSelectorTabbable.bind(null, options));
       }
-      return sortByOrder(candidates);
+      return _sortByOrder(candidates);
     }, "tabbable");
     var focusable2 = /* @__PURE__ */ __name(function focusable3(container, options) {
       options = options || {};
       var candidates;
       if (options.getShadowRoot) {
-        candidates = getCandidatesIteratively([container], options.includeContainer, {
+        candidates = _getCandidatesIteratively([container], options.includeContainer, {
           filter: isNodeMatchingSelectorFocusable.bind(null, options),
           flatten: true,
           getShadowRoot: options.getShadowRoot
@@ -23532,16 +23551,25 @@ var import_react16 = require("react");
 var import_react_dom2 = require("react-dom");
 var GorhomPortalItem = /* @__PURE__ */ __name((props) => {
   !props.hostName && !props.passThrough && console.warn("No hostName");
-  const cur = allPortalHosts.get(props.hostName || ""), [node, setNode] = (0, import_react16.useState)(cur);
-  return !props.passThrough && cur && node !== cur && setNode(cur), useIsomorphicLayoutEffect(() => {
-    if (!props.hostName || node) return;
+  const cur = allPortalHosts.get(props.hostName || ""), [node, setNode] = (0, import_react16.useState)(cur), actualNode = node?.isConnected ? node : null;
+  return !props.passThrough && cur && actualNode !== cur && setNode(cur), useIsomorphicLayoutEffect(() => {
+    if (!props.hostName) return;
+    if (node && !node.isConnected) {
+      setNode(null);
+      return;
+    }
+    if (actualNode) return;
+    if (cur) {
+      setNode(cur);
+      return;
+    }
     const listener = /* @__PURE__ */ __name((newNode) => {
       setNode(newNode);
     }, "listener");
     return portalListeners[props.hostName] ||= /* @__PURE__ */ new Set(), portalListeners[props.hostName].add(listener), () => {
       portalListeners[props.hostName]?.delete(listener);
     };
-  }, [node]), props.passThrough ? props.children : node ? (0, import_react_dom2.createPortal)(props.children, node) : null;
+  }, [node, actualNode, cur, props.hostName]), props.passThrough ? props.children : actualNode ? (0, import_react_dom2.createPortal)(props.children, actualNode) : null;
 }, "GorhomPortalItem");
 
 // node_modules/@tamagui/adapt/dist/esm/Adapt.mjs
@@ -24296,15 +24324,17 @@ __name(removeLinks, "removeLinks");
 // node_modules/@tamagui/remove-scroll/dist/esm/useDisableScroll.mjs
 var import_react20 = require("react");
 var canUseDOM = /* @__PURE__ */ __name(() => typeof window < "u" && !!window.document && !!window.document.createElement, "canUseDOM");
+var refCount = 0;
+var previousBodyStyle = null;
 var useDisableBodyScroll = /* @__PURE__ */ __name((enabled) => {
   (0, import_react20.useEffect)(() => {
     if (!enabled || !canUseDOM()) return;
-    const bodyEl = document.documentElement, previousBodyStyle = {
+    const bodyEl = document.documentElement;
+    return ++refCount === 1 && (previousBodyStyle = {
       scrollbarGutter: bodyEl.style.scrollbarGutter,
       overflow: bodyEl.style.overflow
-    };
-    return bodyEl.style.scrollbarGutter = "stable", bodyEl.style.overflow = "hidden", () => {
-      Object.assign(bodyEl.style, previousBodyStyle);
+    }, bodyEl.style.scrollbarGutter = "stable", bodyEl.style.overflow = "hidden"), () => {
+      --refCount === 0 && previousBodyStyle && (Object.assign(bodyEl.style, previousBodyStyle), previousBodyStyle = null);
     };
   }, [enabled]);
 }, "useDisableBodyScroll");
@@ -41222,7 +41252,7 @@ var import_core61 = require("@tamagui/core");
 
 tabbable/dist/index.js:
   (*!
-  * tabbable 6.2.0
+  * tabbable 6.3.0
   * @license MIT, https://github.com/focus-trap/tabbable/blob/master/LICENSE
   *)
 */

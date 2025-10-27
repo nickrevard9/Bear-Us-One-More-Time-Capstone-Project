@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, XStack, H3, H6, YStack, Label, ScrollView, Button } from "tamagui";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { View, Text, XStack, H3, H6, YStack, Label, ScrollView, Button, useTheme, ToggleGroup } from "tamagui";
 import ScreenTimeChart from "../components/ScreenTime";
-import { Edit3, Plus } from "@tamagui/lucide-icons"
+import { Edit3, Plus, CalendarDays, Calendar1, Sun } from "@tamagui/lucide-icons"
 import { getLogsByUserDate, LogData } from "../lib/db";
 import { Alert, TouchableOpacity } from "react-native";
-import { useRouter, useFocusEffect }  from "expo-router"
+import { useRouter, useFocusEffect }  from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { Platform } from 'react-native';
+import { Platform,  Animated, Easing } from 'react-native';
+import GestureRecognizer from "react-native-swipe-gestures";
+import ModeToggle from "@/components/ModeToggle";
+
 
 export const USE_LOCAL_STORAGE = true;
 
@@ -16,15 +19,18 @@ interface DailyViewProps {
 }
 
 const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
+    const theme = useTheme()
+    const translateX = useRef(new Animated.Value(0)).current;
     const router = useRouter();
     const db = useSQLiteContext();
 
     const [date, setDate] = useState<Date>(initialDate || new Date());
-    console.log(date.toDateString());
     const [dailyMedia, setDailyMedia] = useState<LogData[]>([]);
 
+    const incrementDate = new Date();
+    incrementDate.setHours(date.getHours() + 1);
     const recommendedMedia = [
-        { channel: "Amazon Prime", medium: "Phone", duration: "2:01:00" },
+        { channel: "Amazon Prime", medium: "Phone", start_date: (new Date().toISOString()), end_date: incrementDate.toISOString()},
     ];
 
     const formatDate = (date: Date) =>
@@ -37,7 +43,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     async function retrieveLogs() {
         try {
             if (USE_LOCAL_STORAGE) {
-                const media = await getLogsByUserDate(db, date.toLocaleDateString());
+                const media = await getLogsByUserDate(db, date);
                 setDailyMedia(media);
             } else {
                 // TODO: Fetch from API
@@ -53,17 +59,24 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     }, [date])
     );
 
+    function getDurationBetweenDates(date1: Date, date2: Date): number {
+        // Get the difference in milliseconds
+        const diffInMs = Math.abs(date2.getTime() - date1.getTime());
 
-    // Used to format the duration for the Daily Media Report and Recommended sections
-    function formatDuration(duration: string): string {
-        // Expects 'HH:MM:SS' or 'H:MM:SS'
-        const [h, m] = duration.split(':');
-        const hours = parseInt(h, 10);
-        const mins = parseInt(m, 10);
-        let result = '';
-        if (hours > 0) result += `${hours} hr${hours > 1 ? 's' : ''}`;
-        if (mins > 0) result += `${result ? ' ' : ''}${mins} min${mins > 1 ? 's' : ''}`;
-        return result || '0 mins';
+        // Convert milliseconds to minutes
+        const diffInMinutes = diffInMs / (1000 * 60);
+
+        return diffInMinutes;
+    }
+
+    function convertMinutesToHMS(totalMinutes: number): string {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = Math.floor(totalMinutes % 60);
+
+        const hr = hours > 0 ? `${hours} hr ` : '';
+        const mins = minutes > 0 ? `${minutes} mins` : '';
+
+        return `${hr} ${mins}`;
     }
 
     const TopBar = () => {
@@ -78,20 +91,27 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     }
 
 
-    function makeChartData(media: LogData[]): number[] {
+    function makeChartData(media: LogData[]): {value: number, time: string, label?: string, labelTextStyle?: {}}[] {
         const data: number[] = Array.from({ length: 24 }, () => 0);
+        const formatted_data: {value: number, time:string}[] = [];
 
         try{ 
             media.forEach((item: LogData) => {
-            console.log(item);
-            // const [timePart, period] = (new Date(item.start_time)).toLocaleTimeString().split(" "); // e.g. "3:30", "PM"
-            const timeString = new Date(item.start_time).toLocaleTimeString();
-            console.log(`HERE: ${timeString}`);
+            // Get start time and date
+            const timeString = new Date(item.start_date).toLocaleTimeString();
+            
             const match = timeString.match(/(\d{1,2}:\d{2}:\d{2})\s*(AM|PM)?/);
+
             if (match) {
-            const timePart = match[1]; // "10:30"
-            const period = match[2]; // "AM" or "PM"
-            console.log("HERE: "+{ timePart, period });
+            let timePart = match[1]; // "10:30"
+            let period = match[2]; // "AM" or "PM"
+
+            const start = new Date(item.start_date).getDay();
+            const today = date.getDay();
+            if (today != start) {
+                timePart = "12:00";
+                period = "AM";
+            }
             
 
             const [hourStr, minuteStr] = timePart.split(":");
@@ -103,8 +123,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
             if (period === "AM" && hour === 12) hour = 0;
 
             // Duration in minutes
-            const [durH, durM] = item.duration.split(":");
-            let remaining = parseInt(durH, 10) * 60 + parseInt(durM, 10);
+            let remaining = getDurationBetweenDates(new Date(item.start_date), new Date(item.end_date));
 
             // Distribute across hours
             while (remaining > 0) {
@@ -113,57 +132,99 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
 
             // Move to next hour
             remaining -= minutesThisHour;
-            hour = (hour + 1) % 24;
+            if (hour === 23) {
+                break; // Stop if we reach the end of the day
+            }
+            hour = hour + 1;
             minute = 0;
             }
         }
             
         });
+
+        formatted_data.push(...data.map((value, index) => {
+            const hourLabel = index % 24;
+            const period = hourLabel >= 12 ? "PM" : "AM";
+            const hour12 = hourLabel % 12 === 0 ? 12 : hourLabel % 12;
+            if (hourLabel % 6 === 0) {
+                return { value, time: `${hour12} ${period}`, label: `${hour12} ${period}`, labelTextStyle: { color: theme.color.get(), width: 60}};
+            }
+            return { value, time: `${hour12} ${period}` };   
+        }) );
+
         }
         catch(error: any){
             console.log(`Error: ${error.message}`);
         }
 
-        return data;
+        return formatted_data;
     }
 
     const usage = makeChartData(dailyMedia);
-    console.log(usage);
 
     const changeDay = (delta: number) => {
+        // Animate out
+        Animated.timing(translateX, {
+        toValue: delta === -1 ? 300 : -300, // swipe left
+        duration: 400,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
+    }).start(() => {
+        // Change content after animation out
         const newDate = new Date(date);
         newDate.setDate(date.getDate() + delta);
         setDate(newDate);
+
+        // Instantly move the next content in from the right
+        translateX.setValue(delta === -1 ? -300 : 300);
+
+        // Animate it into place
+        Animated.timing(translateX, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+            easing: Easing.out(Easing.ease),
+      }).start();
+    });
     };
 
     return (
         <View style={{ flex: 1, padding: 25, marginTop:20, width: "100%", margin: "0 auto" }}>
-            {notHome && <TopBar/>}
+            {/* {notHome && <TopBar/>} */}
+            <ModeToggle mode="day"/>
+            <YStack>
         <XStack justifyContent="center" width="100%" alignItems="center" marginBottom={24}>
             <H3 onPress={() => changeDay(-1)}>&#8592;</H3>
             <H6 style={{ textAlign: "center", flex: 5 }}>{formatDate(date)}</H6>
             <H3 onPress={() => changeDay(1)}>&#8594;</H3>
         </XStack>
+        {(new Date().getDate() != date.getDate()) &&  <Button size="$2" onPress={() => setDate(new Date())}>Show Today</Button>}
+        </YStack>
 
         <ScrollView>
+            <Animated.View
+          style={[
+            { transform: [{ translateX }] }
+          ]}
+        >
+            <GestureRecognizer onSwipeLeft={changeDay.bind(this, 1)} onSwipeRight={changeDay.bind(this, -1)}>
                     <YStack alignItems="center" paddingBottom={20}>
-                        <ScreenTimeChart usageData={usage} />
+                        <ScreenTimeChart usageData={usage} focus={false}/>
                     </YStack>
                     <YStack>
                         <YStack>
                         <Label size="$4" style={{paddingTop: 10, textAlign: "center"}} fontWeight="bold">Your Daily Media</Label>
-                        <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#99999996"/>
+                        <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#8fa47a"/>
                         {/* Add daily media here */}
                         {dailyMedia.map((item, index) => (
                             <TouchableOpacity key={index} onPress={() => {
                                 router.prefetch({pathname:'/edit_page', params: {log_id: item.log_id}});
-                                console.log(`Going to: ${item.log_id}`)
                                 router.push({pathname:'/edit_page', params: {log_id: item.log_id}});}} 
                                 style={{ flex: 1 }}>
                             <YStack paddingVertical={10}>
                             <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
                                 <Text>{item.channel}</Text>
-                                <Text>{formatDuration(item.duration)}</Text>
+                                <Text>{convertMinutesToHMS(getDurationBetweenDates(new Date(item.start_date), new Date(item.end_date)))}</Text>
                             </XStack>
                             <XStack justifyContent="space-between" paddingHorizontal={20} fontSize={11} opacity={0.7}>
                                 <Text>{item.medium}</Text>
@@ -173,8 +234,8 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                         ))}
                         </YStack>
                         <YStack>
-                        <Label size="$4" style={{paddingTop: 10, textAlign: "center"}} fontWeight="bold">Suggested Media</Label>
-                        <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#99999996"/>
+                        <Label size="$4" style={{paddingTop: 10, textAlign: "center"}} fontWeight="bold">Suggested Media From Your Activity</Label>
+                        <XStack justifyContent="space-between" borderBottomWidth={2} borderTopWidth={0} borderColor="#8fa47a"/>
                         {Platform.OS === 'ios' ? (
                             <YStack>
                             <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
@@ -192,7 +253,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                                     <YStack key={index}>
                                         <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
                                             <Text>{item.channel}</Text>
-                                            <Text>{formatDuration(item.duration)}</Text>
+                                            <Text>{convertMinutesToHMS(getDurationBetweenDates(new Date(item.start_date), new Date(item.end_date)))}</Text>
                                         </XStack>
                                         <XStack justifyContent="space-between" paddingHorizontal={20} fontSize={11} opacity={0.7}>
                                             <Text>{item.medium}</Text>
@@ -204,6 +265,8 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                         )}
                         </YStack>
                     </YStack>
+                    </GestureRecognizer>
+                    </Animated.View>
                 </ScrollView>
         </View>
     );

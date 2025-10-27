@@ -114,7 +114,9 @@ export default function Profile() {
       }
 
       const userRows = await db.getAllAsync<any>(
-        `SELECT id, username, email, firstName, lastName, createdAt FROM users WHERE id = ?`,
+        `SELECT username, email, firstName, lastName
+           FROM users
+          WHERE id = ?`,
         [user.id]
       );
       const streakRows = await db.getAllAsync<any>(
@@ -122,18 +124,36 @@ export default function Profile() {
         [user.id]
       );
       const logRows = await db.getAllAsync<any>(
-        `SELECT log_id, date, start_time, duration, medium, channel, intentional, primary_motivation, description
+        `SELECT date(start_date, 'localtime') as start_date, ROUND(ABS((julianday(start_date) - julianday(end_date))* 24 * 60)) || ' mins' AS duration, medium, channel,
+                intentional, primary_motivation, description
            FROM log_data
           WHERE user_id = ?
-          ORDER BY date DESC, start_time DESC, log_id DESC`,
+          ORDER BY start_date DESC, log_id DESC`,
         [user.id]
       );
 
       const parts: string[] = [];
-      parts.push(rowsToCSV([["SECTION", "users"], ["id", "username", "email", "firstName", "lastName", "createdAt"]]));
-      if (userRows.length) {
-        parts.push(rowsToCSV(userRows.map(r => [r.id, r.username, r.email, r.firstName, r.lastName, r.createdAt])));
-      }
+
+      // users section
+      parts.push(
+        rowsToCSV([
+          ["SECTION", "users"],
+          ["username", "email", "firstName", "lastName",],
+        ])
+      );
+      parts.push(
+        userRows.length
+          ? rowsToCSV(
+              userRows.map((r) => [
+                r.username,
+                r.email,
+                r.firstName,
+                r.lastName,
+              ])
+            )
+          : ""
+      );
+
       parts.push("");
       parts.push(rowsToCSV([["SECTION", "streak"], ["streak_id", "start_date_streak", "num_days"]]));
       if (streakRows.length) {
@@ -143,15 +163,32 @@ export default function Profile() {
       parts.push(
         rowsToCSV([
           ["SECTION", "log_data"],
-          ["log_id","date","start_time","duration","medium","channel","intentional","primary_motivation","description"],
+          [
+            "Start Date",
+            "Duration",
+            "Medium",
+            "Channel",
+            "Intentional",
+            "Primary Motivation",
+            "Desciription",
+          ],
         ])
       );
-      if (logRows.length) {
-        parts.push(rowsToCSV(logRows.map(r => [
-          r.log_id, r.date, r.start_time, r.duration, r.medium, r.channel,
-          r.intentional, r.primary_motivation, r.description,
-        ])));
-      }
+      parts.push(
+        logRows.length
+          ? rowsToCSV(
+              logRows.map((r) => [
+                r.start_date,
+                r.duration,
+                r.medium,
+                r.channel,
+                r.intentional == 1 ? "Yes" : "No",
+                r.primary_motivation,
+                r.description,
+              ])
+            )
+          : ""
+      );
 
       const csv = parts.join("\n");
       const fileName = `pawse_export_${Date.now()}.csv`;
@@ -316,15 +353,24 @@ export default function Profile() {
         <Group width="100%">
           <Separator marginVertical={10} />
           <Button icon={CreditCard}>Edit Profile</Button>
+        <Group>
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          <Button backgroundColor="automatic" icon={CreditCard}>Edit Profile</Button>
 
-          <Separator marginVertical={10} />
-          <Button icon={Download} onPress={onExportReport}>Export Report</Button>
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          <Button backgroundColor="automatic" icon={Download} onPress={onExportReport}>
+            Export Report
+          </Button>
 
-          <Separator marginVertical={10} />
-          <Button icon={Settings} onPress={() => router.push("/settings")}>Settings</Button>
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          <Button backgroundColor="automatic" icon={Settings} onPress={() => router.push("/settings")}>
+            Settings
+          </Button>
 
-          <Separator marginVertical={10} />
-          <Button icon={LogOutIcon} onPress={onLogout}>Log Out</Button>
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          <Button backgroundColor="automatic" icon={LogOut} onPress={onLogout}>
+            Log Out
+          </Button>
 
           {/* Reminders */}
           <Separator marginVertical={10} />
@@ -360,6 +406,7 @@ export default function Profile() {
               </XStack>
             </>
           )}
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
         </Group>
       </YStack>
     </ScrollView>
