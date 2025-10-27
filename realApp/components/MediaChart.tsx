@@ -98,7 +98,7 @@ export default function MediaChart({media_counts}: MediaChartProps) {
         backgroundColor: '$color',
       }}>
       <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
-        Performance
+        Media Types Used
       </Text>
       <View style={{padding: 20, alignItems: 'center'}}>
         {(pieData && pieData.length > 0)? 
