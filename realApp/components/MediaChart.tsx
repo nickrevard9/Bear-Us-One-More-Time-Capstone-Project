@@ -72,6 +72,7 @@ export default function MediaChart({media_counts}: MediaChartProps) {
                                 flexDirection: 'row',
                                 alignItems: 'center',
                                 width: '40%',
+                                paddingEnd: 30,
                                 marginVertical: 4,
                             }}
                             >
