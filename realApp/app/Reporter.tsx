@@ -7,6 +7,7 @@ import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
 import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog } from "../lib/db";
 import { X } from '@tamagui/lucide-icons';
+import { TimePicker } from '@/components/timepicker';
 
 // Define props for the Reporter component, with optional log_id for editing an existing log
 interface ReporterProps {
@@ -271,10 +272,10 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     }   , [setShowStartTimePicker]);
 
     const onConfirmStartTime = React.useCallback(
-    (params) => {
+    (params: {hours: number, minutes: number}) => {
       setShowStartTimePicker(false);
-      const new_date = params.hours && params.minutes ? new Date(start_date.getFullYear(), start_date.getMonth(), start_date.getDate(), params.hours, params.minutes) : start_date;
-      setStartDate(new_date);
+      const new_date = new Date(start_date.getFullYear(), start_date.getMonth(), start_date.getDate(), params.hours, params.minutes);
+      setStartDate(new_date);            
       validateDates(new_date, end_date);},
     [setShowStartTimePicker, setStartDate, start_date, end_date]
   );
@@ -299,16 +300,16 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     }, [setShowEndTimePicker]);
 
     const onConfirmEndTime = React.useCallback(
-    (params) => {
+    (params: {hours: number, minutes: number}) => {
       setShowEndTimePicker(false);
-      const new_date = params.hours && params.minutes ? new Date(end_date.getFullYear(), end_date.getMonth(), end_date.getDate(), params.hours, params.minutes) : end_date;
+      const new_date = new Date(end_date.getFullYear(), end_date.getMonth(), end_date.getDate(), params.hours, params.minutes);
       setEndDate(new_date);
       validateDates(start_date, new_date);},
     [setShowEndTimePicker, setEndDate, end_date]
   );
 
     return (
-        <View paddingTop={50} paddingHorizontal={10}>
+        <View paddingTop={20} paddingHorizontal={10}>
             {/* Header with back arrow and title */}
             <XStack alignItems="center" paddingBottom={20} >
                 <TouchableOpacity onPress={() => router.back()} style={{ flex: 1 }}>
@@ -320,7 +321,6 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
             <ScrollView paddingBottom="$4">
             <YStack justifyContent="left">
-
                 {/* Time Picker */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
                     <Label>Started</Label>
@@ -344,16 +344,13 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                         onDismiss={onDismissStartDate}
                         onConfirm={onConfirmStartDate}
                         date={start_date}
-                    />            
-                    <TimePickerModal
-                        visible={showStartTimePicker}
-                        onDismiss={onDismissStartTime}
-                        onConfirm={onConfirmStartTime}
-                        defaultInputType='keyboard'
-                        hours={start_date.getHours()}
-                        minutes={start_date.getMinutes()}
-                        locale='en'
-                    /> 
+                    />        
+                    <TimePicker isVisible={showStartTimePicker} 
+                    onDismiss={onDismissStartTime} 
+                    hours={start_date.getHours()}
+                    minutes={start_date.getMinutes()}
+                    onConfirm= {(d) => onConfirmStartTime(d)
+                    }/>    
                 </XStack>
 
                 {/* Duration Picker */}
@@ -387,14 +384,12 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                         onConfirm={onConfirmEndDate}
                         date={end_date}
                     />            
-                    <TimePickerModal
-                        visible={showEndTimePicker}
+                    <TimePicker
+                        isVisible={showEndTimePicker}
                         onDismiss={onDismissEndTime}
                         onConfirm={onConfirmEndTime}
-                        defaultInputType='keyboard'
                         hours={end_date.getHours()}
                         minutes={end_date.getMinutes()}
-                        locale='en'
                     />    
                 </XStack>
 
