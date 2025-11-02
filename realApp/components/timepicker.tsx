@@ -26,7 +26,7 @@ export function TimePicker(props: {onConfirm: (hoursAndMinutes: {hours: number, 
   hours: number,
   minutes: number
 }) {
-  const [hour, setHour] = useState(props.hours > 12 ? props.hours % 12 : props.hours)
+  const [hour, setHour] = useState(props.hours > 12 ? props.hours - 12 : props.hours)
   const [period, setPeriod] = useState(props.hours > 12 ? "PM" : "AM")
   const [minute, setMinute] = useState(props.minutes)
 
@@ -51,7 +51,7 @@ export function TimePicker(props: {onConfirm: (hoursAndMinutes: {hours: number, 
   }
 
   useEffect(() => {
-    setHour(props.hours > 12 ? props.hours % 12 : props.hours)
+    setHour(props.hours > 12 ? props.hours - 12 : props.hours)
     setMinute(props.minutes)
     setPeriod(props.hours > 12 ? "PM" : "AM")
   }, [setHour,setMinute])
