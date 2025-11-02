@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {StyleSheet, Platform, TouchableOpacity, TouchableWithoutFeedback, Switch, ScrollView, Alert} from 'react-native';
 import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, Select, Popover, useTheme } from "tamagui";
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { DatePickerModal, DatePickerInput , TimePickerModal } from 'react-native-paper-dates';
+import { DatePicker } from '@/components/datepicker';
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
 import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog } from "../lib/db";
@@ -337,10 +337,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                             minute: 'numeric',
                             })} editable={false}/>
                     </TouchableOpacity>
-                    <DatePickerModal
-                        visible={showStartDatePicker}
-                        mode='single'    
-                        locale='en'
+                    <DatePicker
+                        isVisible={showStartDatePicker}
                         onDismiss={onDismissStartDate}
                         onConfirm={onConfirmStartDate}
                         date={start_date}
@@ -376,10 +374,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                         {dateError ? 'End time must be after start time' : ''}
                     </Text>
                         </YStack>
-                    <DatePickerModal
-                        visible={showEndDatePicker}
-                        mode='single'    
-                        locale='en'
+                    <DatePicker
+                        isVisible={showEndDatePicker}
                         onDismiss={onDismissEndDate}
                         onConfirm={onConfirmEndDate}
                         date={end_date}

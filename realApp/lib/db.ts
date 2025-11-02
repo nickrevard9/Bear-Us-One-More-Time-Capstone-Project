@@ -417,11 +417,13 @@ export async function deleteLogByLogID(
       FROM log_data
       WHERE strftime('%m', start_date) = ? 
       AND strftime('%Y', start_date) = ?
+      AND user_id = ?
       GROUP BY medium;
     `;
+    const id = await AsyncStorage.getItem('pawse.currentUserId')
     const monthStr = month.toString().padStart(2, '0');
     const yearStr = year.toString();
-    const params: any[] = [monthStr, yearStr];
+    const params: any[] = [monthStr, yearStr, id];
 
     const result = await db.getAllAsync<any>(query, params);
     const mapped: {medium: string, value: number}[] = result.map((r: any) => ({
