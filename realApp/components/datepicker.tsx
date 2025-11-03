@@ -51,10 +51,10 @@ export function DatePicker(props: {onConfirm: (params: any) => void,
               year_label: { color: colors.label },
               year_selector_label: { color: colors.label },
               weekday_label: { color: colors.label },
-        today: { borderColor: colors.today, borderWidth: 4, borderRadius: 20}, // Add a border to today's date
-        selected: { backgroundColor: colors.selected, borderRadius: 20 }, // Highlight the selected day
-        selected_label: { color: colors.selected_label }, // Highlight the selected day label
-      }}
+              today: { borderColor: colors.today, borderWidth: 4, borderRadius: 20}, // Add a border to today's date
+              selected: { backgroundColor: colors.selected, borderRadius: 20 }, // Highlight the selected day
+              selected_label: { color: colors.selected_label }, // Highlight the selected day label
+            }}
             date={props.date}
             onChange={(e) => props.onConfirm(e)}
             mode="single"

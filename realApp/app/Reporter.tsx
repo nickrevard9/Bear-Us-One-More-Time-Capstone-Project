@@ -1,11 +1,12 @@
 import React, { useCallback, useState } from 'react';
 import {TouchableOpacity, Switch, ScrollView, Alert, StyleSheet} from 'react-native';
-import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, useTheme } from "tamagui";
+import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, useTheme, Paragraph } from "tamagui";
 import { useFocusEffect, useRouter } from 'expo-router';
 import { DatePicker } from '@/components/datepicker';
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
 import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog } from "../lib/db";
+import { HelpCircle } from '@tamagui/lucide-icons';
 import { TimePicker } from '@/components/timepicker';
 import Tooltip from "rn-tooltip";
 
@@ -318,6 +319,16 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 <H6 style={{ textAlign: 'center', fontWeight: "600", position: 'absolute', left: 0, right: 0 }}>
                     Log
                 </H6>
+                <Tooltip
+                actionType='press'
+                height={150}
+                width={200}
+                withOverlay={false}
+                backgroundColor= "#7f8f67"
+                    popover={<Paragraph color="#e4e0d5">This is where you track your media! Click on the labels if you're confused on what to type.</Paragraph>}
+                >
+                    <HelpCircle />
+                    </Tooltip>
             </XStack>
 
 

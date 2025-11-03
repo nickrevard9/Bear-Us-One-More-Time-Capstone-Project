@@ -209,6 +209,9 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
         >
             <GestureRecognizer onSwipeLeft={changeDay.bind(this, 1)} onSwipeRight={changeDay.bind(this, -1)}>
                     <YStack alignItems="center" paddingBottom={20}>
+                    <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
+                    Media Usage
+                    </Text>
                         <ScreenTimeChart usageData={usage} focus={false}/>
                     </YStack>
                     <YStack>
