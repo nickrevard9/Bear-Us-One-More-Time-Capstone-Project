@@ -1,13 +1,13 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import {StyleSheet, Platform, TouchableOpacity, TouchableWithoutFeedback, Switch, ScrollView, Alert} from 'react-native';
-import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, Select, Popover, useTheme } from "tamagui";
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import {TouchableOpacity, Switch, ScrollView, Alert, StyleSheet} from 'react-native';
+import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, useTheme } from "tamagui";
+import { useFocusEffect, useRouter } from 'expo-router';
 import { DatePicker } from '@/components/datepicker';
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
 import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog } from "../lib/db";
-import { X } from '@tamagui/lucide-icons';
 import { TimePicker } from '@/components/timepicker';
+import Tooltip from "rn-tooltip";
 
 // Define props for the Reporter component, with optional log_id for editing an existing log
 interface ReporterProps {
@@ -309,21 +309,30 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
   );
 
     return (
-        <View paddingTop={20} paddingHorizontal={10}>
+        <View paddingHorizontal={10}>
             {/* Header with back arrow and title */}
-            <XStack alignItems="center" paddingBottom={20} >
-                <TouchableOpacity onPress={() => router.back()} style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 28, fontWeight: 'bold', textAlign: 'left' }}>{'←'}</Text>
+            <XStack alignItems="center" justifyContent="space-between" paddingBottom={20}>
+                <TouchableOpacity onPress={() => router.back()}>
+                    <Text style={{ fontSize: 28, fontWeight: 'bold' }}>{'←'}</Text>
                 </TouchableOpacity>
-                <H6 style={{ flex: 2, textAlign: 'center', fontWeight: "600",}}>Log</H6>
-                <View style={{ flex: 1 }} />
+                <H6 style={{ textAlign: 'center', fontWeight: "600", position: 'absolute', left: 0, right: 0 }}>
+                    Log
+                </H6>
             </XStack>
+
 
             <ScrollView paddingBottom="$4">
             <YStack justifyContent="left">
                 {/* Time Picker */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                    <Label>Started</Label>
+                    <Tooltip 
+                    backgroundColor= "#7f8f67"
+                    withOverlay={false}
+                    actionType='press'
+                    width={300}
+                    popover={<Text color="#e4e0d5">When you began watching/listening/reading</Text>}>
+                        <Text style={{ fontWeight: "bold", fontSize: 16}}>Started</Text>
+                    </Tooltip>
                     <TouchableOpacity background="none" onPress={() => setShowStartDatePicker(true)}>
                         <Input color={dateError? "red" : theme.color.get()} onPress={() => setShowStartDatePicker(true)} value={start_date.toLocaleString('en-US', {
                             year: 'numeric',
@@ -353,7 +362,14 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
                 {/* Duration Picker */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                    <Label>Ended</Label>
+                    <Tooltip 
+                    backgroundColor= "#7f8f67"
+                    withOverlay={false}
+                    actionType='press'
+                    width={300}
+                    popover={<Text color="#e4e0d5">When you stopped</Text>}>
+                        <Text style={{ fontWeight: "bold", fontSize: 16}}>Ended</Text>
+                    </Tooltip>
                     <YStack>
                         <XStack>
                         <TouchableOpacity activeOpacity={1} onPress={() => setShowEndDatePicker(true)}>
@@ -391,7 +407,14 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
                 {/* Medium Dropdown */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                <Label style={{ minWidth: 90 }}>Media Type</Label>
+                <Tooltip 
+                    backgroundColor= "#7f8f67"
+                    withOverlay={false}
+                    actionType='press'
+                    width={300}
+                    popover={<Text color="#e4e0d5">The device used</Text>}>
+                    <Text style={{ fontWeight: "bold", fontSize: 16}}>Media Type</Text>
+                </Tooltip>
                 <YStack>
                     <Dropdown
                             data={mediums}
@@ -412,7 +435,14 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
                 {/* Channel Input */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                <Label >Platform</Label>
+                <Tooltip 
+                    backgroundColor= "#7f8f67"
+                    withOverlay={false}
+                    actionType='press'
+                    width={300}
+                    popover={<Text color="#e4e0d5">What app or channel was used</Text>}>
+                    <Text style={{ fontWeight: "bold", fontSize: 16}}>Platform</Text>
+                </Tooltip>
                 <YStack>
                     <Input
                         maxW={600}
@@ -427,7 +457,14 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
                 {/* Intentional Switch */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                <Label >Intentional?</Label>
+                <Tooltip 
+                    backgroundColor= "#7f8f67"
+                    withOverlay={false}
+                    actionType='press'
+                    width={300}
+                    popover={<Text color="#e4e0d5">On purpose or not (e.g. radio in the grocery store)</Text>}>
+                    <Text style={{ fontWeight: "bold", fontSize: 16}} >Intentional?</Text>
+                </Tooltip>
                 <Text> No </Text>
                 <Switch onValueChange={setIsIntentional} value={isIntentional}>
                 </Switch>
@@ -436,7 +473,14 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
                 {/* Primary Motivation Dropdown */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                <Label>Primary Motivation</Label>
+                    <Tooltip 
+                    backgroundColor= "#7f8f67"
+                    withOverlay={false}
+                    actionType='press'
+                    width={300}
+                    popover={<Text color="#e4e0d5">Why did you consume it?</Text>}>
+                        <Text style={{ fontWeight: "bold", fontSize: 16}}>Primary Motivation</Text>
+                    </Tooltip>
                 <YStack>
                 <Dropdown
                     maxHeight={300}
@@ -460,20 +504,27 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 {/* Description TextArea */}
                 <YStack paddingBottom="$4">
                     <XStack alignItems="center" gap="$4" paddingBottom="$2">
-                <Label >Description</Label> 
-                <Text style={{ color: descriptionError ? 'red' : 'black', marginLeft: 10 }}>
-                {descriptionError ? 'Must have a description' : ''}
-                </Text>
-                </XStack>
-                <TextArea
-                    size="$4" borderWidth={2}
-                    width="100%"
-                    paddingBottom="$4"
-                    height={250}
-                    placeholder={descriptionPlaceholders[primaryMotivation]}
-                    value={description}
-                    onChangeText={(value) => {setDescription(value); setDescriptionError(false)}}
-                />
+                        <Tooltip 
+                            backgroundColor= "#7f8f67"
+                            withOverlay={false}
+                            actionType='press'
+                            width={300}
+                            popover={<Text color="#e4e0d5">More detail about what you did</Text>}>
+                                <Text style={{ fontWeight: "bold", fontSize: 16}}>Description</Text> 
+                        </Tooltip>
+                        <Text style={{ color: descriptionError ? 'red' : 'black', marginLeft: 10 }}>
+                        {descriptionError ? 'Must have a description' : ''}
+                        </Text>
+                    </XStack>
+                    <TextArea
+                        size="$4" borderWidth={2}
+                        width="100%"
+                        paddingBottom="$4"
+                        height={250}
+                        placeholder={descriptionPlaceholders[primaryMotivation]}
+                        value={description}
+                        onChangeText={(value) => {setDescription(value); setDescriptionError(false)}}
+                    />
                 </YStack>
 
                 {/* Submit and Delete Buttons */}
