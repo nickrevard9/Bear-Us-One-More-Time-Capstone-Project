@@ -105,3 +105,19 @@ CREATE TABLE IF NOT EXISTS session (
     FOREIGN KEY (user_id) REFERENCES user(user_id)
     ON DELETE CASCADE ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- notification
+CREATE TABLE IF NOT EXISTS notification (
+  notification_id INT NOT NULL AUTO_INCREMENT,
+  title VARCHAR(255) NOT NULL,      -- overarching "purpose" of the message
+  icon VARCHAR(255) NOT NULL,       -- should we store this oe assign it later?
+  description TEXT NOT NULL,        -- message contents
+  time TIMESTAMP NOT NULL,          -- time message was sent
+  date DATE NOT NULL,               -- date message was sent
+  user_id INT,
+  PRIMARY KEY (notification_id),
+  KEY idx_notification_user (user_id),
+  CONSTRAINT fk_notification_user
+    FOREIGN KEY (user_id) REFERENCES user(user_id)
+    ON DELETE SET NULL ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

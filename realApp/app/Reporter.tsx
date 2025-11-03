@@ -1,15 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {StyleSheet, Platform, TouchableOpacity, TouchableWithoutFeedback, Switch, ScrollView, Alert} from 'react-native';
-import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, 
- Popover } from "tamagui";
+import { View, Input, Button, YStack, XStack, Text, H6, Label, TextArea, Select, Popover, useTheme } from "tamagui";
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Calendar } from "@/components/calendar";
-import { TimePicker } from "@/components/timepicker";
-import { DateType } from 'react-native-ui-datepicker';
-import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { DatePickerModal, DatePickerInput , TimePickerModal } from 'react-native-paper-dates';
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
 import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog } from "../lib/db";
+import { X } from '@tamagui/lucide-icons';
 
 // Define props for the Reporter component, with optional log_id for editing an existing log
 interface ReporterProps {
@@ -27,37 +24,45 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     const [editMode, setEditMode] = useState(false);
     
     // States for date and time pickers
-    const [date, setDate] = useState<Date>(new Date());
-    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [start_date, setStartDate] = useState<Date>(new Date("2023-10-05T12:30:00"));
+    const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+    const [showStartTimePicker, setShowStartTimePicker] = useState(false);
 
-    const [time, setTime] = useState<Date>(new Date("2023-10-05T12:30:00"));
-    const [showTimePicker, setShowTimePicker] = useState(false);
-
-    const [duration, setDuration] = useState(new Date("2023-10-05T1:00:00"));
-    const [showDurationPicker, setShowDurationPicker] = useState(false);
+    const [end_date, setEndDate] = useState(new Date("2023-10-05T1:00:00"));
+    const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+    const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
     // Other form fields
     const [description, setDescription] = useState('');
     const [channel, setChannel] = useState('');
     const [medium, setMedium] = useState('');
-    const [focus, setIsFocus] = useState(false);
+
+    const [dateError, setDateError] = useState(false);
+    const [mediumError, setMediumError] = useState(false);
+
+    const [channelError, setChannelError] = useState(false);
+
+    const [motivationError, setMotivationError] = useState(false);
+    const [descriptionError, setDescriptionError] = useState(false);
+
+    const theme = useTheme()
 
     // Dropdown options for mediums
     const mediums = [
-        { label: "Print Newspaper", value: "Print Newspaper" },
-        { label: "Other Printed Material", value: "Other Printed Material" },
-        { label: "Television", value: "Television" },
-        { label: "Radio", value: "Radio" },
-        { label: "eReader", value: "eReader" },
-        { label: "Large Screen / Movie Theater", value: "Large Screen / Movie Theater" },
-        { label: "Stereo System", value: "Stereo System" },
         { label: "Car Stereo", value: "Car Stereo" },
-        { label: "Personal Computer", value: "Personal Computer" },
-        { label: "Laptop Computer", value: "Laptop Computer" },
         { label: "Desktop Computer", value: "Desktop Computer" },
+        { label: "eReader", value: "eReader" },
+        { label: "Laptop Computer", value: "Laptop Computer" },
+        { label: "Large Screen / Movie Theater", value: "Large Screen / Movie Theater" },
+        { label: "Print Newspaper", value: "Print Newspaper" },
+        { label: "Personal Computer", value: "Personal Computer" },
+        { label: "Radio", value: "Radio" },
+        { label: "Stereo System", value: "Stereo System" },
         { label: "Smart Phone", value: "Smart Phone" },
         { label: "Tablet", value: "Tablet" },
+        { label: "Television", value: "Television" },
         { label: "Other Handheld Device", value: "Other Handheld Device" },
+        { label: "Other Printed Material", value: "Other Printed Material" },
         { label: "Other", value: "Other" },
     ];
 
@@ -67,15 +72,59 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     // Dropdown for primary motivation
     const [primaryMotivation, setPrimaryMotivation] = useState('');
     const motivations = [
-        { label: "Entertainment", value: "Entertainment" },
-        { label: "Social", value: "Social" },
-        { label: "Information Seeking", value: "Information Seeking" },
-        { label: "Escape", value: "Escape" },
-        { label: "Schoolwork", value: "Schoolwork" },
-        { label: "Job", value: "Job" },
         { label: "Ambient", value: "Ambient" },
+        { label: "Entertainment", value: "Entertainment" },
+        { label: "Escape", value: "Escape" },
+        { label: "Information Seeking", value: "Information Seeking" },
+        { label: "Job", value: "Job" },
+        { label: "Social", value: "Social" },
+        { label: "Schoolwork", value: "Schoolwork" },
         { label: "Other", value: "Other" },
     ];
+
+    // Placeholder Texts for Channel based on mediums selected
+    const channelPlaceholders: { [key: string]: string } = {
+        "": "e.g., Enter platform here",    
+        "Car Stereo": "e.g., FM Radio, Spotify",
+        "Desktop Computer": "e.g., YouTube, Netflix",
+        "eReader": "e.g., Kindle, Nook",
+        "Laptop Computer": "e.g., Hulu, Amazon Prime",
+        "Large Screen / Movie Theater": "e.g., AMC, Regal Cinemas",
+        "Print Newspaper": "e.g., The New York Times, The Guardian",
+        "Personal Computer": "e.g., Spotify, Audible",
+        "Radio": "e.g., NPR, BBC Radio",
+        "Stereo System": "e.g., Home Stereo, Bluetooth Speaker",
+        "Smart Phone": "e.g., TikTok, Instagram",
+        "Tablet": "e.g., Netflix, YouTube",
+        "Television": "e.g., HBO, Disney+",
+        "Other Handheld Device": "e.g., PS4, Portable DVD Player",
+        "Other Printed Material": "e.g., Magazine, Brochure",
+        "Other": "e.g., Enter platform here",
+    };
+
+    // Placeholder Texts for Description based on options selected
+    const descriptionPlaceholders: { [key: string]: string } = {
+        "": "e.g., Describe your activity here",
+        "Ambient": "e.g., Background music while working",
+        "Entertainment": "e.g., Watching a movie or playing a game",
+        "Escape": "e.g., Reading a novel to unwind",
+        "Information Seeking": "e.g., Researching a topic online",
+        "Job": "e.g., Attending a virtual meeting",
+        "Social": "e.g., Video calling with friends",
+        "Schoolwork": "e.g., Studying or attending online classes",
+        "Other": "e.g., Describe your activity here",
+    };
+    
+    // Function to round date to  nearest 5 or 10 minutes
+    function roundToNearest5(date: Date): Date {
+        const ms = 1000 * 60 * 5; // 5 minutes in milliseconds
+        return new Date(Math.round(date.getTime() / ms) * ms);
+    }
+
+    // Function checking if start and end dates are valid
+    function validateDates(start_date: Date, end_date: Date) {
+        start_date > end_date ? setDateError(true) : setDateError(false);
+    }
 
     // Function to load an existing log from the database
     async function obtainLog(log_id: number) {
@@ -86,15 +135,12 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         console.log(`Got the log ${log_id}`)
         setEditMode(true); // Set edit mode since this is an existing log
         setChannel(log.channel);
-        setDuration(new Date("2023-10-05T"+log.duration));
-        setTime(new Date(log.start_time));
+        setEndDate(new Date(log.end_date));
+        setStartDate(new Date(log.start_date));
         setDescription(log.description);
         setIsIntentional(log.intentional == 1? true : false);
         setMedium(log.medium);
         setPrimaryMotivation(log.primary_motivation);
-        const [month, day, year] = log.date.split('/');
-        const date = new Date(+year, +month - 1, +day);
-        setDate(new Date(date));
     }
 
     // useFocusEffect runs whenever this screen gains focus
@@ -110,21 +156,21 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
       } else { // Reset form fields for a new log
         setEditMode(false);
         setChannel("");
-        setDuration(new Date("2023-10-05T1:00:00"));
-        setTime(new Date("2023-10-05T12:30:00"));
+        setStartDate(roundToNearest5(new Date()));
+        const incrementedDate = new Date();
+        incrementedDate.setHours(incrementedDate.getHours() + 1);
+        setEndDate(roundToNearest5(incrementedDate));
         setDescription("");
         setIsIntentional(false);
         setMedium("");
         setPrimaryMotivation("");
-        setDate(new Date());
       }
     }, [
       logId,
       setEditMode,
       setChannel,
-      setDate,
-      setDuration,
-      setTime,
+      setEndDate,
+      setStartDate,
       setIsIntentional,
       setMedium,
       setPrimaryMotivation,
@@ -134,10 +180,29 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
     // Handle form submission: insert or update log
     const handleSubmit = async () => {
+        if(dateError){
+            Alert.alert("Please fix date errors before submitting");
+            return;
+        }
+        if(medium === ""){
+            setMediumError(true);
+        }
+        if(channel === ""){
+            setChannelError(true);
+        }
+        if(primaryMotivation === ""){
+            setMotivationError(true);
+        }   
+        if(description === ""){
+            setDescriptionError(true);
+        }
+        if(medium === "" || channel === "" || primaryMotivation === "" || description === ""){
+            Alert.alert("Please fill in all required fields before submitting");
+            return;
+        }
         const log: LogData = {
-            date: date.toLocaleDateString(),
-            start_time: time.toISOString(),
-            duration: duration.toTimeString().split(' ')[0], // Format as HH:MM:SS
+            start_date: start_date.toISOString(),
+            end_date: end_date.toISOString(), // Format as HH:MM:SS
             medium,
             channel,
             intentional: isIntentional? 1 : 0,
@@ -157,7 +222,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             else{
                 await insertLog(db, log); // Insert new log
             }  
-            router.push('/(tabs)/home') // Navigate back to home
+            router.back() // Navigate back to home
             return;
         }
         catch (error){
@@ -184,7 +249,63 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         catch(error){
             Alert.alert("Cannot delete log");
         }
+        
     };
+
+    // Start date picker handlers
+    const onDismissStartDate = React.useCallback(() => {
+        setShowStartDatePicker(false);
+    }, [setShowStartDatePicker]);
+
+    const onConfirmStartDate = React.useCallback(
+    (params) => {
+        setShowStartDatePicker(false);  
+        const new_date = params.date ? new Date(params.date.getFullYear(), params.date.getMonth(), params.date.getDate(), start_date.getHours(), start_date.getMinutes()) : start_date;
+        setStartDate(new_date);
+        validateDates(new_date, end_date);
+    },
+    [setShowStartDatePicker, setStartDate, start_date, end_date]
+  );
+    const onDismissStartTime = React.useCallback(() => {
+        setShowStartTimePicker(false);
+    }   , [setShowStartTimePicker]);
+
+    const onConfirmStartTime = React.useCallback(
+    (params) => {
+      setShowStartTimePicker(false);
+      const new_date = params.hours && params.minutes ? new Date(start_date.getFullYear(), start_date.getMonth(), start_date.getDate(), params.hours, params.minutes) : start_date;
+      setStartDate(new_date);
+      validateDates(new_date, end_date);},
+    [setShowStartTimePicker, setStartDate, start_date, end_date]
+  );
+
+    // End date picker handlers
+    const onDismissEndDate = React.useCallback(() => {
+        setShowEndDatePicker(false);
+    }, [setShowEndDatePicker]);
+
+    const onConfirmEndDate = React.useCallback(
+    (params) => {
+        setShowEndDatePicker(false);
+        const new_date = params.date ? new Date(params.date.getFullYear(), params.date.getMonth(), params.date.getDate(), end_date.getHours(), end_date.getMinutes()) : end_date
+        setEndDate(new_date)
+        validateDates(start_date, new_date);
+    },
+    [setShowEndDatePicker, setEndDate, end_date, start_date]
+  );
+
+    const onDismissEndTime = React.useCallback(() => {
+        setShowEndTimePicker(false);
+    }, [setShowEndTimePicker]);
+
+    const onConfirmEndTime = React.useCallback(
+    (params) => {
+      setShowEndTimePicker(false);
+      const new_date = params.hours && params.minutes ? new Date(end_date.getFullYear(), end_date.getMonth(), end_date.getDate(), params.hours, params.minutes) : end_date;
+      setEndDate(new_date);
+      validateDates(start_date, new_date);},
+    [setShowEndTimePicker, setEndDate, end_date]
+  );
 
     return (
         <View paddingTop={50} paddingHorizontal={10}>
@@ -200,85 +321,117 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             <ScrollView paddingBottom="$4">
             <YStack justifyContent="left">
 
-                {/* Date Picker */}
-                <XStack justifyContent="left" alignItems="center" gap="$4" paddingBottom="$4">
-                    <Label>Date</Label>
-                    <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
-                        <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-                        <Popover.Trigger asChild>
-                            <Input
-                                value={date.toDateString()}
-                                editable={false}
-                                onPress={() => setShowDatePicker(true)}
-                                style={{ width: 150 }}
-                            />
-                        </Popover.Trigger>
-                        </TouchableOpacity>
-                        <Popover.Content>
-                            <Calendar
-                                onclick={function (selected: DateType): void {
-                                    setDate(selected as Date);
-                                    setShowDatePicker(false);
-                                }}
-                            />
-                        </Popover.Content>
-                    </Popover>
-                </XStack>
-
                 {/* Time Picker */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                    <Label>Time</Label>
-                    <TouchableOpacity background="none" onPress={() => setShowTimePicker(true)}>
-                        <Input onPress={() => setShowTimePicker(true)} value={time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} editable={false}/>
+                    <Label>Started</Label>
+                    <TouchableOpacity background="none" onPress={() => setShowStartDatePicker(true)}>
+                        <Input color={dateError? "red" : theme.color.get()} onPress={() => setShowStartDatePicker(true)} value={start_date.toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            })} editable={false}/>
                     </TouchableOpacity>
-                    <DateTimePickerModal
-                        isVisible={showTimePicker}
-                        mode="time"
-                        minuteInterval={30}
-                        onConfirm={(time) => {setShowTimePicker(false); setTime(time)}}
-                        onCancel={() => setShowTimePicker(false)}
-                    />
+                    <TouchableOpacity background="none" onPress={() => setShowStartTimePicker(true)}>
+                        <Input color={dateError? "red" : theme.color.get()} onPress={() => setShowStartTimePicker(true)} value={start_date.toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            })} editable={false}/>
+                    </TouchableOpacity>
+                    <DatePickerModal
+                        visible={showStartDatePicker}
+                        mode='single'    
+                        locale='en'
+                        onDismiss={onDismissStartDate}
+                        onConfirm={onConfirmStartDate}
+                        date={start_date}
+                    />            
+                    <TimePickerModal
+                        visible={showStartTimePicker}
+                        onDismiss={onDismissStartTime}
+                        onConfirm={onConfirmStartTime}
+                        defaultInputType='keyboard'
+                        hours={start_date.getHours()}
+                        minutes={start_date.getMinutes()}
+                        locale='en'
+                    /> 
                 </XStack>
 
                 {/* Duration Picker */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                    <Label>Duration</Label>
-                    <TouchableOpacity activeOpacity={1} onPress={() => setShowDurationPicker(true)}>
-                        <Input onPress={() => setShowDurationPicker(true)} value={(duration.toTimeString().split(' ')[0])} editable={false}/>
-                    </TouchableOpacity>
-                    <DateTimePickerModal
-                        isVisible={showDurationPicker}
-                        mode="time"
-                        locale="en_GB"
-                        onConfirm={(time) => {setShowDurationPicker(false); setDuration(time)}}
-                        is24Hour={true}
-                        onCancel={() => setShowDurationPicker(false)}
-                    />                
+                    <Label>Ended</Label>
+                    <YStack>
+                        <XStack>
+                        <TouchableOpacity activeOpacity={1} onPress={() => setShowEndDatePicker(true)}>
+                        <Input color={dateError? "red" : theme.color.get()} onPress={() => setShowEndDatePicker(true)} value={end_date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            })} editable={false} marginEnd={10}/>
+                        </TouchableOpacity>
+                        <TouchableOpacity activeOpacity={1} onPress={() => setShowEndTimePicker(true)}>
+                        <Input color={dateError? "red" : theme.color.get()} onPress={() => setShowEndTimePicker(true)} value={end_date.toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            })} editable={false}/>
+                        </TouchableOpacity>
+                        </XStack>
+                        <Text style={{ color: dateError ? 'red' : 'black', marginLeft: 10 }}>
+                        {dateError ? 'End time must be after start time' : ''}
+                    </Text>
+                        </YStack>
+                    <DatePickerModal
+                        visible={showEndDatePicker}
+                        mode='single'    
+                        locale='en'
+                        onDismiss={onDismissEndDate}
+                        onConfirm={onConfirmEndDate}
+                        date={end_date}
+                    />            
+                    <TimePickerModal
+                        visible={showEndTimePicker}
+                        onDismiss={onDismissEndTime}
+                        onConfirm={onConfirmEndTime}
+                        defaultInputType='keyboard'
+                        hours={end_date.getHours()}
+                        minutes={end_date.getMinutes()}
+                        locale='en'
+                    />    
                 </XStack>
 
                 {/* Medium Dropdown */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                <Label style={{ minWidth: 90 }}>Medium</Label>
+                <Label style={{ minWidth: 90 }}>Media Type</Label>
+                <YStack>
                     <Dropdown
                             data={mediums}
                             placeholder='Select Medium'
                             value={medium}
-                            onChange={item => setMedium(item.value)}
+                            onChange={item => {setMedium(item.value); setMediumError(false);}}
                             style={{ width: 200, alignContent: 'center' }}
                             labelField={'label'}
                             valueField={'value'}
-                            placeholderStyle={{ color: '#888', fontSize: 16 }}
-                            selectedTextProps={{ style: { color: '#888', fontSize: 16 } }}
+                            placeholderStyle={{ color: mediumError? "red" : theme.color.get(), fontSize: 16 }}
+                            selectedTextProps={{ style: { color: mediumError? "red" : theme.color.get(), fontSize: 16 } }}
                     />
+                    <Text paddingTop={5} style={{ color: mediumError ? 'red' : 'black', marginLeft: 10 }}>
+                        {mediumError ? 'Must have a Media Type' : ''}
+                    </Text>
+                    </YStack>
                 </XStack>
 
                 {/* Channel Input */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                <Label >Channel</Label>
-                <Input
-                    onChangeText={setChannel} value={channel}
-                    placeholder="Enter Channel"
-                />
+                <Label >Platform</Label>
+                <YStack>
+                    <Input
+                        maxW={600}
+                        onChangeText={(value) => {setChannel(value); setChannelError(false)}} value={channel}
+                        placeholder={channelPlaceholders[medium]}
+                    />
+                    <Text style={{ color: channelError ? 'red' : theme.color.get(), marginLeft: 10 }}>
+                        {channelError ? 'Must have a motivation' : ''}
+                    </Text>
+                </YStack>
                 </XStack>
 
                 {/* Intentional Switch */}
@@ -293,31 +446,42 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 {/* Primary Motivation Dropdown */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
                 <Label>Primary Motivation</Label>
+                <YStack>
                 <Dropdown
                     maxHeight={300}
                     data={motivations}
                     style={{ width: 200, alignContent: 'center' }}
                     placeholder='Select Motivation'
                     value={primaryMotivation}
-                    onChange={item => { setPrimaryMotivation(item.value)}}
-                    placeholderStyle={{ color: '#888', fontSize: 16 }}
-                    selectedTextProps={{ style: { color: '#888', fontSize: 16 } }}
+                    onChange={item => { setPrimaryMotivation(item.value); setMotivationError(false); }}
+                    placeholderStyle={{ color: motivationError? "red" : theme.color.get(), fontSize: 16 }}
+                    selectedTextProps={{ style: { color: motivationError? "red" : theme.color.get(), fontSize: 16 } }}
                     labelField={'label'}
                     valueField={'value'}
                 />
+                <Text paddingTop={5} style={{ color: motivationError ? 'red' : 'black', marginLeft: 10 }}>
+                        {motivationError ? 'Must have a motivation' : ''}
+                </Text>
+                    </YStack>
                 </XStack>
+                
 
                 {/* Description TextArea */}
                 <YStack paddingBottom="$4">
-                <Label >Description</Label>
+                    <XStack alignItems="center" gap="$4" paddingBottom="$2">
+                <Label >Description</Label> 
+                <Text style={{ color: descriptionError ? 'red' : 'black', marginLeft: 10 }}>
+                {descriptionError ? 'Must have a description' : ''}
+                </Text>
+                </XStack>
                 <TextArea
                     size="$4" borderWidth={2}
                     width="100%"
                     paddingBottom="$4"
                     height={250}
-                    placeholder="Enter description"
+                    placeholder={descriptionPlaceholders[primaryMotivation]}
                     value={description}
-                    onChangeText={setDescription}
+                    onChangeText={(value) => {setDescription(value); setDescriptionError(false)}}
                 />
                 </YStack>
 

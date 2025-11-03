@@ -1,6 +1,6 @@
 // app/(tabs)/profile.tsx
-import React, { useCallback, useState } from "react";
-import { Alert, Platform } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { Alert, Platform, ScrollView, Switch } from "react-native";
 import {
   Button,
   YStack,
@@ -9,15 +9,15 @@ import {
   H4,
   Image,
   Group,
-  Separator,
+  Separator, Text,
   Text,
   Progress,
 } from "tamagui";
 import {
   CreditCard,
   Download,
-  LogOut,
-  Settings,
+  LogOut as LogOutIcon,
+  Settings, Bell,
   Bell,
   Flame,
 } from "@tamagui/lucide-icons";
@@ -26,26 +26,34 @@ import { useSQLiteContext } from "expo-sqlite";
 import * as SecureStore from "expo-secure-store";
 import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
-import { getCurrentUser, markLoggedOut, getCurrentStreak, getLogsByUserDate } from "../../lib/db";
-import { scheduleNotification } from "../../lib/notifications";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
-// ---------- small helpers ----------
+import { getCurrentUser, markLoggedOut } from "../../lib/db";
+import {
+  scheduleDailyNotification,
+  cancelAllScheduled,
+  listScheduled,
+  runNotificationDiagnostics,
+  ensurePermission,
+} from "../../lib/notifications";
+import { loadPrefs, savePrefs } from "../../lib/reminderPrefs";
+
+/* ------------------------------------------
+ * Small helpers
+ * ------------------------------------------ */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function delKV(key: string) {
   if (Platform.OS === "web") {
-    try {
-      localStorage.removeItem(key);
-    } catch {}
+    try { localStorage.removeItem(key); } catch {}
   } else {
-    try {
-      await SecureStore.deleteItemAsync(key);
-    } catch {}
+    try { await SecureStore.deleteItemAsync(key); } catch {}
   }
 }
 
 const onNotificationTest = () => {
-  scheduleNotification(3, "🔔 Test Notification 🔔", "This is a notification!").catch(
-    (err) => Alert.alert("Notifications", err?.message ?? "Failed to schedule")
-  );
+  scheduleNotification(3, '🔔 Test Notification 🔔', 'This is a notification!')
+    .catch(err => Alert.alert('Notifications', err?.message ?? 'Failed to schedule'));
 };
 
 // CSV cell & join
@@ -192,14 +200,39 @@ function previousDayLocalIso() {
 
 
 
+/** Compute a safe next-occurrence (avoid “now”) */
+function computeSafeDailyTarget(base: Date): Date {
+  const now = new Date();
+  const target = new Date(now);
+  target.setHours(base.getHours(), base.getMinutes(), 0, 0);
+  if (target.getTime() <= now.getTime() + 5000) {
+    target.setMinutes(target.getMinutes() + 1);
+  }
+  return target;
+}
+
+/* ------------------------------------------
+ * Main Component
+ * ------------------------------------------ */
 export default function Profile() {
   const router = useRouter();
   const db = useSQLiteContext();
-
   const [displayName, setDisplayName] = useState("Your Name");
-  const [streakDays, setStreakDays] = useState<number>(0);
- 
-  // refresh display name + streak when tab focused
+
+  // Reminders
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
+  const [time, setTime] = useState(() => {
+    const d = new Date();
+    d.setSeconds(0, 0);
+    return d;
+  });
+  const [scheduledId, setScheduledId] = useState<string | null>(null);
+
+  // Time picker state
+  const [showPicker, setShowPicker] = useState(false);
+  const [tempTime, setTempTime] = useState(new Date());
+
+  /* Refresh display name when tab gains focus */
   useFocusEffect(
     useCallback(() => {
 
@@ -228,10 +261,8 @@ export default function Profile() {
             );
             setStreakDays(streak?.num_days ?? 0);
             //setStreakDays(3);
-          } else {
-            setDisplayName("Your Name");
+          } else setDisplayName("Your Name");
             setStreakDays(0);
-          }
         } catch {
           setDisplayName("Your Name");
           setStreakDays(0);
@@ -242,8 +273,20 @@ export default function Profile() {
     }, [db])
   );
 
-  // -------- Export all data --------
-  const onExportReport = async () => {
+  /* Load persisted reminder prefs on mount */
+  useEffect(() => {
+    (async () => {
+      const { enabled, hour, minute, id } = await loadPrefs();
+      const d = new Date();
+      d.setHours(hour, minute, 0, 0);
+      setRemindersEnabled(enabled);
+      setTime(d);
+      setScheduledId(id);
+    })();
+  }, []);
+
+  /* Export CSV */
+  const onExportReport = useCallback(async () => {
     try {
       const user = await getCurrentUser(db);
       if (!user?.id) {
@@ -252,7 +295,9 @@ export default function Profile() {
       }
 
       const userRows = await db.getAllAsync<any>(
-        `SELECT id, username, email, firstName, lastName, createdAt FROM users WHERE id = ?`,
+        `SELECT username, email, firstName, lastName
+           FROM users
+          WHERE id = ?`,
         [user.id]
       );
       const streakRows = await db.getAllAsync<any>(
@@ -260,10 +305,11 @@ export default function Profile() {
         [user.id]
       );
       const logRows = await db.getAllAsync<any>(
-        `SELECT log_id, date, start_time, duration, medium, channel, intentional, primary_motivation, description
+        `SELECT date(start_date, 'localtime') as start_date, ROUND(ABS((julianday(start_date) - julianday(end_date))* 24 * 60)) || ' mins' AS duration, medium, channel,
+                intentional, primary_motivation, description
            FROM log_data
           WHERE user_id = ?
-          ORDER BY date DESC, start_time DESC, log_id DESC`,
+          ORDER BY start_date DESC, log_id DESC`,
         [user.id]
       );
 
@@ -271,76 +317,209 @@ export default function Profile() {
       parts.push(
         rowsToCSV([
           ["SECTION", "users"],
-          ["id", "username", "email", "firstName", "lastName", "createdAt"],
+          ["username", "email", "firstName", "lastName",],
         ])
       );
-      parts.push(rowsToCSV(userRows.map((r) => Object.values(r))));
-      parts.push("");
       parts.push(
-        rowsToCSV([["SECTION", "streak"], ["streak_id", "start_date_streak", "num_days"]])
+        userRows.length
+          ? rowsToCSV(
+              userRows.map((r) => [
+                r.username,
+                r.email,
+                r.firstName,
+                r.lastName,
+              ])
+            )
+          : ""
       );
-      parts.push(rowsToCSV(streakRows.map((r) => Object.values(r))));
+
+      parts.push("");
+      parts.push(rowsToCSV([["SECTION", "streak"], ["streak_id", "start_date_streak", "num_days"]]));
+      if (streakRows.length) {
+        parts.push(rowsToCSV(streakRows.map(r => [r.streak_id, r.start_date_streak, r.num_days])));
+      }
       parts.push("");
       parts.push(
         rowsToCSV([
           ["SECTION", "log_data"],
           [
-            "log_id",
-            "date",
-            "start_time",
-            "duration",
-            "medium",
-            "channel",
-            "intentional",
-            "primary_motivation",
-            "description",
+            "Start Date",
+            "Duration",
+            "Medium",
+            "Channel",
+            "Intentional",
+            "Primary Motivation",
+            "Desciription",
           ],
         ])
       );
+      parts.push(
+        logRows.length
+          ? rowsToCSV(
+              logRows.map((r) => [
+                r.start_date,
+                r.duration,
+                r.medium,
+                r.channel,
+                r.intentional == 1 ? "Yes" : "No",
+                r.primary_motivation,
+                r.description,
+              ])
+            )
+          : ""
+      );
+
       parts.push(rowsToCSV(logRows.map((r) => Object.values(r))));
       const csv = parts.join("\n");
-
       const fileName = `pawse_export_${Date.now()}.csv`;
       const file = new File(Paths.document, fileName);
-      try {
-        file.create();
-      } catch {}
+      try { file.create(); } catch {}
       file.write(csv);
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(file.uri, {
-          mimeType: "text/csv",
-          dialogTitle: "Export Pawse Data",
-        });
+        await Sharing.shareAsync(file.uri, { mimeType: "text/csv", dialogTitle: "Export Pawse Data" });
       } else {
-        Alert.alert(
-          "CSV saved",
-          `Saved to:\n${file.uri}\n\nRows exported:\nusers: ${userRows.length}\nstreak: ${streakRows.length}\nlogs: ${logRows.length}`
-        );
+        Alert.alert("CSV saved", file.uri);
       }
     } catch (err: any) {
       console.error("Export error:", err);
       Alert.alert("Export failed", err?.message ?? "Unknown error");
     }
-  };
+  }, [db]);
 
-  // -------- Logout --------
+  /* Logout */
   const onLogout = useCallback(async () => {
     try {
       await markLoggedOut(db);
       await delKV("user");
       await delKV("accessToken");
       setDisplayName("Your Name");
-      router.replace("/login");
+      router.replace("/new user");
     } catch (e: any) {
       Alert.alert("Logout failed", e?.message ?? "Unknown error");
     }
   }, [db, router]);
 
+  /* Toggle daily reminders (with defensive logging + polling list) */
+  const onToggleReminders = useCallback(
+    async (value: boolean) => {
+      setRemindersEnabled(value);
+      const finalTime = computeSafeDailyTarget(time);
+      const hour = finalTime.getHours();
+      const minute = finalTime.getMinutes();
+
+      if (value) {
+        const ok = await ensurePermission();
+        if (!ok) {
+          Alert.alert("Notifications", "Permission not granted.");
+          setRemindersEnabled(false);
+          await savePrefs(false, hour, minute, null);
+          return;
+        }
+        await cancelAllScheduled();
+
+        const id = await scheduleDailyNotification(
+          hour,
+          minute,
+          "⏰ Daily check-in",
+          "Don’t forget to log your activity today!"
+        );
+        console.log("[Profile] Scheduled daily reminder ID:", id);
+        setScheduledId(id);
+        await savePrefs(true, hour, minute, id);
+
+        // Poll OS list a few times (Expo/OS may delay surfacing repeating triggers)
+        for (let i = 0; i < 3; i++) {
+          await sleep(400);
+          await listScheduled();
+        }
+      } else {
+        await cancelAllScheduled();
+        setScheduledId(null);
+        await savePrefs(false, hour, minute, null);
+        await sleep(200);
+        await listScheduled();
+      }
+    },
+    [time]
+  );
+
+  /* Time picker handlers */
+  const openTimePicker = useCallback(() => {
+    const d = new Date(time);
+    d.setSeconds(0, 0);
+    setTempTime(d);
+    setShowPicker(true);
+  }, [time]);
+
+  const onPickerChange = useCallback((event: any, selected?: Date) => {
+    if (Platform.OS === "android") {
+      if (event?.type === "dismissed") {
+        setShowPicker(false);
+        return;
+      }
+      if (event?.type === "set" && selected) {
+        selected.setSeconds(0, 0);
+        setTempTime(selected);
+      }
+    } else if (selected) {
+      selected.setSeconds(0, 0);
+      setTempTime(selected);
+    }
+  }, []);
+
+  const onSaveTime = useCallback(async () => {
+    setShowPicker(false);
+
+    const oldH = time.getHours(), oldM = time.getMinutes();
+    const newH = tempTime.getHours(), newM = tempTime.getMinutes();
+    if (oldH === newH && oldM === newM) return;
+
+    const finalTime = computeSafeDailyTarget(tempTime);
+    setTime(finalTime);
+    const hour = finalTime.getHours();
+    const minute = finalTime.getMinutes();
+
+    if (remindersEnabled) {
+      await cancelAllScheduled();
+      const id = await scheduleDailyNotification(
+        hour,
+        minute,
+        "⏰ Daily check-in",
+        "Don’t forget to log your activity today!"
+      );
+      console.log("[Profile] Re-scheduled daily reminder ID:", id);
+      setScheduledId(id);
+      await savePrefs(true, hour, minute, id);
+
+      for (let i = 0; i < 3; i++) {
+        await sleep(400);
+        await listScheduled();
+      }
+    } else {
+      await savePrefs(false, hour, minute, scheduledId);
+    }
+  }, [remindersEnabled, scheduledId, tempTime, time]);
+
+  const onCancelTime = useCallback(() => setShowPicker(false), []);
+
+
+  /* ------------------------------------------
+   * UI
+   * ------------------------------------------ */
   return (
-    <XStack flex={1} justifyContent="center" alignItems="center">
-      <YStack gap="$8" width="100%">
-        {/* profile section */}
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{
+        alignItems: "center",
+        justifyContent: "flex-start",
+        paddingVertical: 40,
+        paddingHorizontal: 20,
+      }}
+      keyboardShouldPersistTaps="handled"
+    >
+      <YStack gap="$8" width="100%" maxWidth={500}>
+        {/* Header */}
         <YStack gap="$3" alignItems="center">
           <H2>{displayName}</H2>
           <Image
@@ -349,52 +528,65 @@ export default function Profile() {
             height={120}
             borderRadius={60}
           />
-
-          {/* streak visual */}
-          <YStack alignItems="center" marginTop="$2">
-            <XStack alignItems="center" gap="$2">
-              <Flame color="orange" size={22} />
-              <H4>{streakDays}-day streak</H4>
-            </XStack>
-            <Progress
-              value={(streakDays % 5) * (100 / 5)}
-              width={200}
-              marginTop="$2"
-            >
-              <Progress.Indicator backgroundColor="orange" />
-            </Progress>
-            <Text fontSize="$2" color="$gray10">
-              Keep it going!
-            </Text>
-          </YStack>
         </YStack>
 
         {/* buttons */}
         <Group>
-          <Separator marginVertical={10} />
-          <Button icon={CreditCard}>Edit Profile</Button>
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          <Button backgroundColor="automatic" icon={CreditCard}>Edit Profile</Button>
 
-          <Separator marginVertical={10} />
-          <Button icon={Download} onPress={onExportReport}>
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          <Button backgroundColor="automatic" icon={Download} onPress={onExportReport}>
             Export Report
           </Button>
 
-          <Separator marginVertical={10} />
-          <Button icon={Settings} onPress={() => router.push("/settings")}>
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          <Button backgroundColor="automatic" icon={Settings} onPress={() => router.push("/settings")}>
             Settings
           </Button>
 
-          <Separator marginVertical={10} />
-          <Button icon={LogOut} onPress={onLogout}>
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          <Button backgroundColor="automatic" icon={LogOutIcon} onPress={onLogout}>
             Log Out
           </Button>
 
+          {/* Reminders */}
           <Separator marginVertical={10} />
-          <Button icon={Bell} onPress={onNotificationTest}>
-            Notification Test
-          </Button>
+          <H2>Reminders</H2>
+
+          <XStack alignItems="center" justifyContent="space-between" paddingHorizontal="$2">
+            <XStack alignItems="center" gap="$2">
+              <Bell size={18} />
+              <Text>Daily reminder</Text>
+            </XStack>
+            <Switch value={remindersEnabled} onValueChange={onToggleReminders} />
+          </XStack>
+
+          <XStack alignItems="center" justifyContent="space-between" paddingHorizontal="$2">
+            <Text>Time</Text>
+            <Button size="$3" onPress={openTimePicker} icon={Bell}>
+              {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </Button>
+          </XStack>
+
+          {showPicker && (
+            <>
+              <DateTimePicker
+                value={tempTime}
+                mode="time"
+                is24Hour={false}
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={onPickerChange}
+              />
+              <XStack gap="$2" justifyContent="flex-end" paddingHorizontal="$2" marginTop="$2">
+                <Button onPress={onCancelTime} variant="outlined">Cancel</Button>
+                <Button onPress={onSaveTime}>Save</Button>
+              </XStack>
+            </>
+          )}
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
         </Group>
       </YStack>
-    </XStack>
+    </ScrollView>
   );
 }
