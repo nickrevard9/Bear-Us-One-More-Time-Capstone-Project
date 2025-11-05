@@ -12,8 +12,8 @@ const Item = styled(
       active: {
         false: {},
         true: {
-          backgroundColor: '$backgroundStrong',
-          color: '$color',
+          backgroundColor: '$accentBackground',
+          color: '#e4e0d5',
         },
       },
     },
@@ -51,6 +51,7 @@ export function TimePicker(props: {onConfirm: (hoursAndMinutes: {hours: number, 
   }
 
   useEffect(() => {
+    console.log(props.hours, props.minutes)
     setHour(props.hours > 12 ? props.hours - 12 : props.hours)
     setMinute(props.minutes)
     setPeriod(props.hours > 12 ? "PM" : "AM")

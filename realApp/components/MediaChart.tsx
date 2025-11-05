@@ -1,7 +1,7 @@
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { PieChart } from "react-native-gifted-charts";
-import { View, Text, useTheme } from "tamagui";
+import { View, Text, useTheme, XStack } from "tamagui";
 
 type MediaChartProps = {
     media_counts: {medium: string, value: number}[];
@@ -57,32 +57,29 @@ export default function MediaChart({media_counts}: MediaChartProps) {
 
     const renderLegendComponent = () => {
         return (
-            <>
-            <View
+            <XStack
                 style={{
                 flexDirection: 'row',
-                justifyContent: 'center',
+                flexWrap: "wrap",
+                justifyContent: 'left',
                 marginBottom: 10,
                 }}>
                     {pieData.map((item, index) => {
                     return(
-                        <View
+                        <XStack
                             key={index}
                             style={{
-                                flexDirection: 'row',
                                 alignItems: 'center',
-                                width: '40%',
-                                paddingEnd: 30,
+                                paddingEnd: 10,
                                 marginVertical: 4,
                             }}
                             >
                             {renderDot(item.color)}
                             <Text>{item.medium}</Text>
-                        </View>
+                        </XStack>
                     );
                     })}
-            </View>
-            </>
+            </XStack>
         );
     };
 

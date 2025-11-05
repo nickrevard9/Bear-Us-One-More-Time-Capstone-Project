@@ -34,9 +34,9 @@ function Achievement({ image_url, description, name }: AchievementProps) {
           <Card style={styles.modalView}>
             <Image
               src={image_url? image_url : "../assets/images/PlaceholderAward.png"}
-              style={{ width: 120, height: 120, marginBottom: 10}}
+              style={{ width: 120, height: 120, marginBottom: 15}}
             />
-            <H6 style={{marginBottom: 10}}>{award_name}</H6>
+            <H6 textAlign="center" style={{marginBottom: 10}}>{award_name}</H6>
             <Paragraph textAlign="center">{desc}</Paragraph>
           </Card>
         </View>
@@ -61,7 +61,7 @@ export default function AchievementsPage() {
     },
     "LoggingHard": {
       url: require("../assets/images/LoggingHard.png"),
-      name: "Logging Hard or Bear-ly Loggin?",
+      name: "Logging Hard or Bear-ly Logging?",
       description: "You logged 15 times!"
     },
     "Scholar": {
@@ -76,7 +76,7 @@ export default function AchievementsPage() {
     },
     "BookWorm": {
       url: require("../assets/images/PlaceholderAward.png"),
-      name: "BookWorm",
+      name: "Book Worm",
       description: "You logged 15 times that you read a book or some other printed media"
     },
   }
@@ -87,9 +87,9 @@ export default function AchievementsPage() {
     <ScrollView style={{ marginTop: 50, marginLeft: 20, marginRight: 20}}>
     <YStack>
         <XStack flexWrap="wrap" alignContent="center" justifyContent="center">
-            {awards.map((v, index) => { console.log(v); return (
+            {awards.map((v, index) => (
               <Achievement key={index} name={award_info[v].name} image_url={award_info[v].url} description={award_info[v].description}/>
-            )})}
+            ))}
         </XStack>
     </YStack>
     </ScrollView>

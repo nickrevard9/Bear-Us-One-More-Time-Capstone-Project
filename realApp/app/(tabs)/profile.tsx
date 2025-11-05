@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, Switch } from "react-native";
 import { Button, YStack, XStack, H2, Image, Group, Separator, Text } from "tamagui";
-import { CreditCard, Download, LogOut as LogOutIcon, Settings, Bell } from "@tamagui/lucide-icons";
+import { CreditCard, Download, LogOut as LogOutIcon, Settings, Bell, Trophy } from "@tamagui/lucide-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import * as SecureStore from "expo-secure-store";
@@ -351,6 +351,9 @@ export default function Profile() {
         </YStack>
 
         <Group>
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          <Button backgroundColor="automatic" icon={Trophy} onPress={() => router.push("/achievements_page")}>View Achievements</Button>
+          
           <Separator marginVertical={10} width={'85%'} alignSelf="center" />
           <Button backgroundColor="automatic" icon={CreditCard}>Edit Profile</Button>
 

@@ -26,11 +26,14 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     const [editMode, setEditMode] = useState(false);
     
     // States for date and time pickers
-    const [start_date, setStartDate] = useState<Date>(new Date("2023-10-05T12:30:00"));
+    const incrementedDate = new Date();
+    const hours = incrementedDate.getHours() - 1;
+    incrementedDate.setHours(hours< 0? hours + 24 : hours)
+    const [start_date, setStartDate] = useState<Date>(roundToNearest5(incrementedDate));
     const [showStartDatePicker, setShowStartDatePicker] = useState(false);
     const [showStartTimePicker, setShowStartTimePicker] = useState(false);
 
-    const [end_date, setEndDate] = useState(new Date("2023-10-05T1:00:00"));
+    const [end_date, setEndDate] = useState(roundToNearest5(new Date()));
     const [showEndDatePicker, setShowEndDatePicker] = useState(false);
     const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
@@ -158,10 +161,11 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
       } else { // Reset form fields for a new log
         setEditMode(false);
         setChannel("");
-        setStartDate(roundToNearest5(new Date()));
+        setEndDate(roundToNearest5(new Date()));
         const incrementedDate = new Date();
-        incrementedDate.setHours(incrementedDate.getHours() + 1);
-        setEndDate(roundToNearest5(incrementedDate));
+        const hours = incrementedDate.getHours() - 1;
+        incrementedDate.setHours(hours< 0? hours + 24 : hours)
+        setStartDate(roundToNearest5(incrementedDate));
         setDescription("");
         setIsIntentional(false);
         setMedium("");
@@ -363,7 +367,9 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                         onConfirm={onConfirmStartDate}
                         date={start_date}
                     />        
-                    <TimePicker isVisible={showStartTimePicker} 
+                    <TimePicker 
+                    key={start_date.toISOString()}
+                    isVisible={showStartTimePicker} 
                     onDismiss={onDismissStartTime} 
                     hours={start_date.getHours()}
                     minutes={start_date.getMinutes()}
@@ -408,6 +414,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                         date={end_date}
                     />            
                     <TimePicker
+                        key={start_date.toISOString()}
                         isVisible={showEndTimePicker}
                         onDismiss={onDismissEndTime}
                         onConfirm={onConfirmEndTime}
