@@ -414,7 +414,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                         date={end_date}
                     />            
                     <TimePicker
-                        key={start_date.toISOString()}
+                        key={end_date.toISOString()}
                         isVisible={showEndTimePicker}
                         onDismiss={onDismissEndTime}
                         onConfirm={onConfirmEndTime}
