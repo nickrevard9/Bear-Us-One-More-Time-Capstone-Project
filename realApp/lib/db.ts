@@ -412,7 +412,8 @@ export async function deleteLogByLogID(
       medium,
       ROUND(
         100.0 * COUNT(medium) / 
-        (SELECT COUNT(*) FROM log_data),
+        (SELECT COUNT(*) FROM log_data
+        WHERE user_id = ?),
       2) AS value
       FROM log_data
       WHERE strftime('%m', start_date) = ? 
@@ -423,7 +424,7 @@ export async function deleteLogByLogID(
     const id = await AsyncStorage.getItem('pawse.currentUserId')
     const monthStr = month.toString().padStart(2, '0');
     const yearStr = year.toString();
-    const params: any[] = [monthStr, yearStr, id];
+    const params: any[] = [id, monthStr, yearStr, id];
 
     const result = await db.getAllAsync<any>(query, params);
     const mapped: {medium: string, value: number}[] = result.map((r: any) => ({
