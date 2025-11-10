@@ -62,7 +62,7 @@ export default function AchievementsPage() {
     "LoggingHard": {
       url: require("../assets/images/LoggingHard.png"),
       name: "Logging Hard or Bear-ly Logging?",
-      description: "You logged 15 times!"
+      description: "You logged 10 times!"
     },
     "Scholar": {
       url: require("../assets/images/Scholar.png"),
@@ -75,7 +75,7 @@ export default function AchievementsPage() {
       description: "You logged 15 times that you used your phone or some other electronic device"
     },
     "BookWorm": {
-      url: require("../assets/images/PlaceholderAward.png"),
+      url: require("../assets/images/BookWorm.png"),
       name: "Book Worm",
       description: "You logged 15 times that you read a book or some other printed media"
     },

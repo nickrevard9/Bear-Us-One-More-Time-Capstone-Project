@@ -114,7 +114,6 @@ export async function initDb(db: SQLiteDatabase) {
     `)
 
       await db.execAsync(`
-      DROP TABLE IF EXISTS user_achievements;
     CREATE TABLE IF NOT EXISTS user_achievements (
       user_achievements_id INTEGER PRIMARY KEY AUTOINCREMENT,
       earned_at TEXT,
