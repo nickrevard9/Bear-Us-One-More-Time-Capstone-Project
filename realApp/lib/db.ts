@@ -31,6 +31,13 @@ export interface AuthState {
   is_logged_in: number // 0 or 1
 }
 
+export interface Achievement {
+  achievement_id: string;
+  name: string;
+  image_uri: string;
+  description: string;
+}
+
 // ---------- DB Init ----------
 
 export async function initDb(db: SQLiteDatabase) {
@@ -90,7 +97,39 @@ export async function initDb(db: SQLiteDatabase) {
     );
     INSERT OR IGNORE INTO auth_state (id, is_logged_in) VALUES (1, 0);
   `)
+
+  // Acheivements
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS achievements (
+      achievement_id TEXT PRIMARY KEY NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      image_uri TEXT NOT NULL
+    );
+      INSERT OR IGNORE INTO achievements (achievement_id, name, description, image_uri) VALUES ('logginghard', 'Logging Hard or Barely Logging?', 'You logged 10 times!', '../assets/images/LoggingHard.png');
+      INSERT OR IGNORE INTO achievements (achievement_id, name, description, image_uri) VALUES ('onfire', 'On Fire!', 'You continued your streak for a week', '../assets/images/OnFire.png');
+      INSERT OR IGNORE INTO achievements (achievement_id, name, description, image_uri) VALUES ('bookworm', 'Book Worm', 'You logged 15 times that you read a book or some other printed media', '../assets/images/BookWorm.png');
+      INSERT OR IGNORE INTO achievements (achievement_id, name, description, image_uri) VALUES ('touchgrass', 'Touching Grass', 'You logged 15 times that you used your phone or some other electronic device', '../assets/images/TouchGrass.png');
+      INSERT OR IGNORE INTO achievements (achievement_id, name, description, image_uri) VALUES ('scholar', 'The Scholar', 'You logged 15 times with a motivation for Education', '../assets/images/Scholar.png');
+    `)
+
+      await db.execAsync(`
+      DROP TABLE IF EXISTS user_achievements;
+    CREATE TABLE IF NOT EXISTS user_achievements (
+      user_achievements_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      earned_at TEXT,
+      user_id TEXT NOT NULL,
+      achievement_id TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE ON UPDATE RESTRICT,
+      FOREIGN KEY (achievement_id) references achievements(achievement_id)
+        ON DELETE CASCADE ON UPDATE RESTRICT
+    );
+    `)
+
 }
+
+
 
 // ---------- Helpers (Users) ----------
 
@@ -435,6 +474,59 @@ export async function deleteLogByLogID(
 
   } catch (error) {
     console.error(`Failed to get medium counts`, error);
+    throw error;
+  }
+}
+
+
+// Achievements logic
+export async function getAchievementsByUser(
+  db: SQLiteDatabase
+): Promise<Achievement[]> {
+  try {
+    const id = await AsyncStorage.getItem('pawse.currentUserId');
+    if (!id) throw new Error("No current user ID found");
+
+    const query = `
+      SELECT 
+        a.achievement_id,
+        a.name,
+        a.image_uri,
+        a.description,
+        ua.earned_at
+      FROM achievements a
+      INNER JOIN user_achievements ua 
+        ON a.achievement_id = ua.achievement_id
+      WHERE ua.user_id = ?;
+    `;
+
+    const result = await db.getAllAsync<Achievement>(query, [id]);
+    return result;
+  } catch (error) {
+    console.error('Could not get achievements:', error);
+    throw error;
+  }
+}
+
+
+export async function storeAchievement(
+  db: SQLiteDatabase,
+  achievement_id: string
+): Promise<void> {
+  try {
+    const id = await AsyncStorage.getItem('pawse.currentUserId');
+    if (!id) throw new Error("No current user ID found");
+
+    const query = `
+      INSERT INTO user_achievements (achievement_id, user_id, earned_at)
+      VALUES (?, ?, ?);
+    `;
+
+    const params = [achievement_id, id, new Date().toISOString()];
+    await db.runAsync(query, params);
+
+  } catch (error) {
+    console.error('Could not store achievement:', error);
     throw error;
   }
 }
