@@ -24,6 +24,7 @@ export interface UserData {
   lastName: string
   password: string
   createdAt: Date
+  profilePicture: string
 }
 
 export interface AuthState {
@@ -45,7 +46,8 @@ export async function initDb(db: SQLiteDatabase) {
       firstName TEXT NOT NULL,
       lastName TEXT NOT NULL,
       password TEXT,
-      createdAt TEXT NOT NULL
+      createdAt TEXT NOT NULL,
+      profilePicture TEXT NOT NULL
     );
   `)
 
@@ -90,6 +92,22 @@ export async function initDb(db: SQLiteDatabase) {
     );
     INSERT OR IGNORE INTO auth_state (id, is_logged_in) VALUES (1, 0);
   `)
+
+  // Notifications
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS notification (
+      notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+      user_id TEXT,
+      FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE SET NULL
+        ON UPDATE RESTRICT
+    );
+    CREATE INDEX IF NOT EXISTS idx_notification_user ON notification(user_id);
+  `)
 }
 
 // ---------- Helpers (Users) ----------
@@ -111,7 +129,7 @@ export async function emailExists(db: SQLiteDatabase, email: string) {
 export async function addLocalUser(db: SQLiteDatabase, user: UserData) {
   const id = randomId()
   await db.runAsync(
-    'INSERT INTO users (id, username, email, firstName, lastName, password, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO users (id, username, email, firstName, lastName, password, createdAt, profilePicture) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       user.username.trim(),
@@ -120,6 +138,7 @@ export async function addLocalUser(db: SQLiteDatabase, user: UserData) {
       user.lastName.trim(),
       user.password,
       new Date().toISOString(),
+      user.profilePicture.trim(),
     ]
   )
   return { id, ...user }

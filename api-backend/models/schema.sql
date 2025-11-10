@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS user (
   first_name VARCHAR(255) NOT NULL,
   last_name VARCHAR(255) NOT NULL,
   create_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  profile_picture VARCHAR(255) NOT NULL,
   PRIMARY KEY (user_id),
   UNIQUE KEY uq_user_email (email),
   UNIQUE KEY uq_user_username (username),
@@ -112,8 +113,7 @@ CREATE TABLE IF NOT EXISTS notification (
   title VARCHAR(255) NOT NULL,      -- overarching "purpose" of the message
   icon VARCHAR(255) NOT NULL,       -- should we store this oe assign it later?
   description TEXT NOT NULL,        -- message contents
-  time TIMESTAMP NOT NULL,          -- time message was sent
-  date DATE NOT NULL,               -- date message was sent
+  time TIMESTAMP NOT NULL,          -- time and date message was sent
   user_id INT,
   PRIMARY KEY (notification_id),
   KEY idx_notification_user (user_id),

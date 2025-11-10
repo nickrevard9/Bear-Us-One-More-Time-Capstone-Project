@@ -85,6 +85,7 @@ export default function RegisterPage() {
         lastName: lastName.trim(),
         password: '', // no password for local-only
         createdAt: new Date(),
+        profilePicture: "pat-neff.png",
       })
 
       // 4) Persist session + navigate

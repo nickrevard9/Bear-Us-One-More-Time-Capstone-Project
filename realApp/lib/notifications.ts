@@ -1,6 +1,7 @@
 // lib/notifications.ts
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { SQLiteDatabase } from "expo-sqlite";
 
 /* Foreground handler */
 Notifications.setNotificationHandler({
@@ -174,4 +175,34 @@ export async function runNotificationDiagnostics(hour: number, minute: number) {
     console.log(`[Diag] Listing after ${wait}ms…`);
     await listScheduled();
   }
+}
+
+/**
+ * log a notification into the database.
+ */
+export async function logNotification(
+  db: SQLiteDatabase,
+  title: string,
+  description: string,
+  userId?: string | null
+) {
+  // time collected automatically by SQLite's CURRENT_TIMESTAMP in db (UTC)
+  await db.runAsync(
+    `INSERT INTO notification (title, description, user_id)
+     VALUES (?, ?, ?)`,
+    [title, description, userId ?? null]
+  );
+
+  console.log(`---- message has been logged: ${title} : ${description} : ${userId} ----`)
+}
+
+/**
+ * retrieve notifications within a certain number of days (default 30).
+ */
+export async function getRecentNotifications(db: SQLiteDatabase, days = 30) {
+  const cutoff = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
+  return db.getAllAsync(
+    `SELECT * FROM notification WHERE timestamp >= ? ORDER BY timestamp DESC`,
+    [cutoff]
+  );
 }

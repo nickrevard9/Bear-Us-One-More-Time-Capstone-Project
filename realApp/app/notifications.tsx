@@ -1,78 +1,122 @@
-import React from "react";
-import { YStack, XStack, Text, Button, Separator, H4 } from "tamagui";
-import { MessageSquare, UserPlus, CheckCircle, Lock } from "@tamagui/lucide-icons";
+import React, { useEffect, useState } from "react";
+import { YStack, XStack, Text, Button, Separator, H4, Spinner } from "tamagui";
+import { useSQLiteContext } from "expo-sqlite";
 
-// TODO: assign and store notification icon? or assign it upon display?
-// notifications stored a bit differently, frontend mapping can be adjusted later
-const notifications = {
-  today: [
-    {
-      id: 1,
-      title: "New comment on your post",
-      description: "Alex left a comment: 'Looks great!'",
-      icon: MessageSquare,
-      time: "10:24 AM",
-    },
-    {
-      id: 2,
-      title: "New follower",
-      description: "Jamie started following you",
-      icon: UserPlus,
-      time: "9:10 AM",
-    },
-  ],
-  yesterday: [
-    {
-      id: 3,
-      title: "System update completed",
-      description: "Your weekly scan finished successfully",
-      icon: CheckCircle,
-      time: "6:45 PM",
-    },
-  ],
-  earlier: [
-    {
-      id: 4,
-      title: "Password changed",
-      description: "Your password was changed 3 days ago",
-      icon: Lock,
-      time: "Oct 23",
-    },
-  ],
+import { getRecentNotifications, logNotification } from "../lib/notifications";
+
+type NotificationItem = {
+  notification_id: number;
+  title: string;
+  description: string;
+  timestamp: string; // UTC timestamp stored as ISO string
+  user_id?: string | null;
 };
 
-export default function Notifications() {
+// HELPER: group notifications by relative date (today / yesterday / earlier)
+function groupNotifications(notifications: NotificationItem[]) {
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const sections = {
+    today: [] as NotificationItem[],
+    yesterday: [] as NotificationItem[],
+    earlier: [] as NotificationItem[],
+  };
+
+  const sameDay = (a: Date, b: Date) =>
+    a.getDate() === b.getDate() &&
+    a.getMonth() === b.getMonth() &&
+    a.getFullYear() === b.getFullYear();
+
+  for (const n of notifications) {
+    const date = new Date(n.timestamp); // parse UTC timestamp
+    if (sameDay(date, today)) {
+      sections.today.push(n);
+    } else if (sameDay(date, yesterday)) {
+      sections.yesterday.push(n);
+    } else {
+      sections.earlier.push(n);
+    }
+  }
+
+  return sections;
+}
+
+export default function NotificationCenter() {
+  const db = useSQLiteContext();
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const rows = await getRecentNotifications(db, 30) as NotificationItem[];
+        setNotifications(rows);
+      } catch (err) {
+        console.error("[NotificationCenter] Load error:", err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [db]);
+
+  if (loading) {
+    return (
+      <XStack flex={1} alignItems="center" justifyContent="center">
+        <Spinner size="large" />
+      </XStack>
+    );
+  }
+
+  if (!notifications.length) {
+    return (
+      <XStack flex={1} alignItems="center" justifyContent="center">
+        <Text color="$accentColor">No notifications in the past 30 days.</Text>
+      </XStack>
+    );
+  }
+
+  const sections = groupNotifications(notifications);
+
   return (
     <XStack flex={1} p="$4">
       <YStack gap="$8" width="100%">
-        {Object.entries(notifications).map(([section, items]) => (
-          <YStack key={section}>
-            <H4 mb="$3" alignSelf="center" textTransform="capitalize">
-              {section}
-            </H4>
-            {items.map((n) => (
-              // use react fragment so we can include a separator after each message
-              <React.Fragment key={n.id}>
-                {/* use buttons so we can attach icons easily */}
-                <Button
-                  backgroundColor="automatic"
-                  icon={n.icon}
-                  justifyContent="flex-start"
-                  alignItems="center"
-                  paddingVertical="$3"
-                  paddingHorizontal="$4"
-                >
-                  <YStack>
-                    <Text fontWeight="600">{n.title}</Text>
-                    <Text color="$colorSubtitle">{n.description}</Text>
-                    <Text fontSize="$2" color="$gray10">{n.time}</Text>
-                  </YStack>
-                </Button>
-                <Separator marginVertical={10} />
-              </React.Fragment>
-            ))}
-          </YStack>
-        ))}
+        {Object.entries(sections).map(([section, items]) =>
+          items.length ? (
+            <YStack key={section}>
+              <H4 mb="$3" alignSelf="center" textTransform="capitalize">
+                {section}
+              </H4>
+
+              {items.map((n) => {
+                const localDate = new Date(n.timestamp); // parse UTC
+                const timeString = localDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+                return (
+                  <React.Fragment key={n.notification_id}>
+                    <Button
+                      backgroundColor="automatic"
+                      justifyContent="flex-start"
+                      alignItems="center"
+                      paddingVertical="$3"
+                      paddingHorizontal="$4"
+                    >
+                      <YStack>
+                        <Text fontWeight="600">{n.title}</Text>
+                        <Text color="$accentColor">{n.description}</Text>
+                        <Text fontSize="$2" color="$accentColor">
+                          {timeString}
+                        </Text>
+                      </YStack>
+                    </Button>
+                    <Separator marginVertical={10} />
+                  </React.Fragment>
+                );
+              })}
+            </YStack>
+          ) : null
+        )}
       </YStack>
     </XStack>
   );
