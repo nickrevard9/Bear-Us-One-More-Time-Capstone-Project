@@ -529,3 +529,21 @@ export async function storeAchievement(
     throw error;
   }
 }
+
+// export async function calculateAchievements() : Promise<Achievement[]> {
+//   try {
+//     // Get Total logs
+
+//     // Get Total logs with 'Education' motivation
+
+//     // Get Total logs with printed material medium
+
+//     // Get Total logs with any smart phone or digital medium
+
+//     // Get Total streak
+//   }
+//   catch (error) {
+//     console.error(error);
+//     throw error;
+//   }
+// }
