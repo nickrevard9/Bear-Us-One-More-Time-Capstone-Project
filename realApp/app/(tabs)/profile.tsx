@@ -181,6 +181,24 @@ export default function Profile() {
     }, [db])
   );
 
+  /* Refresh display name when tab gains focus */
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        try {
+          const user = await getCurrentUser(db);
+          if (user) {
+            const full = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+            setDisplayName(full || user.username || user.email || "Your Name");
+            setProfilePicture(user.profilePicture);
+          } else setDisplayName("Your Name");
+        } catch {
+          setDisplayName("Your Name");
+        }
+      })();
+    }, [db])
+  );
+
   /* Load persisted reminder prefs on mount */
   useEffect(() => {
     (async () => {
