@@ -111,6 +111,7 @@ export default function RegisterPage() {
         lastName: lastName.trim(),
         password: '', // local-only
         createdAt: new Date(),
+        profilePicture: "pat-neff.png",
       })
  
       // 4) persist + mark logged in

@@ -39,6 +39,12 @@ import {
 } from "../../lib/notifications";
 import { loadPrefs, savePrefs } from "../../lib/reminderPrefs";
 
+// map of available profile pictures
+const profileImages: Record<string, any> = {
+  "pat-neff.png": require("../../assets/images/pat-neff.png"),
+  "honey-bear.jpg": require("../../assets/images/honey-bear.jpg")
+};
+
 /* ------------------------------------------
  * Small helpers
  * ------------------------------------------ */
@@ -113,6 +119,7 @@ export default function Profile() {
   const router = useRouter();
   const db = useSQLiteContext();
   const [displayName, setDisplayName] = useState("Your Name");
+  const [profilePicture, setProfilePicture] = useState<string|null>(null);
 
   // Reminders
   const [remindersEnabled, setRemindersEnabled] = useState(false);
@@ -160,6 +167,7 @@ export default function Profile() {
             setDisplayName("Your Name");
             console.log("failed to get the streak.")
             setStreakDays(0);
+            setProfilePicture(user.profilePicture);
           }
         } catch {
           console.log("failed to get the streak.")
@@ -423,7 +431,11 @@ export default function Profile() {
         <YStack gap="$3" alignItems="center">
           <H2>{displayName}</H2>
           <Image
-            source={require("../../assets/images/pat-neff.png")}
+            source={
+              profilePicture && profilePicture.startsWith("file:")
+                ? { uri: profilePicture }
+                : profileImages["pat-neff.png"]
+            }
             width={120}
             height={120}
             borderRadius={60}
@@ -452,8 +464,10 @@ export default function Profile() {
           <Button backgroundColor="automatic" icon={Trophy} onPress={() => router.push("/achievements_page")}>View Achievements</Button>
           
           <Separator marginVertical={10} width={'85%'} alignSelf="center" />
-          <Button backgroundColor="automatic" icon={CreditCard}>Edit Profile</Button>
-
+        
+          <Button backgroundColor="automatic" icon={CreditCard} onPress={() => router.push("/edit_profile")}>
+            Edit Profile
+          </Button>
           <Separator marginVertical={10} width={'85%'} alignSelf="center" />
           <Button backgroundColor="automatic" icon={Download} onPress={onExportReport}>
             Export Report
@@ -464,10 +478,10 @@ export default function Profile() {
             Settings
           </Button>
 
-          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          {/* <Separator marginVertical={10} width={'85%'} alignSelf="center" />
           <Button backgroundColor="automatic" icon={LogOutIcon} onPress={onLogout}>
             Log Out
-          </Button>
+          </Button> */}
 
 
 

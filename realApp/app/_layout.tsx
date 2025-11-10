@@ -1,14 +1,17 @@
 // app/_layout.tsx
-import React from 'react'
+import React, { useEffect } from 'react'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
 import { Stack } from 'expo-router'
 import { useColorScheme, View, ActivityIndicator } from 'react-native'
 import { useFonts } from 'expo-font'
-import { SQLiteProvider } from 'expo-sqlite'
-import { initDb } from '../lib/db'
+import { SQLiteProvider, useSQLiteContext } from 'expo-sqlite'
+import { getCurrentUser, initDb } from '../lib/db'
 import '../tamagui-web.css';
 import { TamaguiProvider, Theme } from 'tamagui';
 import { tamaguiConfig } from '../tamagui.config';
+import * as Notifications from "expo-notifications";
+import { logNotification } from '@/lib/notifications'
+
 
 // toggle between local (SQLite) and server mode
 export const USE_LOCAL_STORAGE = true
@@ -54,28 +57,30 @@ export default function RootLayout() {
       <Theme name={colorScheme === 'dark' ? 'dark' : 'light'}>
         <ThemeProvider value={colorScheme === 'dark' ? navDark : navLight}>
           <SQLiteProvider databaseName="pawse.db" onInit={initDb}>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" options={{ title: 'index' }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="settings"
-                options={{
-                  headerShown: true,
-                  title: 'Settings',
-                  headerBackTitle: 'Back',
-                  headerBackTitleVisible: true,
-                  headerStyle: {
-                    backgroundColor: colors?.backgroundStrong.val,
-                  },
-                  headerTintColor: colors?.color.val,
-                  headerTitleStyle: {
-                    fontSize: 30,     // same as '$7' font size (custom header font size)
-                    fontWeight: '600',
-                    color: colors?.color.val,
-                  },
-                }}
-              />
-              <Stack.Screen
+            <NotificationListenerWrapper>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="login" options={{ title: 'Login' }} />
+                <Stack.Screen name="register" options={{ title: 'Register' }} />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="settings"
+                  options={{
+                    headerShown: true,
+                    title: 'Settings',
+                    headerBackTitle: 'Back',
+                    headerBackTitleVisible: true,
+                    headerStyle: {
+                      backgroundColor: colors?.backgroundStrong.val,
+                    },
+                    headerTintColor: colors?.color.val,
+                    headerTitleStyle: {
+                      fontSize: 30,     // same as '$7' font size (custom header font size)
+                      fontWeight: '600',
+                      color: colors?.color.val,
+                    },
+                  }}
+                />
+                <Stack.Screen
                 name="achievements_page"
                 options={{
                   headerShown: true,
@@ -93,29 +98,77 @@ export default function RootLayout() {
                   },
                 }}
               />
-              <Stack.Screen
-                name="notifications"
-                options={{
-                  headerShown: true,
-                  title: 'Notifications',
-                  headerBackTitle: 'Back',
-                  headerBackTitleVisible: true,
-                  headerStyle: {
-                    backgroundColor: colors?.backgroundStrong.val,
-                  },
-                  headerTintColor: colors?.color.val,
-                  headerTitleStyle: {
-                    fontSize: 30,
-                    fontWeight: '600',
-                    color: colors?.color.val,
-                  },
-                }}
-              />
-              <Stack.Screen name="+not-found" />
-            </Stack>
+                <Stack.Screen
+                  name="notifications"
+                  options={{
+                    headerShown: true,
+                    title: 'Notifications',
+                    headerBackTitle: 'Back',
+                    headerBackTitleVisible: true,
+                    headerStyle: {
+                      backgroundColor: colors?.backgroundStrong.val,
+                    },
+                    headerTintColor: colors?.color.val,
+                    headerTitleStyle: {
+                      fontSize: 30,
+                      fontWeight: '600',
+                      color: colors?.color.val,
+                    },
+                  }}
+                />
+                <Stack.Screen
+                  name="edit_profile"
+                  options={{
+                    headerShown: true,
+                    title: 'Edit Profile',
+                    headerBackTitle: 'Back',
+                    headerBackTitleVisible: true,
+                    headerStyle: {
+                      backgroundColor: colors?.backgroundStrong.val,
+                    },
+                    headerTintColor: colors?.color.val,
+                    headerTitleStyle: {
+                      fontSize: 30,
+                      fontWeight: '600',
+                      color: colors?.color.val,
+                    },
+                  }}
+                />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+            </NotificationListenerWrapper>
           </SQLiteProvider>
         </ThemeProvider>
       </Theme>
     </TamaguiProvider>
   )
+}
+
+function NotificationListenerWrapper({ children }: { children: React.ReactNode }) {
+  const db = useSQLiteContext();
+
+  useEffect(() => {
+    const subscription = Notifications.addNotificationReceivedListener(async (notification) => {
+      const { title, body } = notification.request.content;
+      const user = await getCurrentUser(db);
+      const userId = user?.id ?? null;
+
+      logNotification(db, title ?? "No title", body ?? "", userId);
+    });
+
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(async (response) => {
+      const { title, body } = response.notification.request.content;
+      const user = await getCurrentUser(db);
+      const userId = user?.id ?? null;
+
+      logNotification(db, title ?? "No title", body ?? "", userId);
+    });
+
+    return () => {
+      subscription.remove();
+      responseSubscription.remove();
+    };
+  }, [db]);
+
+  return <>{children}</>;
 }
