@@ -1,6 +1,24 @@
 // lib/db.ts
 import { type SQLiteDatabase } from 'expo-sqlite'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as FileSystem from 'expo-file-system/legacy';
+
+export async function resetDatabaseFile(dbName = 'pawse.db') {
+  const dbPath = `${FileSystem.documentDirectory}SQLite/${dbName}`;
+
+  try {
+    const info = await FileSystem.getInfoAsync(dbPath);
+    if (info.exists) {
+      await FileSystem.deleteAsync(dbPath, { idempotent: true });
+      console.log('Database file deleted');
+    } else {
+      console.log('No database file found to delete');
+    }
+  } catch (err) {
+    console.error('Error deleting database file:', err);
+  }
+}
+
 
 // ---------- Data Models ----------
 
@@ -14,6 +32,7 @@ export interface LogData {
   primary_motivation: string;
   description: string;
   user_id?: string;
+  report_date?:string;
 }
 
 export interface UserData {
@@ -74,6 +93,7 @@ export async function initDb(db: SQLiteDatabase) {
       primary_motivation TEXT NOT NULL,
       description TEXT NOT NULL,
       user_id TEXT NOT NULL,
+      report_date TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES users(id)
         ON DELETE CASCADE ON UPDATE RESTRICT
     );
@@ -204,11 +224,20 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
   try {
     const query = `
       INSERT OR REPLACE INTO log_data 
-      (start_date, end_date, medium, channel, intentional, primary_motivation, description, user_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+      (start_date, end_date, medium, channel, intentional, primary_motivation, description, report_date, user_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `
     const id = await AsyncStorage.getItem('pawse.currentUserId')
-
+    console.log("hello");
+    console.log(log.start_date);
+    console.log(log.end_date);
+    console.log(log.medium);
+    console.log(log.channel);
+    console.log(log.intentional);
+    console.log(log.primary_motivation);
+    console.log(log.description);
+    console.log(id);
+    console.log(log.log_id);
     const params = [
       log.start_date,
       log.end_date,
@@ -217,6 +246,7 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
       log.intentional,
       log.primary_motivation,
       log.description,
+      log.report_date,
       id,
     ];
 
@@ -247,8 +277,19 @@ export async function updateLog(db: SQLiteDatabase, log: LogData) {
       WHERE log_id = ?;
     `;
 
-    const id = await AsyncStorage.getItem('pawse.currentUserId')
 
+
+    const id = await AsyncStorage.getItem('pawse.currentUserId')
+    console.log("hello");
+    console.log(log.start_date);
+    console.log(log.end_date);
+    console.log(log.medium);
+    console.log(log.channel);
+    console.log(log.intentional);
+    console.log(log.primary_motivation);
+    console.log(log.description);
+    console.log(id);
+    console.log(log.log_id);
     const params = [
       log.start_date,
       log.end_date,
@@ -401,20 +442,20 @@ export async function insertStreak(db: SQLiteDatabase, log: LogData) {
   try {
     const query = `
       INSERT OR REPLACE INTO log_data 
-      (date, start_time, duration, medium, channel, intentional, primary_motivation, description, user_id)
+      (start_date, end_date, medium, channel, intentional, primary_motivation, description, report_date, user_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `
     const id = await AsyncStorage.getItem('pawse.currentUserId')
 
     const params = [
-      log.date,
-      log.start_time,
-      log.duration,
+      log.start_date,
+      log.end_date,
       log.medium,
       log.channel,
       log.intentional,
       log.primary_motivation,
       log.description,
+      log.report_date,
       id,
     ];
 
@@ -427,25 +468,29 @@ export async function insertStreak(db: SQLiteDatabase, log: LogData) {
   }
 }
 
-export async function getCurrentStreak(db: SQLiteDatabase, user_id: string) {
+export async function getCurrentStreak(db: SQLiteDatabase) {
   try {
-    console.log("getCurrentStreak: user_id =", user_id);
+    const id = await AsyncStorage.getItem('pawse.currentUserId')
+
+    console.log("getCurrentStreak: user_id =", id);
 
     // use getFirstAsync to return a single row (or null)
     const row = await db.getFirstAsync<any>(
-      `SELECT streak_id, user_id, num_days, start_date_streak
+      `SELECT *
          FROM streak
         WHERE user_id = ?
      ORDER BY streak_id DESC
         LIMIT 1`,
-      [user_id]
+      [id]
     );
 
     if (row) {
       console.log("getCurrentStreak row:", row);
       console.log("getCurrentStreak num_days:", row.num_days);
+      return row;
     } else {
-      console.log("getCurrentStreak: no row returned for user_id =", user_id);
+      console.log("getCurrentStreak: no row returned for user_id =", id);
+      return null;
     }
 
     return row || null;
@@ -468,7 +513,7 @@ export async function getCurrentStreak(db: SQLiteDatabase, user_id: string) {
   month: number,
   year: number
 ): Promise<{ medium: string; value: number }[]> {
-  try {
+  try { 
     let query = `
       SELECT 
       medium,
@@ -496,4 +541,131 @@ export async function getCurrentStreak(db: SQLiteDatabase, user_id: string) {
     console.error(`Failed to get medium counts`, error);
     throw error;
   }
+}
+
+export async function updateStreak(db: SQLiteDatabase) {
+    const id = await AsyncStorage.getItem('pawse.currentUserId')
+
+    console.log("entered");
+    if (!id) return { ok: false, reason: "no-user" };
+    console.log("I have an id");
+    const current_streak = true;
+    const now = todayLocalIso();
+
+    const yesterday = previousDayLocalIso();
+
+    const current = await getCurrentStreak(db);
+  try {
+    console.log("updateStreak: user_id =", id, "now =", now);
+
+    // choose the available method
+    const queryAll = db.getAllAsync || db.getAll || db.all || db.allAsync || null;
+    const queryFirst = db.getFirstAsync || db.getFirst || null;
+
+    if (!queryAll && !queryFirst && !db.runAsync) {
+      console.error("No suitable DB query method found on db:", Object.keys(db));
+      return { ok: false, reason: "no-db-method" };
+    }
+
+    // get a sample row
+    const first_row = queryAll
+      ? await queryAll.call(db, `SELECT * FROM log_data WHERE user_id = ? LIMIT 1`, [id])
+      : // fallback to getFirst-like behavior
+        (await queryFirst.call(db, `SELECT * FROM log_data WHERE user_id = ? LIMIT 1`, [id]) ? 
+        [await queryFirst.call(db, `SELECT * FROM log_data WHERE user_id = ? LIMIT 1`, [id])] : []);
+
+    console.log("first_row:", JSON.stringify(first_row));
+
+    // check today's log
+  // if your log_data.date is stored like "MM/DD/YYYY" (example shows "10/26/2025")
+  const todayFormatted = todayLocalMMDDYYYY(); // new helper shown below
+
+  // const lastLogRows = queryAll
+  // ? await queryAll.call(db, `SELECT 1 FROM log_data WHERE user_id = ? AND report_date = ? LIMIT 1`, [id, todayFormatted])
+  // : (await queryFirst.call(db, `SELECT 1 FROM log_data WHERE user_id = ? AND report_date = ? LIMIT 1`, [id, todayFormatted]))
+  //   ? [await queryFirst.call(db, `SELECT 1 FROM log_data WHERE user_id = ? AND report_date = ? LIMIT 1`, [id, todayFormatted])]
+  //   : [];
+
+    const lastLog = await db.getFirstAsync<any>(
+      `SELECT * FROM log_data WHERE user_id = ? ORDER BY log_id DESC LIMIT 1`,
+      [id]
+    );
+    const logDate = lastLog?.report_date?.slice(0, 10);
+    const date = new Date();
+    date.setDate(date.getDate() + 0);
+    const today = date.toISOString().slice(0, 10);
+    const yester = new Date();
+    yester.setDate(yester.getDate() + 1);
+    const yesterday = yester.toISOString().slice(0, 10);
+    
+    // console.log("lastLogRows:", JSON.stringify(lastLogRows));
+    // const hasTodayLog = Array.isArray(lastLogRows) ? lastLogRows.length > 0 : Boolean(lastLogRows);
+    // console.log("hasTodayLog:", hasTodayLog);
+
+    // if (!hasTodayLog) return { ok: false, reason: "no-today-log" };
+    
+    // continue with rest of updateStreak...
+  } catch (err) {
+    console.error("updateStreak query error:", err);
+    return { ok: false, reason: "query-error", error: err };
+  }
+
+    try {
+      if (!current) {
+        console.log("inserted new streak");
+
+        await db.runAsync(
+          `INSERT INTO streak (start_date_streak,  num_days, user_id) VALUES (?, ?, ?)`,
+          [now, 1, id]
+        );
+        return { ok: true, action: "insert", num_days: 1 };
+      }
+
+      const lastDate = (current.last_updated || "").slice(0, 10);
+
+      if (lastDate === now) return { ok: true, action: "noop", num_days: current.num_days };
+
+      if (lastDate === yesterday) {
+        const newDays = (current.num_days || 0) + 1;
+        await db.runAsync(
+          `UPDATE streak SET num_days = ?, last_updated = ? WHERE streak_id = ? AND user_id = ?`,
+          [newDays, now, current.streak_id, id]
+        );
+        return { ok: true, action: "update", num_days: newDays };
+      }
+
+      await db.runAsync(
+        `INSERT INTO streak (start_date_streak, last_updated, num_days, user_id) VALUES (?, ?, ?, ?)`,
+        [now, now, 1, id]
+      );
+      return { ok: true, action: "reset-insert", num_days: 1 };
+    } catch (err) {
+      console.error("updateStreak db-error:", err);
+  
+      return { ok: false, reason: "db-error", error: err };
+    }
+}
+function todayLocalMMDDYYYY() {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
+function todayLocalIso() {
+  const now = new Date();
+  
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function previousDayLocalIso() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }

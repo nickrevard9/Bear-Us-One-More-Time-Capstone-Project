@@ -13,6 +13,8 @@ import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog } from "
 import Reporter from "../Reporter"
 
 const ReportPage = () => {
+
+
     return (
         <Reporter/>
     );

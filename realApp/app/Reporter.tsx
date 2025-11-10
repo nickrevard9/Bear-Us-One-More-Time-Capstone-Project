@@ -5,7 +5,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { DatePickerModal, DatePickerInput , TimePickerModal } from 'react-native-paper-dates';
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
-import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog } from "../lib/db";
+import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, insertStreak, updateStreak } from "../lib/db";
 import { X } from '@tamagui/lucide-icons';
 
 // Define props for the Reporter component, with optional log_id for editing an existing log
@@ -200,6 +200,13 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             Alert.alert("Please fill in all required fields before submitting");
             return;
         }
+          const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+
         const log: LogData = {
             start_date: start_date.toISOString(),
             end_date: end_date.toISOString(), // Format as HH:MM:SS
@@ -207,6 +214,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             channel,
             intentional: isIntentional? 1 : 0,
             primary_motivation: primaryMotivation,
+            report_date: `${year}-${month}-${day}T${hours}:${minutes}:00`,
             description,
         };
         if (logId){
@@ -216,20 +224,65 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         console.log(log);
 
         try {   
+
             if(editMode){
+                console.log("hello");
+
                 await updateLog(db, log); // Update existing log
+                //const id = await AsyncStorage.getItem('pawse.currentUserId')
+
+                const curr_streak = await getCurrentStreak(db);
+                console.log(curr_streak);
+
+                if (!curr_streak) {
+                    await updateStreak(db); // No streak yet, start one
+                } else if (isTodayOrYesterday(curr_streak.last_updated)) {
+                    await updateStreak(db); // Streak is active, update it
+                }
+
+
             }   
             else{
                 await insertLog(db, log); // Insert new log
-            }  
+                const curr_streak = await getCurrentStreak(db);
+                console.log(curr_streak);
+
+                if (!curr_streak) {
+                    await updateStreak(db); // No streak yet, start one
+                } else if (isTodayOrYesterday(curr_streak.last_updated)) {
+                    await updateStreak(db); // Streak is active, update it
+                }
+
+            }
+
             router.back() // Navigate back to home
             return;
         }
         catch (error){
             Alert.alert("Could not save log")
         }
+        //add streak update here
+        //check if the streak needs to be updated
         
+        //if it is within 24 hour window then update accordingly
+
+        //If there was no active streak create a new one
+
+        //checking if the streak was active or not should be done elsewhere
     };
+    function isTodayOrYesterday(dateStr: string): boolean {
+        const inputDate = new Date(dateStr);
+        const now = new Date();
+
+        // Normalize all dates to midnight for comparison
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+
+        const input = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
+
+        return input.getTime() === today.getTime() || input.getTime() === yesterday.getTime();
+    }
 
     // Handle deleting an existing log
     const handleDelete = async () => {
@@ -421,7 +474,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
                 {/* Channel Input */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
-                <Label >Platform</Label>
+                <Label>Platform</Label>
                 <YStack>
                     <Input
                         maxW={600}

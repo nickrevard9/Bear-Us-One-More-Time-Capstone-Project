@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { Text, View, H6  } from "tamagui";
 import { Switch, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { resetDatabaseFile } from "../lib/db"; // adjust path as needed
+
+// Inside your return block, add this to the About section:
 
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -45,7 +48,18 @@ export default function SettingsScreen() {
           <Text style={styles.label}>App Version 1.0.0</Text>
         </TouchableOpacity>
       </View>
+      <TouchableOpacity
+      style={styles.row}
+      onPress={async () => {
+        await resetDatabaseFile();
+        alert("Database reset. Please restart the app.");
+      }}
+    >
+      <Text style={styles.label}>Reset Database</Text>
+    </TouchableOpacity>
+
     </ScrollView>
+    
   );
 }
 

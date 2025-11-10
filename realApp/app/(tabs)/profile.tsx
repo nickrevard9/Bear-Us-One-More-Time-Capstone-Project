@@ -9,7 +9,7 @@ import {
   H4,
   Image,
   Group,
-  Separator, Text,
+  Separator,
   Text,
   Progress,
 } from "tamagui";
@@ -17,7 +17,7 @@ import {
   CreditCard,
   Download,
   LogOut as LogOutIcon,
-  Settings, Bell,
+  Settings,
   Bell,
   Flame,
 } from "@tamagui/lucide-icons";
@@ -51,10 +51,7 @@ async function delKV(key: string) {
   }
 }
 
-const onNotificationTest = () => {
-  scheduleNotification(3, '🔔 Test Notification 🔔', 'This is a notification!')
-    .catch(err => Alert.alert('Notifications', err?.message ?? 'Failed to schedule'));
-};
+
 
 // CSV cell & join
 function csvCell(s: any): string {
@@ -67,96 +64,7 @@ function rowsToCSV(rows: (string | number | null | undefined)[][]): string {
   return rows.map((r) => r.map(csvCell).join(",")).join("\n");
 }
 
-async function updateStreak(db, user_id) {
-  console.log("entered");
-  if (!user_id) return { ok: false, reason: "no-user" };
-  console.log("I have an id");
-  const current_streak = true;
-  const now = todayLocalIso();
-  console.log("hi");
 
-  const yesterday = previousDayLocalIso();
-  console.log("hi");
-
-  const current = await getCurrentStreak(db, user_id);
-  console.log("hi");
-try {
-  console.log("updateStreak: user_id =", user_id, "now =", now);
-
-  // choose the available method
-  const queryAll = db.getAllAsync || db.getAll || db.all || db.allAsync || null;
-  const queryFirst = db.getFirstAsync || db.getFirst || null;
-
-  if (!queryAll && !queryFirst && !db.runAsync) {
-    console.error("No suitable DB query method found on db:", Object.keys(db));
-    return { ok: false, reason: "no-db-method" };
-  }
-
-  // get a sample row
-  const first_row = queryAll
-    ? await queryAll.call(db, `SELECT * FROM log_data WHERE user_id = ? LIMIT 1`, [user_id])
-    : // fallback to getFirst-like behavior
-      (await queryFirst.call(db, `SELECT * FROM log_data WHERE user_id = ? LIMIT 1`, [user_id]) ? [await queryFirst.call(db, `SELECT * FROM log_data WHERE user_id = ? LIMIT 1`, [user_id])] : []);
-
-  console.log("first_row:", JSON.stringify(first_row));
-
-  // check today's log
-// if your log_data.date is stored like "MM/DD/YYYY" (example shows "10/26/2025")
-const todayFormatted = todayLocalMMDDYYYY(); // new helper shown below
-
-const lastLogRows = queryAll
-  ? await queryAll.call(db, `SELECT 1 FROM log_data WHERE user_id = ? AND date = ? LIMIT 1`, [user_id, todayFormatted])
-  : (await queryFirst.call(db, `SELECT 1 FROM log_data WHERE user_id = ? AND date = ? LIMIT 1`, [user_id, todayFormatted]))
-    ? [await queryFirst.call(db, `SELECT 1 FROM log_data WHERE user_id = ? AND date = ? LIMIT 1`, [user_id, todayFormatted])]
-    : [];
-
-  console.log("lastLogRows:", JSON.stringify(lastLogRows));
-  const hasTodayLog = Array.isArray(lastLogRows) ? lastLogRows.length > 0 : Boolean(lastLogRows);
-  console.log("hasTodayLog:", hasTodayLog);
-
-  if (!hasTodayLog) return { ok: false, reason: "no-today-log" };
-  
-  // continue with rest of updateStreak...
-} catch (err) {
-  console.error("updateStreak query error:", err);
-  return { ok: false, reason: "query-error", error: err };
-}
-
-  try {
-    if (!current) {
-      console.log("inserted new streak");
-
-      await db.runAsync(
-        `INSERT INTO streak (start_date_streak,  num_days, user_id) VALUES (?, ?, ?)`,
-        [now, 1, user_id]
-      );
-      return { ok: true, action: "insert", num_days: 1 };
-    }
-
-    const lastDate = (current.last_updated || "").slice(0, 10);
-
-    if (lastDate === now) return { ok: true, action: "noop", num_days: current.num_days };
-
-    if (lastDate === yesterday) {
-      const newDays = (current.num_days || 0) + 1;
-      await db.runAsync(
-        `UPDATE streak SET num_days = ?, last_updated = ? WHERE streak_id = ? AND user_id = ?`,
-        [newDays, now, current.streak_id, user_id]
-      );
-      return { ok: true, action: "update", num_days: newDays };
-    }
-
-    await db.runAsync(
-      `INSERT INTO streak (start_date_streak, last_updated, num_days, user_id) VALUES (?, ?, ?, ?)`,
-      [now, now, 1, user_id]
-    );
-    return { ok: true, action: "reset-insert", num_days: 1 };
-  } catch (err) {
-    console.error("updateStreak db-error:", err);
- 
-    return { ok: false, reason: "db-error", error: err };
-  }
-}
 function todayLocalMMDDYYYY() {
   const d = new Date();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -183,20 +91,6 @@ function previousDayLocalIso() {
 }
 
 
-// async function getCurrentStreak(db: SQLiteDatabase, user_id) {
-//   console.log("row");
-
-//   const row = await db.getFirstAsync<any>(
-//     `SELECT streak_id, user_id, num_days, last_updated
-//        FROM streak
-//       WHERE user_id = ?
-//    ORDER BY streak_id DESC
-//       LIMIT 1`,
-//     [user_id]
-//   );
-//   console.log("row");
-//   return row || null;
-// }
 
 
 
@@ -232,38 +126,47 @@ export default function Profile() {
   const [showPicker, setShowPicker] = useState(false);
   const [tempTime, setTempTime] = useState(new Date());
 
+  const [streakDays, setStreakDays] = useState<number>(0);
   /* Refresh display name when tab gains focus */
   useFocusEffect(
     useCallback(() => {
 
       (async () => {
+
+
         try {
 
-          const user = await getCurrentUser(db);
-          const result = await updateStreak(db, user.id);
-          console.log("updateStreak result:", result?.reason);
-
+         const user = await getCurrentUser(db);
 
           if (user) {
             const full = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
             setDisplayName(full || user.username || user.email || "Your Name");
             const today = todayLocalIso();
             const yesterday = previousDayLocalIso();
+            console.log(user.id)
 
             // streak query
             const streak = await db.getFirstAsync<any>(
               `SELECT num_days
                  FROM streak
-                WHERE user_id = ?
              ORDER BY streak_id DESC
-                LIMIT 1`,
-              [user.id, today, yesterday]
+                `,
             );
+                        console.log("failed here.")
+
+            console.log(streak);
+                        console.log("failed here.")
+
             setStreakDays(streak?.num_days ?? 0);
             //setStreakDays(3);
-          } else setDisplayName("Your Name");
+          } else {
+            setDisplayName("Your Name");
+            console.log("failed to get the streak.")
             setStreakDays(0);
+          }
         } catch {
+          console.log("failed to get the streak.")
+
           setDisplayName("Your Name");
           setStreakDays(0);
         }
@@ -528,8 +431,24 @@ export default function Profile() {
             height={120}
             borderRadius={60}
           />
+          {/* streak visual */}
+          <YStack alignItems="center" marginTop="$2">
+            <XStack alignItems="center" gap="$2">
+              <Flame color="orange" size={22} />
+              <H4>{streakDays}-day streak</H4>
+            </XStack>
+            <Progress
+              value={(streakDays % 5) * (100 / 5)}
+              width={200}
+              marginTop="$2"
+            >
+              <Progress.Indicator backgroundColor="orange" />
+            </Progress>
+            <Text fontSize="$2" color="$gray10">
+              Keep it going!
+            </Text>
+          </YStack>
         </YStack>
-
         {/* buttons */}
         <Group>
           <Separator marginVertical={10} width={'85%'} alignSelf="center" />
@@ -549,6 +468,8 @@ export default function Profile() {
           <Button backgroundColor="automatic" icon={LogOutIcon} onPress={onLogout}>
             Log Out
           </Button>
+
+
 
           {/* Reminders */}
           <Separator marginVertical={10} />

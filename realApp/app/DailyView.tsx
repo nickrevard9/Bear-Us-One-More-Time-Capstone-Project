@@ -9,6 +9,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { Platform,  Animated, Easing } from 'react-native';
 import GestureRecognizer from "react-native-swipe-gestures";
 import ModeToggle from "@/components/ModeToggle";
+import * as FileSystem from 'expo-file-system';
 
 
 export const USE_LOCAL_STORAGE = true;
@@ -17,6 +18,19 @@ interface DailyViewProps {
   initialDate?: Date;
   notHome?: Boolean
 }
+
+const resetDatabase = async () => {
+  const dbName = 'your-db-name.db'; // replace with your actual DB name
+  const dbPath = `${FileSystem.documentDirectory}SQLite/${dbName}`;
+
+  const exists = await FileSystem.getInfoAsync(dbPath);
+  if (exists.exists) {
+    await FileSystem.deleteAsync(dbPath, { idempotent: true });
+    console.log('Database deleted');
+  } else {
+    console.log('Database file not found');
+  }
+};
 
 const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     const theme = useTheme()
