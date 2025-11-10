@@ -77,6 +77,24 @@ export default function RootLayout() {
                 }}
               />
               <Stack.Screen
+                name="achievements_page"
+                options={{
+                  headerShown: true,
+                  title: 'Achievements',
+                  headerBackTitle: 'Back',
+                  headerBackTitleVisible: true,
+                  headerStyle: {
+                    backgroundColor: colors?.backgroundStrong.val,
+                  },
+                  headerTintColor: colors?.color.val,
+                  headerTitleStyle: {
+                    fontSize: 30,     // same as '$7' font size (custom header font size)
+                    fontWeight: '600',
+                    color: colors?.color.val,
+                  },
+                }}
+              />
+              <Stack.Screen
                 name="notifications"
                 options={{
                   headerShown: true,

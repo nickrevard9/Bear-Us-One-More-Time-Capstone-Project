@@ -20,6 +20,7 @@ import {
   Settings,
   Bell,
   Flame,
+  Trophy,
 } from "@tamagui/lucide-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -152,11 +153,7 @@ export default function Profile() {
              ORDER BY streak_id DESC
                 `,
             );
-                        console.log("failed here.")
-
             console.log(streak);
-                        console.log("failed here.")
-
             setStreakDays(streak?.num_days ?? 0);
             //setStreakDays(3);
           } else {
@@ -451,6 +448,9 @@ export default function Profile() {
         </YStack>
         {/* buttons */}
         <Group>
+          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          <Button backgroundColor="automatic" icon={Trophy} onPress={() => router.push("/achievements_page")}>View Achievements</Button>
+          
           <Separator marginVertical={10} width={'85%'} alignSelf="center" />
           <Button backgroundColor="automatic" icon={CreditCard}>Edit Profile</Button>
 

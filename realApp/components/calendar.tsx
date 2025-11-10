@@ -1,5 +1,6 @@
 
 import React, {useState } from  'react';
+import { useColorScheme } from 'react-native';
 import DateTimePicker, { DateType, useDefaultStyles } from 'react-native-ui-datepicker';
 import { View, Text, Button, H3, XStack, H6 } from "tamagui";
 import MonthYearPicker from "aekimena-month-year-picker";
@@ -19,9 +20,29 @@ export function Calendar(props: {onclick: (date: DateType) => void,
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
   const getMonthNameFromDate = (monthNumber: number): string => {
-  const date = new Date(2000, monthNumber);
-  return date.toLocaleString('default', { month: 'long' });
-};
+    const date = new Date(2000, monthNumber);
+    return date.toLocaleString('default', { month: 'long' });
+  };
+
+  const colorScheme = useColorScheme()
+    const colors = colorScheme === 'dark' ? {
+      background: "#2b2a23",
+      gradientFrom: "#2b2a23",
+      gradientTo: "#3a392f",
+      selected: "#f7d674c7",
+      today: "#f7d674a9",
+      label: "#e4e0d5",
+      selected_label: "#e4e0d5",
+    }
+    : {
+      background: "#f4efe6",
+      gradientFrom: "#f4efe6",
+      gradientTo: "#ebe3d2",
+      selected: "#8fa47a",
+      selected_label: "#f4efe6",
+      today: "#8fa47a96",
+      label: "#3e3b32",
+  };
 
   function onMonthChangeLeft(){
     const m = ((month-1) + 12) % 12;
@@ -85,9 +106,20 @@ export function Calendar(props: {onclick: (date: DateType) => void,
       <H3 onPress={onMonthChangeRight}><ChevronRight/></H3>
     </XStack>
     <DateTimePicker
-    hideHeader
-    disableMonthPicker={true}
-    disableYearPicker={true}
+      hideHeader
+      disableMonthPicker={true}
+      disableYearPicker={true}
+      styles={{
+        day_label: { color: colors.label },
+        month_selector_label: { color: colors.label },
+        month_label: { color: colors.label },
+        year_label: { color: colors.label },
+        year_selector_label: { color: colors.label },
+        weekday_label: { color: colors.label },
+        today: { borderColor: colors.today, borderWidth: 4, borderRadius: 20}, // Add a border to today's date
+        selected: { backgroundColor: colors.selected, borderRadius: 20 }, // Highlight the selected day
+        selected_label: { color: colors.selected_label }, // Highlight the selected day label
+      }}
       mode="single"
       month={month}
       year={year}
@@ -95,7 +127,6 @@ export function Calendar(props: {onclick: (date: DateType) => void,
       onChange={({ date }) =>  {
         setSelected(date); 
         props.onclick(date)}}
-      styles={defaultStyles}
     />
     </View>
   );

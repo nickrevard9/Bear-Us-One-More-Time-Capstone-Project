@@ -34,9 +34,6 @@ export default function ScreenTimeChart({usageData, focus, point} : ScreenTimeCh
 
   return (
     <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
-      <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
-        Media Usage
-      </Text>
           <LineChart
           areaChart
           data={data}

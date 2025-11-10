@@ -4,7 +4,7 @@
     "slug": "pawse",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/Pawse_Symbol_Logo.png",
     "scheme": "pawse",
     "entryPoint": "expo-router/entry",
     "userInterfaceStyle": "automatic",
@@ -29,7 +29,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/Pawse_Full_Logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
