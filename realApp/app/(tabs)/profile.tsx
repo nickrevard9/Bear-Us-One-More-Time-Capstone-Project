@@ -152,6 +152,7 @@ export default function Profile() {
             const today = todayLocalIso();
             const yesterday = previousDayLocalIso();
             console.log(user.id)
+            setProfilePicture(user.profilePicture);
 
             // streak query
             const streak = await db.getFirstAsync<any>(
@@ -167,7 +168,6 @@ export default function Profile() {
             setDisplayName("Your Name");
             console.log("failed to get the streak.")
             setStreakDays(0);
-            setProfilePicture(user.profilePicture);
           }
         } catch {
           console.log("failed to get the streak.")

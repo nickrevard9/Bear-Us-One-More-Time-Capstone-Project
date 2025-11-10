@@ -10,7 +10,8 @@ import '../tamagui-web.css';
 import { TamaguiProvider, Theme } from 'tamagui';
 import { tamaguiConfig } from '../tamagui.config';
 import * as Notifications from "expo-notifications";
-import { logNotification } from '@/lib/notifications'
+import { logNotification } from '@/lib/notifications';
+import { HeaderNotifications } from '@/components/header';
 
 
 // toggle between local (SQLite) and server mode
@@ -59,8 +60,9 @@ export default function RootLayout() {
           <SQLiteProvider databaseName="pawse.db" onInit={initDb}>
             <NotificationListenerWrapper>
               <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="login" options={{ title: 'Login' }} />
-                <Stack.Screen name="register" options={{ title: 'Register' }} />
+                                <Stack.Screen name="index" options={{ headerShown: false }} />
+                {/* <Stack.Screen name="login" options={{ title: 'Login' }} /> */}
+                {/* <Stack.Screen name="register" options={{ title: 'Register' }} /> */}
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="settings"
@@ -133,6 +135,9 @@ export default function RootLayout() {
                       color: colors?.color.val,
                     },
                   }}
+                />
+                <Stack.Screen
+                  name="edit_page" options={{header: () => <HeaderNotifications />}}
                 />
                 <Stack.Screen name="+not-found" />
               </Stack>
