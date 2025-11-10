@@ -55,8 +55,7 @@ export default function RootLayout() {
         <ThemeProvider value={colorScheme === 'dark' ? navDark : navLight}>
           <SQLiteProvider databaseName="pawse.db" onInit={initDb}>
             <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="login" options={{ title: 'Login' }} />
-              <Stack.Screen name="register" options={{ title: 'Register' }} />
+              <Stack.Screen name="index" options={{ title: 'index' }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen
                 name="settings"

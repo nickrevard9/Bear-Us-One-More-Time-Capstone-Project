@@ -369,9 +369,9 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     return (
         <View paddingHorizontal={10}>
             {/* Header with back arrow and title */}
-            <XStack alignItems="center" justifyContent="space-between" paddingBottom={20}>
+            <XStack alignItems="center" justifyContent="space-between" paddingBottom={20} paddingTop={10}>
                 <TouchableOpacity onPress={() => router.back()}>
-                    <Text style={{ fontSize: 28, fontWeight: 'bold' }}>{'←'}</Text>
+                    <Text style={{ fontSize: 28, fontWeight: 'bold' }} onPress={() => router.back()}>{'←'}</Text>
                 </TouchableOpacity>
                 <H6 style={{ textAlign: 'center', fontWeight: "600", position: 'absolute', left: 0, right: 0 }}>
                     Log
