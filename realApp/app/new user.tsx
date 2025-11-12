@@ -1,5 +1,5 @@
-// app/register.tsx
-import React, { useCallback, useMemo, useState } from 'react'
+// app/new user.tsx
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,11 +14,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import {
   addLocalUser,
-  emailExists,
   ensureAuthStateRow,
+  getAuthState,
   markLoggedIn,
   setCurrentUserId,
-  usernameExists,
 } from '../lib/db'
 import { API_BASE, USE_LOCAL_STORAGE } from './_layout'
 
@@ -39,11 +38,33 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [msg, setMsg] = useState<string>('')
+  const [bootChecking, setBootChecking] = useState(true)
 
   const canSubmit = useMemo(
     () => firstName.trim().length > 0 && lastName.trim().length > 0 && !submitting,
     [firstName, lastName, submitting]
   )
+
+    useMemo(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        await ensureAuthStateRow(db)
+        const state = await getAuthState(db)
+        if (!cancelled && state.is_logged_in === 1) {
+          setMsg('🔐 Session found — opening app…')
+          router.replace('/(tabs)/home')
+          return
+        }
+
+      
+      } finally {
+        if (!cancelled) setBootChecking(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [db, router])
+
 
   const createLocalAccount = useCallback(async () => {
     setSubmitting(true)
@@ -51,36 +72,10 @@ export default function RegisterPage() {
 
     try {
       await ensureAuthStateRow(db)
-
-      // 1) Derive base slugs
-      const f = slugifyName(firstName)
-      const l = slugifyName(lastName)
-      let base = (f && l) ? `${f}.${l}` : (f || l || 'user')
-
-      // 2) Find unique username/email
-      let candidateUsername = base
-      let candidateEmail = `${base}@local`
-      let suffix = 0
-
-      // ensure uniqueness across both fields
-      // loop until we find a free pair
-      // (the UNIQUE constraints in DB will also guard us, but this avoids throwing)
-      // graceful upper bound to avoid infinite loop
-      // (extremely unlikely to hit)
-      while (
-        (await usernameExists(db as any, candidateUsername)) ||
-        (await emailExists(db as any, candidateEmail))
-      ) {
-        suffix += 1
-        candidateUsername = `${base}${suffix}`
-        candidateEmail = `${base}${suffix}@local`
-        if (suffix > 9999) throw new Error('Could not generate a unique username/email')
-      }
-
-      // 3) Insert user
+      // 1) add user
       const created = await addLocalUser(db as any, {
-        username: candidateUsername,
-        email: candidateEmail,
+        username: "user",
+        email: "email",
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         password: '', // no password for local-only
@@ -88,7 +83,7 @@ export default function RegisterPage() {
         profilePicture: "pat-neff.png",
       })
 
-      // 4) Persist session + navigate
+      // 2) Persist session + navigate
       await setCurrentUserId(created.id!)
       await AsyncStorage.setItem('user', JSON.stringify(created))
       await markLoggedIn(db as any, String(created.id))
@@ -115,7 +110,7 @@ export default function RegisterPage() {
     await createLocalAccount()
   }, [canSubmit, createLocalAccount])
 
-  return (
+  if (!bootChecking) return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -126,7 +121,7 @@ export default function RegisterPage() {
             <H2 alignSelf="center">Welcome to Pawse!</H2>
             <Paragraph size="$4" color="$gray11" textAlign="center">
               Just enter your first and last name to get started!
-            </Paragraph>
+            </Paragraph>  
 
             <YStack gap="$3">
               <YStack gap="$2">
@@ -182,5 +177,7 @@ export default function RegisterPage() {
         </XStack>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
-  )
+  ); else {
+    return null
+  }
 }
