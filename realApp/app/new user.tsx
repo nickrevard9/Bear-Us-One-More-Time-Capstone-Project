@@ -21,15 +21,6 @@ import {
 } from '../lib/db'
 import { API_BASE, USE_LOCAL_STORAGE } from './_layout'
 
-function slugifyName(s: string) {
-  return s
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '')
-    .slice(0, 24)
-}
-
 export default function RegisterPage() {
   const db = useSQLiteContext()
   const router = useRouter()
