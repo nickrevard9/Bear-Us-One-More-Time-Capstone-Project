@@ -2,6 +2,7 @@
 import { type SQLiteDatabase } from 'expo-sqlite'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as FileSystem from 'expo-file-system/legacy';
+import AchievementsPage from '@/app/achievements_page';
 
 export async function resetDatabaseFile(dbName = 'pawse.db') {
   const dbPath = `${FileSystem.documentDirectory}SQLite/${dbName}`;
@@ -765,11 +766,11 @@ export async function getAchievementsByUser(
 export async function storeAchievement(
   db: SQLiteDatabase,
   achievement_id: string
-): Promise<void> {
+): Promise<Achievement> {
   try {
     const id = await AsyncStorage.getItem('pawse.currentUserId');
     if (!id) throw new Error("No current user ID found");
-
+    const a = await getAchievement(db, achievement_id);
     const query = `
       INSERT INTO user_achievements (achievement_id, user_id, earned_at)
       VALUES (?, ?, ?);
@@ -777,27 +778,175 @@ export async function storeAchievement(
 
     const params = [achievement_id, id, new Date().toISOString()];
     await db.runAsync(query, params);
-
+    return a;
   } catch (error) {
     console.error('Could not store achievement:', error);
     throw error;
   }
 }
 
-// export async function calculateAchievements() : Promise<Achievement[]> {
-//   try {
-//     // Get Total logs
+export async function getAchievement(db: SQLiteDatabase, achievement_id: string): Promise<Achievement> {
+  try {
+    const query = `
+      SELECT 
+        a.achievement_id,
+        a.name,
+        a.image_uri,
+        a.description,
+      FROM achievements a
+      WHERE a.achievement_id = ?;
+    `;
 
-//     // Get Total logs with 'Education' motivation
+    const result = await db.getFirstAsync<Achievement>(query, [achievement_id]);
+    if(!result) 
+      throw Error(`No achievement by this id ${achievement_id}`)
+    return result
+  }
+  catch(error){
+    console.error(error);
+    throw error;
+  }
+}
 
-//     // Get Total logs with printed material medium
+export async function calculateAchievements(db: SQLiteDatabase) : Promise<Achievement[]> {
+  let obtained_achievements: Achievement[] = await getAchievementsByUser(db);
+  let new_achievements: Achievement[] = [];
+  try {
+    // Get Total logs
+    let logs = await getTotalLogs(db);
+    if (logs >= 10) {
+      // Check if already have acheivement
+      if(!obtained_achievements.find(a => a.achievement_id == "logginghard")){
+        new_achievements.push(await storeAchievement(db, "logginghard"));
+      }
+    }
+    // Get Total logs with 'Education' motivation
+    logs = await getEducationTotal(db);
+    if(logs >= 15){
+      // Check if already have acheivement
+      if(!obtained_achievements.find(a => a.achievement_id == "scholar")){
+        new_achievements.push(await storeAchievement(db, "scholar"));
+      }
+    }
+    // Get Total logs with printed material medium
+    logs = await getPrintedTotal(db);
+    if (logs >= 15){
+      // Check if already have acheivement
+      if(!obtained_achievements.find(a => a.achievement_id == "bookworm")){
+        new_achievements.push(await storeAchievement(db, "bookworm"));
+      }
+    }
+    // Get Total logs with any smart phone or digital medium
+    logs = await getDigitalTotal(db);
+    if (logs >= 15){
+      // Check if already have acheivement
+      if(!obtained_achievements.find(a => a.achievement_id == "touchgrass")){
+        new_achievements.push(await storeAchievement(db, "touchgrass"));
+      }
+    }
+    // Get Total streak
+    let streak = await getCurrentStreak(db);
+    if(streak.num_days >= 7){
+      // Check if already have acheivement
+      if(!obtained_achievements.find(a => a.achievement_id == "onfire")){
+        new_achievements.push(await storeAchievement(db, "onfire"));
+      }
+    }
+    return new_achievements
+  }
+  catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
 
-//     // Get Total logs with any smart phone or digital medium
+export async function getTotalLogs(db: SQLiteDatabase,) : Promise<number> {
+  try {
+    const id = await AsyncStorage.getItem('pawse.currentUserId');
+    if (!id) throw new Error("No current user ID found");
 
-//     // Get Total streak
-//   }
-//   catch (error) {
-//     console.error(error);
-//     throw error;
-//   }
-// }
+    const query = `
+      SELECT 
+        COUNT(*)
+      FROM log_data
+      WHERE user_id = ?;
+    `;
+
+    const result = await db.getFirstAsync<number>(query, [id]);
+    return result? result : 0;
+  } catch (error) {
+    console.error('Could not get total:', error);
+    throw error;
+  }
+}
+
+export async function getEducationTotal(db: SQLiteDatabase,) : Promise<number> {
+  try {
+    const id = await AsyncStorage.getItem('pawse.currentUserId');
+    if (!id) throw new Error("No current user ID found");
+
+    const query = `
+      SELECT 
+        COUNT(*)
+      FROM log_data
+      WHERE user_id = ?
+      AND primary_motivation = 'Education';
+    `;
+
+    const result = await db.getFirstAsync<number>(query, [id]);
+    return result? result : 0;
+  } catch (error) {
+    console.error('Could not get total:', error);
+    throw error;
+  }
+}
+
+export async function getDigitalTotal(db: SQLiteDatabase,) : Promise<number> {
+  try {
+    const id = await AsyncStorage.getItem('pawse.currentUserId');
+    if (!id) throw new Error("No current user ID found");
+
+    const query = `
+      SELECT 
+        COUNT(*)
+      FROM log_data
+      WHERE (medium LIKE "%Computer%"
+        OR medium LIKE "%Phone%"
+        OR medium LIKE "%Device%"
+        OR medium LIKE "%Tablet%"
+        OR medium LIKE "%Television%"
+        OR medium LIKE "%eReader%")
+        AND user_id = ?
+      ;
+    `;
+
+    const result = await db.getFirstAsync<number>(query, [id]);
+    return result? result : 0;
+  } catch (error) {
+    console.error('Could not get total:', error);
+    throw error;
+  }
+}
+
+export async function getPrintedTotal(db: SQLiteDatabase,) : Promise<number> {
+  try {
+    const id = await AsyncStorage.getItem('pawse.currentUserId');
+    if (!id) throw new Error("No current user ID found");
+
+    const query = `
+      SELECT 
+        COUNT(*)
+      FROM log_data
+      WHERE (medium LIKE "%Print%"
+        OR medium LIKE "%eReader%")
+        AND user_id = ?
+      ;
+    `;
+
+    const result = await db.getFirstAsync<number>(query, [id]);
+    return result? result : 0;
+  } catch (error) {
+    console.error('Could not get total:', error);
+    throw error;
+  }
+}
