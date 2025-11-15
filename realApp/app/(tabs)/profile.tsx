@@ -295,7 +295,6 @@ export default function Profile() {
           : ""
       );
 
-      parts.push(rowsToCSV(logRows.map((r) => Object.values(r))));
       const csv = parts.join("\n");
       const fileName = `pawse_export_${Date.now()}.csv`;
       const file = new File(Paths.document, fileName);
