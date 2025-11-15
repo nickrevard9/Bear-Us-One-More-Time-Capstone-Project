@@ -15,6 +15,8 @@ export async function resetDatabaseFile(dbName = 'pawse.db') {
     } else {
       console.log('No database file found to delete');
     }
+
+    AsyncStorage.clear()
   } catch (err) {
     console.error('Error deleting database file:', err);
   }
@@ -134,7 +136,7 @@ export async function initDb(db: SQLiteDatabase) {
       INSERT OR IGNORE INTO achievements (achievement_id, name, description, image_uri) VALUES ('onfire', 'On Fire!', 'You continued your streak for a week', '../assets/images/OnFire.png');
       INSERT OR IGNORE INTO achievements (achievement_id, name, description, image_uri) VALUES ('bookworm', 'Book Worm', 'You logged 15 times that you read a book or some other printed media', '../assets/images/BookWorm.png');
       INSERT OR IGNORE INTO achievements (achievement_id, name, description, image_uri) VALUES ('touchgrass', 'Touching Grass', 'You logged 15 times that you used your phone or some other electronic device', '../assets/images/TouchGrass.png');
-      INSERT OR IGNORE INTO achievements (achievement_id, name, description, image_uri) VALUES ('scholar', 'The Scholar', 'You logged 15 times with a motivation for Education', '../assets/images/Scholar.png');
+      INSERT OR IGNORE INTO achievements (achievement_id, name, description, image_uri) VALUES ('scholar', 'The Scholar', 'You logged 15 times with a motivation for Schoolwork', '../assets/images/Scholar.png');
     `)
 
       await db.execAsync(`
@@ -285,16 +287,6 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `
     const id = await AsyncStorage.getItem('pawse.currentUserId')
-    console.log("hello");
-    console.log(log.start_date);
-    console.log(log.end_date);
-    console.log(log.medium);
-    console.log(log.channel);
-    console.log(log.intentional);
-    console.log(log.primary_motivation);
-    console.log(log.description);
-    console.log(id);
-    console.log(log.log_id);
     const params = [
       log.start_date,
       log.end_date,
@@ -334,19 +326,7 @@ export async function updateLog(db: SQLiteDatabase, log: LogData) {
       WHERE log_id = ?;
     `;
 
-
-
     const id = await AsyncStorage.getItem('pawse.currentUserId')
-    console.log("hello");
-    console.log(log.start_date);
-    console.log(log.end_date);
-    console.log(log.medium);
-    console.log(log.channel);
-    console.log(log.intentional);
-    console.log(log.primary_motivation);
-    console.log(log.description);
-    console.log(id);
-    console.log(log.log_id);
     const params = [
       log.start_date,
       log.end_date,
@@ -459,6 +439,39 @@ export async function getLogByLogID(
     throw error;
   }
 }
+
+/**
+ * Duplicate a log based on its ID
+ * 
+ * @param db - The open SQLite database
+ * @param log_id - The log's ID 
+ */
+export async function duplicateLog(db: SQLiteDatabase, log_id: number) {
+  try {
+    const query = `
+      INSERT INTO log_data (start_date, end_date, medium, channel, 
+      intentional, primary_motivation, description, user_id, report_date)
+      SELECT
+      start_date, end_date, medium, channel, 
+      intentional, primary_motivation, description, user_id, report_date
+      FROM log_data
+      WHERE log_id = ?;
+    `;
+
+    const id = await AsyncStorage.getItem('pawse.currentUserId')
+    const params = [
+      log_id,
+    ];
+
+    await db.runAsync(query, params);
+
+    console.log('Log duplicated successfully');
+  } catch (error) {
+    console.error('Failed to duplicated log:', error);
+    throw error;
+  }
+}
+
 
 /**
  * Delete a log based on its ID
@@ -734,6 +747,23 @@ function previousDayLocalIso() {
 }
 
 // Achievements logic
+export async function getTotalAchievements(  db: SQLiteDatabase): Promise<number> {
+  try {
+    const query = `
+      SELECT 
+        COUNT(*) as count
+      FROM achievements;
+    `;
+
+    const row = await db.getFirstAsync<{ count: number }>(query);
+    return row? row.count : 0;
+  } catch (error) {
+    console.error('Could not get total:', error);
+    throw error;
+  }
+}
+
+
 export async function getAchievementsByUser(
   db: SQLiteDatabase
 ): Promise<Achievement[]> {
@@ -785,63 +815,77 @@ export async function storeAchievement(
   }
 }
 
-export async function getAchievement(db: SQLiteDatabase, achievement_id: string): Promise<Achievement> {
+export async function getAchievement(
+  db: SQLiteDatabase,
+  achievement_id: string
+): Promise<Achievement> {
   try {
     const query = `
       SELECT 
         a.achievement_id,
         a.name,
         a.image_uri,
-        a.description,
+        a.description
       FROM achievements a
       WHERE a.achievement_id = ?;
     `;
 
     const result = await db.getFirstAsync<Achievement>(query, [achievement_id]);
-    if(!result) 
-      throw Error(`No achievement by this id ${achievement_id}`)
-    return result
-  }
-  catch(error){
+    if (!result)
+      throw Error(`No achievement by this id ${achievement_id}`);
+    return result;
+  } catch (error) {
     console.error(error);
     throw error;
   }
 }
+
 
 export async function calculateAchievements(db: SQLiteDatabase) : Promise<Achievement[]> {
   let obtained_achievements: Achievement[] = await getAchievementsByUser(db);
   let new_achievements: Achievement[] = [];
   try {
     // Get Total logs
-    let logs = await getTotalLogs(db);
-    if (logs >= 10) {
-      // Check if already have acheivement
-      if(!obtained_achievements.find(a => a.achievement_id == "logginghard")){
-        new_achievements.push(await storeAchievement(db, "logginghard"));
-      }
-    }
+    {
+      let logs = await getTotalLogs(db);
+      if (logs >= 10) {
+        // Check if already have acheivement
+        if(!obtained_achievements.find(a => a.achievement_id == "logginghard")){
+          const earned = await storeAchievement(db, "logginghard");
+          new_achievements.push(earned);
+        }
+    }}
     // Get Total logs with 'Education' motivation
-    logs = await getEducationTotal(db);
-    if(logs >= 15){
-      // Check if already have acheivement
-      if(!obtained_achievements.find(a => a.achievement_id == "scholar")){
-        new_achievements.push(await storeAchievement(db, "scholar"));
+    {
+      let logs = await getEducationTotal(db);
+      if(logs >= 15){
+        // Check if already have acheivement
+        if(!obtained_achievements.find(a => a.achievement_id == "scholar")){
+          const earned = await storeAchievement(db, "scholar");
+          new_achievements.push(earned);
+        }
       }
     }
     // Get Total logs with printed material medium
-    logs = await getPrintedTotal(db);
-    if (logs >= 15){
-      // Check if already have acheivement
-      if(!obtained_achievements.find(a => a.achievement_id == "bookworm")){
-        new_achievements.push(await storeAchievement(db, "bookworm"));
+    {
+      let logs = await getPrintedTotal(db);
+      if (logs >= 15){
+        // Check if already have acheivement
+        if(!obtained_achievements.find(a => a.achievement_id == "bookworm")){
+          const earned = await storeAchievement(db, "bookworm");
+          new_achievements.push(earned);
+        }
       }
     }
     // Get Total logs with any smart phone or digital medium
-    logs = await getDigitalTotal(db);
-    if (logs >= 15){
-      // Check if already have acheivement
-      if(!obtained_achievements.find(a => a.achievement_id == "touchgrass")){
-        new_achievements.push(await storeAchievement(db, "touchgrass"));
+    {
+      let logs = await getDigitalTotal(db);
+      if (logs >= 15){
+        // Check if already have acheivement
+        if(!obtained_achievements.find(a => a.achievement_id == "touchgrass")){
+          const earned = await storeAchievement(db, "touchgrass");
+          new_achievements.push(earned);
+        }
       }
     }
     // Get Total streak
@@ -849,7 +893,8 @@ export async function calculateAchievements(db: SQLiteDatabase) : Promise<Achiev
     if(streak.num_days >= 7){
       // Check if already have acheivement
       if(!obtained_achievements.find(a => a.achievement_id == "onfire")){
-        new_achievements.push(await storeAchievement(db, "onfire"));
+        const earned = await storeAchievement(db, "onfire");
+        new_achievements.push(earned);      
       }
     }
     return new_achievements
@@ -867,13 +912,13 @@ export async function getTotalLogs(db: SQLiteDatabase,) : Promise<number> {
 
     const query = `
       SELECT 
-        COUNT(*)
+        COUNT(*) as count
       FROM log_data
       WHERE user_id = ?;
     `;
 
-    const result = await db.getFirstAsync<number>(query, [id]);
-    return result? result : 0;
+    const row = await db.getFirstAsync<{ count: number }>(query, [id]);
+    return row? row.count : 0;
   } catch (error) {
     console.error('Could not get total:', error);
     throw error;
@@ -887,46 +932,47 @@ export async function getEducationTotal(db: SQLiteDatabase,) : Promise<number> {
 
     const query = `
       SELECT 
-        COUNT(*)
+        COUNT(*) as count
       FROM log_data
       WHERE user_id = ?
-      AND primary_motivation = 'Education';
+      AND primary_motivation = 'Schoolwork';
     `;
 
-    const result = await db.getFirstAsync<number>(query, [id]);
-    return result? result : 0;
+    const row = await db.getFirstAsync<{ count: number }>(query, [id]);
+    return row? row.count : 0;
   } catch (error) {
     console.error('Could not get total:', error);
     throw error;
   }
 }
 
-export async function getDigitalTotal(db: SQLiteDatabase,) : Promise<number> {
+export async function getDigitalTotal(db: SQLiteDatabase): Promise<number> {
   try {
     const id = await AsyncStorage.getItem('pawse.currentUserId');
     if (!id) throw new Error("No current user ID found");
 
     const query = `
-      SELECT 
-        COUNT(*)
+      SELECT COUNT(*) as count
       FROM log_data
-      WHERE (medium LIKE "%Computer%"
-        OR medium LIKE "%Phone%"
-        OR medium LIKE "%Device%"
-        OR medium LIKE "%Tablet%"
-        OR medium LIKE "%Television%"
-        OR medium LIKE "%eReader%")
-        AND user_id = ?
-      ;
+      WHERE (
+        medium LIKE '%Computer%'
+        OR medium LIKE '%Phone%'
+        OR medium LIKE '%Device%'
+        OR medium LIKE '%Tablet%'
+        OR medium LIKE '%Television%'
+        OR medium LIKE '%eReader%'
+      )
+      AND user_id = ?;
     `;
 
-    const result = await db.getFirstAsync<number>(query, [id]);
-    return result? result : 0;
+    const result = await db.getFirstAsync<{ count: number }>(query, [id]);
+    return result? result.count : 0;
   } catch (error) {
     console.error('Could not get total:', error);
     throw error;
   }
 }
+
 
 export async function getPrintedTotal(db: SQLiteDatabase,) : Promise<number> {
   try {
@@ -935,16 +981,17 @@ export async function getPrintedTotal(db: SQLiteDatabase,) : Promise<number> {
 
     const query = `
       SELECT 
-        COUNT(*)
+        COUNT(*) as count
       FROM log_data
-      WHERE (medium LIKE "%Print%"
-        OR medium LIKE "%eReader%")
-        AND user_id = ?
-      ;
+      WHERE (
+          medium LIKE '%Print%' OR
+          medium LIKE '%eReader%'
+      ) AND user_id = ?;
     `;
 
-    const result = await db.getFirstAsync<number>(query, [id]);
-    return result? result : 0;
+
+    const row = await db.getFirstAsync<{ count: number }>(query, [id]);
+    return row? row.count : 0;
   } catch (error) {
     console.error('Could not get total:', error);
     throw error;

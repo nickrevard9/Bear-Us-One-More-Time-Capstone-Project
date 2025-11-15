@@ -1,9 +1,12 @@
-import React, { use, useEffect, useState } from "react";
-import { StyleSheet, Touchable, TouchableOpacity } from "react-native";
+import React, { use, useCallback, useEffect, useState } from "react";
+import { ImageRequireSource, ImageSourcePropType, StyleSheet, Touchable, TouchableOpacity } from "react-native";
 import Reporter from "./Reporter"
-import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import {Achievement, getAchievementsByUser, getTotalAchievements } from '../lib/db';
 import { View, ScrollView, YStack, XStack, Card, Image, Text, H6, Button, Paragraph, validPseudoKeys } from "tamagui";
 import Modal from "react-native-modal";
+import {useSQLiteContext} from "expo-sqlite";
+
 
 type AchievementProps = {
   image_url?: string;
@@ -11,7 +14,7 @@ type AchievementProps = {
   name?: string;
 };
 
-function Achievement({ image_url, description, name }: AchievementProps) {
+function Achievement_Toggle({ image_url, description, name }: AchievementProps) {
   const desc = description ?? "???";
   const award_name = name ?? "???";
   const [isVisible, setVisible] = useState(false);
@@ -20,7 +23,7 @@ function Achievement({ image_url, description, name }: AchievementProps) {
     <View>
       <TouchableOpacity onPress={() => setVisible(true)}>
         <Image
-          src={image_url? image_url : "../assets/images/PlaceholderAward.png"}
+          source={image_url? {uri: image_url}: require("../assets/images/PlaceholderAward.png")}
           style={{ width: 100, height: 100, margin: 10}}
         />
       </TouchableOpacity>
@@ -33,7 +36,7 @@ function Achievement({ image_url, description, name }: AchievementProps) {
         <View style={styles.centeredView}>
           <Card style={styles.modalView}>
             <Image
-              src={image_url? image_url : "../assets/images/PlaceholderAward.png"}
+              source={image_url? {uri: image_url}: require("../assets/images/PlaceholderAward.png")}
               style={{ width: 120, height: 120, marginBottom: 15}}
             />
             <H6 textAlign="center" style={{marginBottom: 10}}>{award_name}</H6>
@@ -48,48 +51,47 @@ function Achievement({ image_url, description, name }: AchievementProps) {
 
 export default function AchievementsPage() {
 
-  const awards = ["", "OnFire", "LoggingHard", "Scholar","TouchGrass", "BookWorm"]
-  const award_info: { [key: string]: {url: string, name: string, description: string} } = {
-    "": {url: require("../assets/images/PlaceholderAward.png"),
-      name: "???",
-      description: "???",
-    },
-    "OnFire": {
-      url: require("../assets/images/OnFire.png"),
-      name: "On Fire!",
-      description: "You continued your streak for a week"
-    },
-    "LoggingHard": {
-      url: require("../assets/images/LoggingHard.png"),
-      name: "Logging Hard or Bear-ly Logging?",
-      description: "You logged 10 times!"
-    },
-    "Scholar": {
-      url: require("../assets/images/Scholar.png"),
-      name: "The Scholar",
-      description: "You logged 15 times with a motivation for \'Education\'"
-    },
-    "TouchGrass": {
-      url: require("../assets/images/TouchGrass.png"),
-      name: "Touch Grass",
-      description: "You logged 15 times that you used your phone or some other electronic device"
-    },
-    "BookWorm": {
-      url: require("../assets/images/BookWorm.png"),
-      name: "Book Worm",
-      description: "You logged 15 times that you read a book or some other printed media"
-    },
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [totalAchievements, setTotalAchievements] = useState(0);
+  const db = useSQLiteContext(); // SQLite context for database access
+
+  const image_requires: { [key: string]: string } = {
+    "": require("../assets/images/PlaceholderAward.png"),
+    "../assets/images/OnFire.png": require("../assets/images/OnFire.png"),
+    "../assets/images/LoggingHard.png": require("../assets/images/LoggingHard.png"),
+    "../assets/images/BookWorm.png": require("../assets/images/BookWorm.png"),
+    "../assets/images/Scholar.png": require("../assets/images/Scholar.png"),
+    "../assets/images/TouchGrass.png": require("../assets/images/TouchGrass.png")
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      retrieveAchievements();
+    },[])
+  )
+
+  async function retrieveAchievements() {
+    setAchievements(await getAchievementsByUser(db));
+    setTotalAchievements(await getTotalAchievements(db));
   }
 
-
+  function printRemainder() {
+    const elements =[];
+    for(let i = achievements.length; i < totalAchievements; i++){
+      elements.push(<Achievement_Toggle key={i}/>)
+    }
+    return elements;
+  }
+  
 
   return (
     <ScrollView style={{ marginTop: 50, marginLeft: 20, marginRight: 20}}>
     <YStack>
-        <XStack flexWrap="wrap" alignContent="center" justifyContent="center">
-            {awards.map((v, index) => (
-              <Achievement key={index} name={award_info[v].name} image_url={award_info[v].url} description={award_info[v].description}/>
+        <XStack flexWrap="wrap" alignContent="center" justifyContent="flex-start">
+            {achievements.map((v, index) => (
+              <Achievement_Toggle key={v.name} name={v.name} image_url={image_requires[v.image_uri]} description={v.description}/>
             ))}
+            {printRemainder()}
         </XStack>
     </YStack>
     </ScrollView>
