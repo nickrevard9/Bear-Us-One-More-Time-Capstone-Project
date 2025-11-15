@@ -12,6 +12,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="report_page" options={{ title: 'report', tabBarIcon: ({ color, size }) => <Ionicons name="add-circle" color={color} size={size} /> }} />
       <Tabs.Screen name="profile" options={{ title: 'profile', tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} /> }} />
       {/* <Tabs.Screen name="_day_view" options={{ href: null }} /> */}
+      <Tabs.Screen name="edit_page" options={{href: null}} />
     </Tabs>
   )
 }

@@ -5,7 +5,18 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { DatePicker } from '@/components/datepicker';
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
-import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, insertStreak, updateStreak } from "../lib/db";
+import { 
+    deleteLogByLogID, 
+    getLogByLogID, 
+    insertLog, 
+    duplicateLog,
+    LogData, 
+    updateLog, 
+    getCurrentStreak, 
+    insertStreak, 
+    updateStreak,
+    calculateAchievements
+} from "../lib/db";
 import { HelpCircle } from '@tamagui/lucide-icons';
 import { TimePicker } from '@/components/timepicker';
 import Tooltip from "rn-tooltip";
@@ -184,6 +195,22 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     ])
   );
 
+    const handleDuplicate = async () => {
+        if(!log_id){
+            Alert.alert("Cannot duplicate this log");
+        }
+        else{
+            await duplicateLog(db, log_id);
+            router.back()
+        }
+
+        const achievements = await calculateAchievements(db)
+        if(achievements){
+            console.log("I earned these!", achievements)
+        }
+
+    }
+
     // Handle form submission: insert or update log
     const handleSubmit = async () => {
         if(dateError){
@@ -206,7 +233,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             Alert.alert("Please fill in all required fields before submitting");
             return;
         }
-          const now = new Date();
+        
+        const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
@@ -245,8 +273,6 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 } else if (isTodayOrYesterday(curr_streak.last_updated)) {
                     await updateStreak(db); // Streak is active, update it
                 }
-
-
             }   
             else{
                 await insertLog(db, log); // Insert new log
@@ -258,7 +284,11 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 } else if (isTodayOrYesterday(curr_streak.last_updated)) {
                     await updateStreak(db); // Streak is active, update it
                 }
+            }
 
+            const achievements = await calculateAchievements(db)
+            if(achievements){
+                console.log("I earned these!", achievements)
             }
 
             router.back() // Navigate back to home
@@ -603,9 +633,13 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     <Button onPress={handleSubmit}>
                         {editMode? "Save" : "Submit"}
                     </Button>
-                    {editMode && <Button onPress={handleDelete} variant='outlined'>
+                    {editMode && <View><Button onPress={handleDelete} variant='outlined'>
                         Delete
-                    </Button>}
+                    </Button>
+                    <Button onPress={handleDuplicate}>
+                        Duplicate
+                    </Button>
+                    </View>}
                 </YStack>
 
                 <XStack minHeight={100} maxHeight={200}>
