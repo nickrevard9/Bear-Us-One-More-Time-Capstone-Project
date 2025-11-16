@@ -15,11 +15,13 @@ import {
     getCurrentStreak, 
     insertStreak, 
     updateStreak,
-    calculateAchievements
+    calculateAchievements,
+    Achievement,
 } from "../lib/db";
 import { HelpCircle } from '@tamagui/lucide-icons';
 import { TimePicker } from '@/components/timepicker';
 import Tooltip from "rn-tooltip";
+import { CongratsModal } from '@/components/congratsmodal';
 
 // Define props for the Reporter component, with optional log_id for editing an existing log
 interface ReporterProps {
@@ -60,6 +62,13 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
     const [motivationError, setMotivationError] = useState(false);
     const [descriptionError, setDescriptionError] = useState(false);
+
+    // Congrats Modal for Achievements and Streaks
+    const [showPopup, setShowPopup] = useState(false);
+    const [currentStreak, setCurrentStreak] = useState(0);
+    const [streakChanged, setStreakChanged] = useState(false);
+    const [new_achievements, setAchievements] = useState<Achievement[]>([]);
+    const [haveAchievements, setHaveAchievements] = useState(false);
 
     const theme = useTheme()
 
@@ -148,7 +157,6 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         if(!log){
             throw Error("cannot retrieve log data");
         }
-        console.log(`Got the log ${log_id}`)
         setEditMode(true); // Set edit mode since this is an existing log
         setChannel(log.channel);
         setEndDate(new Date(log.end_date));
@@ -162,6 +170,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     // useFocusEffect runs whenever this screen gains focus
     useFocusEffect(
     useCallback(() => {
+        setHaveAchievements(false);
+        setStreakChanged(false);
       if (logId) { // If editing an existing log
         try {
           obtainLog(logId);
@@ -193,7 +203,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
       setPrimaryMotivation,
       setDescription,
     ])
-  );
+    );
 
     const handleDuplicate = async () => {
         if(!log_id){
@@ -201,14 +211,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         }
         else{
             await duplicateLog(db, log_id);
-            router.back()
+            nextPage();
         }
-
-        const achievements = await calculateAchievements(db)
-        if(achievements){
-            console.log("I earned these!", achievements)
-        }
-
     }
 
     // Handle form submission: insert or update log
@@ -255,44 +259,16 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             log.log_id = logId; // Include log ID if editing
         }
 
-        console.log(log);
-
         try {   
 
             if(editMode){
-                console.log("hello");
-
                 await updateLog(db, log); // Update existing log
-                //const id = await AsyncStorage.getItem('pawse.currentUserId')
-
-                const curr_streak = await getCurrentStreak(db);
-                console.log(curr_streak);
-
-                if (!curr_streak) {
-                    await updateStreak(db); // No streak yet, start one
-                } else if (isTodayOrYesterday(curr_streak.last_updated)) {
-                    await updateStreak(db); // Streak is active, update it
-                }
             }   
             else{
                 await insertLog(db, log); // Insert new log
-                const curr_streak = await getCurrentStreak(db);
-                console.log(curr_streak);
-
-                if (!curr_streak) {
-                    await updateStreak(db); // No streak yet, start one
-                } else if (isTodayOrYesterday(curr_streak.last_updated)) {
-                    await updateStreak(db); // Streak is active, update it
-                }
             }
 
-            const achievements = await calculateAchievements(db)
-            if(achievements){
-                console.log("I earned these!", achievements)
-            }
-
-            router.back() // Navigate back to home
-            return;
+            await nextPage();
         }
         catch (error){
             Alert.alert("Could not save log")
@@ -306,6 +282,43 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
         //checking if the streak was active or not should be done elsewhere
     };
+
+    async function getStreak(): Promise<boolean>{
+        const curr_streak = await getCurrentStreak(db);
+        if (!curr_streak || isTodayOrYesterday(curr_streak.last_updated)) {
+            const streak = await updateStreak(db); // Streak is active, update it
+            setCurrentStreak(streak.num_days);
+            setStreakChanged(true);
+            return true;
+        }
+        setStreakChanged(false);
+        return false;
+    }
+
+    async function getAchievements(): Promise<boolean> {
+        const achievements = await calculateAchievements(db)
+        if(achievements && achievements.length > 0){
+            setAchievements(achievements);
+            setHaveAchievements(true);
+            return true;
+        }
+        setHaveAchievements(false);
+        return false;
+    }
+
+
+    async function nextPage(){
+        const a = await getStreak();
+        const b = await getAchievements();
+        if(a || b){
+            setShowPopup(true);
+        } else {
+            router.back() // Navigate back to home
+            return;
+        }
+    }
+
+
     function isTodayOrYesterday(dateStr: string): boolean {
         const inputDate = new Date(dateStr);
         const now = new Date();
@@ -417,6 +430,14 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     <HelpCircle />
                     </Tooltip>
             </XStack>
+
+            <CongratsModal 
+                achievements={new_achievements} 
+                streak_increased={streakChanged} 
+                streak={currentStreak} 
+                isVisible={showPopup} 
+                onConfirm={() => {router.back(); setShowPopup(false)}}
+            />
 
 
             <ScrollView paddingBottom="$4">
