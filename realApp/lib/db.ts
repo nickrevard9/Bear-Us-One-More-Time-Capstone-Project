@@ -616,6 +616,59 @@ export async function getCurrentStreak(db: SQLiteDatabase) {
   }
 }
 
+/**
+ * Count the channel types use in the logs based on month and year
+ * 
+ * @param db - The open SQLite database
+ * @param month - The month to check
+ * @param year - The year to check
+ */
+ export async function getChannelCountByDate(
+  db: SQLiteDatabase,
+  month: number,
+  year: number
+): Promise<{ channel: string; value: number }[]> {
+  try { 
+    let query = `
+      SELECT 
+      LOWER(channel) as channel,
+      ROUND(
+        100.0 * COUNT(channel) / 
+        (SELECT COUNT(*) FROM log_data
+        WHERE user_id = ?),
+      2) AS value
+      FROM log_data
+      WHERE strftime('%m', start_date) = ? 
+      AND strftime('%Y', start_date) = ?
+      AND user_id = ?
+      GROUP BY LOWER(channel)
+      ORDER BY value DESC
+      LIMIT 5
+      ;
+    `;
+    const id = await AsyncStorage.getItem('pawse.currentUserId')
+    const monthStr = month.toString().padStart(2, '0');
+    const yearStr = year.toString();
+    const params: any[] = [id, monthStr, yearStr, id];
+
+    const result = await db.getAllAsync<any>(query, params);
+    const mapped: {channel: string, value: number}[] = result.map((r: any) => ({
+      channel: r.channel,
+      value: r.value,
+    }))
+    const sum = (100 - mapped.reduce((acc, curr) => acc + curr.value, 0)).toFixed(2);
+    
+    if(Number(sum) > 0){
+      return mapped.concat({channel: "other", value: Number(sum)});
+    }
+    return mapped;
+
+  } catch (error) {
+    console.error(`Failed to get channel counts`, error);
+    throw error;
+  }
+}
+
 // Streak Logic
 export async function updateStreak(db: SQLiteDatabase) {
     const id = await AsyncStorage.getItem('pawse.currentUserId')

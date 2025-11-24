@@ -3,62 +3,55 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { PieChart } from "react-native-gifted-charts";
 import { View, Text, useTheme, XStack } from "tamagui";
 
-type MediaChartProps = {
-    media_counts: {medium: string, value: number}[];
+type PlatformChartProps = {
+    platform_counts: {channel: string, value: number}[];
 };
 
-export default function MediaChart({media_counts}: MediaChartProps) {
-    const [pieData, setPieData] = useState<{medium: string, value: number, color: string, focused: boolean}[]>(apply_colors(media_counts));
-    const [focused_media, setFocusedMedia] = useState<{medium: string, value: number} | null>(getFirst(pieData));
+export default function PlatformChart({platform_counts}: PlatformChartProps) {
+    const [pieData, setPieData] = useState<{channel: string, value: number, color: string, focused: boolean}[]>(apply_colors(platform_counts));
+    const [focused_media, setFocusedMedia] = useState<{channel: string, value: number} | null>(getFirst(pieData));
     const theme = useTheme()
     
     const DEFAULT_COLOR = "#838383ff";
 
     function apply_colors(
-    data: { medium: string, value: number }[]
-    ): { medium: string, value: number, color: string, focused: boolean }[] {
+    data: { channel: string, value: number }[]
+    ): { channel: string, value: number, color: string, focused: boolean }[] {
+        console.log(data);
         const color_list: {[key: string]: string} = {
-            " ": "#838383ff",    
-            "Car Stereo": "#FF7F97",
-            "Desktop Computer": "#8F80F3",
-            "eReader": "#3BE9DE",
-            "Laptop Computer": "#006DFF",
-            "Large Screen / Movie Theater": "#FFA500",
-            "Print Newspaper": "#800080",
-            "Personal Computer": "#00FF00",
-            "Radio": "#FFC0CB",
-            "Stereo System": "#FFFF00",
-            "Smart Phone": "#00FFFF",
-            "Tablet": "#FF0000",
-            "Television": "#A52A2A",
-            "Other Handheld Device": "#a5a5a5ff",
-            "Other Printed Material": "#4b4b4bff",
-            "Other": "#838383ff",
+            0: "#838383ff",    
+            1: "#FF7F97",
+            2: "#8F80F3",
+            3: "#3BE9DE",
+            4: "#006DFF",
+            5: "#a90ed8ff", // Other
         };
-    return data.map((item, i) => ({
+    let final = data? data.map((item, i) => ({
         ...item,
-        color: color_list[item.medium] ?? DEFAULT_COLOR,
+        color: color_list[i] ?? DEFAULT_COLOR,
         focused: i === 0 ? true : false,
-    }));
+    })) : [];
+
+    return final;
     }
 
-    function getFirst(data: { medium: string, value: number, color: string, focused: boolean }[]){
+    function getFirst(data: { channel: string, value: number, color: string, focused: boolean }[]){
         return data.find(item => item.focused) || null;
     }
 
     const renderDot = color => {
-        return (
-            <View
-            style={{
-                height: 10,
-                width: 10,
-                borderRadius: 5,
-                backgroundColor: color,
-                marginRight: 10,
-            }}
-            />
-        );
-    };
+            return (
+                <View
+                style={{
+                    height: 10,
+                    width: 10,
+                    borderRadius: 5,
+                    backgroundColor: color,
+                    marginRight: 10,
+                }}
+                />
+            );
+        };
 
     const renderLegendComponent = () => {
         return (
@@ -80,14 +73,14 @@ export default function MediaChart({media_counts}: MediaChartProps) {
                             }}
                             >
                             {renderDot(item.color)}
-                            <Text>{item.medium}</Text>
+                            <Text>{item.channel.charAt(0).toUpperCase() + item.channel.slice(1)}</Text>
                         </XStack>
                     );
                     })}
+
             </XStack>
         );
     };
-
     return ( 
        <View
     style={{
@@ -100,11 +93,12 @@ export default function MediaChart({media_counts}: MediaChartProps) {
         borderRadius: 20,
         backgroundColor: '$color',
       }}>
-      <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
-        Media Types Used
+      
+        {(pieData && pieData.length > 0)? (
+            <View style={{padding: 20, alignItems: 'center'}}>
+            <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
+        Top 5 Platforms
       </Text>
-      <View style={{padding: 20, alignItems: 'center'}}>
-        {(pieData && pieData.length > 0)? 
         <PieChart
           data={pieData}
           donut
@@ -122,15 +116,16 @@ export default function MediaChart({media_counts}: MediaChartProps) {
                   {focused_media && focused_media.value.toString() + "%"}
                 </Text>
                 <Text style={{fontSize: 12}}>
-                    {focused_media && focused_media.medium.toString()}
+                    {focused_media && focused_media.channel.toString().charAt(0).toUpperCase() + focused_media.channel.slice(1)}
                 </Text>
               </View>
             );
           }}
         />
-        : <Text> No logs from this month to show</Text>
+        </View>)
+        : <Text> </Text>
         }
-      </View>
+      
       {pieData && pieData.length > 0 && renderLegendComponent()}
     </View>
   </View>);
