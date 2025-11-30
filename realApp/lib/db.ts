@@ -784,6 +784,26 @@ export async function storeAchievement(
   }
 }
 
+// compute total non-school/job media hours for a given calendar day
+export async function getNonWorkMediaHoursForDate(
+  db: any,
+  ymd: string, // 'YYYY-MM-DD'
+): Promise<number> {
+  const sql = `
+    SELECT COALESCE(
+      SUM((julianday(end_date) - julianday(start_date)) * 24.0),
+      0
+    ) AS hours
+    FROM log_data
+    WHERE date(start_date) = ?
+      AND primary_motivation NOT IN ('Schoolwork', 'Job')
+  `;
+
+  // adjust getFirstAsync to whatever you already use (getAllAsync / execAsync)
+  const row = await db.getFirstAsync(sql, [ymd]);
+  return row?.hours ?? 0;
+}
+
 // export async function calculateAchievements() : Promise<Achievement[]> {
 //   try {
 //     // Get Total logs
