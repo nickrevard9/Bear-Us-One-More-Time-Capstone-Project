@@ -151,7 +151,6 @@ export default function Profile() {
             setDisplayName(full || user.username || user.email || "Your Name");
             const today = todayLocalIso();
             const yesterday = previousDayLocalIso();
-            console.log(user.id)
             setProfilePicture(user.profilePicture);
 
             // streak query
@@ -161,7 +160,6 @@ export default function Profile() {
              ORDER BY streak_id DESC
                 `,
             );
-            console.log(streak);
             setStreakDays(streak?.num_days ?? 0);
             //setStreakDays(3);
           } else {
@@ -490,10 +488,10 @@ export default function Profile() {
             Export Report
           </Button>
 
-          <Separator marginVertical={10} width={'85%'} alignSelf="center" />
+          {/* <Separator marginVertical={10} width={'85%'} alignSelf="center" />
           <Button backgroundColor="automatic" icon={Settings} onPress={() => router.push("/settings")}>
             Settings
-          </Button>
+          </Button> */}
 
           {/* <Separator marginVertical={10} width={'85%'} alignSelf="center" />
           <Button backgroundColor="automatic" icon={LogOutIcon} onPress={onLogout}>
@@ -503,13 +501,13 @@ export default function Profile() {
 
 
           {/* Reminders */}
-          <Separator marginVertical={10} />
+          <Separator marginVertical={15} />
           <H2>Reminders</H2>
 
           <XStack alignItems="center" justifyContent="space-between" paddingHorizontal="$2">
             <XStack alignItems="center" gap="$2">
               <Bell size={18} />
-              <Text>Daily reminder</Text>
+              <Text>Daily Reminder</Text>
             </XStack>
             <Switch value={remindersEnabled} onValueChange={onToggleReminders} />
           </XStack>
