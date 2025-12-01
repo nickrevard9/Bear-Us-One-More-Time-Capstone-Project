@@ -40,6 +40,38 @@ function roundToNearest5(date: Date): Date {
   return new Date(Math.round(date.getTime() / ms) * ms);
 }
 
+// How the sentence connects the medium to the blank, based on medium
+function getMediumConnector(medium: string): string {
+  // Watch-type media
+  if (
+    medium === 'Large Screen / Movie Theater' ||
+    medium === 'Television'
+  ) {
+    return ' to watch ';
+  }
+
+  // Listen-type media
+  if (
+    medium === 'Car Stereo' ||
+    medium === 'Radio' ||
+    medium === 'Stereo System'
+  ) {
+    return ' to listen to ';
+  }
+
+  // Read-type media
+  if (
+    medium === 'eReader' ||
+    medium === 'Print Newspaper' ||
+    medium === 'Other Printed Material'
+  ) {
+    return ' to read ';
+  }
+
+  // Default case: apps, feeds, generic devices
+  return ' on ';
+}
+
 const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
   const router = useRouter(); // Expo Router for navigation
   const db = useSQLiteContext(); // SQLite context for database access
@@ -115,18 +147,18 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     '': 'e.g., Enter platform here',
     'Car Stereo': 'e.g., FM Radio, Spotify',
     'Desktop Computer': 'e.g., YouTube, Netflix',
-    eReader: 'e.g., Kindle, Nook',
+    eReader: 'e.g., Book or article title',
     'Laptop Computer': 'e.g., Hulu, Amazon Prime',
-    'Large Screen / Movie Theater': 'e.g., AMC, Regal Cinemas',
-    'Print Newspaper': 'e.g., The New York Times, The Guardian',
+    'Large Screen / Movie Theater': 'e.g., Movie or show title',
+    'Print Newspaper': 'e.g., Newspaper name or article',
     'Personal Computer': 'e.g., Spotify, Audible',
     Radio: 'e.g., NPR, BBC Radio',
-    'Stereo System': 'e.g., Home Stereo, Bluetooth Speaker',
+    'Stereo System': 'e.g., Playlist or album',
     'Smart Phone': 'e.g., TikTok, Instagram',
     Tablet: 'e.g., Netflix, YouTube',
-    Television: 'e.g., HBO, Disney+',
-    'Other Handheld Device': 'e.g., PS4, Portable DVD Player',
-    'Other Printed Material': 'e.g., Magazine, Brochure',
+    Television: 'e.g., Channel or show title',
+    'Other Handheld Device': 'e.g., Game title or app',
+    'Other Printed Material': 'e.g., Magazine or brochure',
     Other: 'e.g., Enter platform here',
   };
 
@@ -575,9 +607,10 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
               />
             </View>
 
-            <Text> on </Text>
+            {/* Dynamic connector based on medium */}
+            <Text>{getMediumConnector(medium)}</Text>
 
-            {/* Channel input inline */}
+            {/* Channel / content blank */}
             <Input
               unstyled
               maxWidth={220}
@@ -585,12 +618,13 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
               borderColor={channelError ? 'red' : theme.color.get()}
               paddingHorizontal={4}
               placeholder={channelPlaceholders[medium] ?? channelPlaceholders['']}
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              color="white"
               value={channel}
               onChangeText={(value) => {
                 setChannel(value);
                 setChannelError(false);
               }}
-              color="white"
             />
 
             <Text>, and it was </Text>
@@ -667,6 +701,8 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
                 descriptionPlaceholders[primaryMotivation] ??
                 descriptionPlaceholders['']
               }
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              color="white"
               value={description}
               onChangeText={(value) => {
                 setDescription(value);
