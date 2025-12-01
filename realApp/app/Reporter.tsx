@@ -5,10 +5,13 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { DatePicker } from '@/components/datepicker';
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
-import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, insertStreak, updateStreak } from "../lib/db";
+import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, 
+    insertStreak, updateStreak } from "../lib/db";
 import { HelpCircle } from '@tamagui/lucide-icons';
 import { TimePicker } from '@/components/timepicker';
 import Tooltip from "rn-tooltip";
+import { KeyboardAvoidingView, Platform, TextInput } from 'react-native';
+
 
 // Define props for the Reporter component, with optional log_id for editing an existing log
 interface ReporterProps {
@@ -367,7 +370,13 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
   );
 
     return (
-        <View paddingHorizontal={10}>
+            <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        style={{ flex: 1 }}
+    >
+
+        <View style={{ flex: 1 }} paddingHorizontal={10}>
             {/* Header with back arrow and title */}
             <XStack alignItems="center" justifyContent="space-between" paddingBottom={20} paddingTop={10}>
                 <TouchableOpacity onPress={() => router.back()}>
@@ -573,7 +582,9 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 
 
                 {/* Description TextArea */}
-                <YStack paddingBottom="$4">
+                <YStack   paddingBottom="$4"
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: 200 }}>
                     <XStack alignItems="center" gap="$4" paddingBottom="$2">
                         <Tooltip 
                             backgroundColor= "#7f8f67"
@@ -588,13 +599,18 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                         </Text>
                     </XStack>
                     <TextArea
-                        size="$4" borderWidth={2}
+                       size="$4"
+                        borderWidth={2}
                         width="100%"
-                        paddingBottom="$4"
                         height={250}
                         placeholder={descriptionPlaceholders[primaryMotivation]}
                         value={description}
-                        onChangeText={(value) => {setDescription(value); setDescriptionError(false)}}
+                        onChangeText={(value) => {
+                            setDescription(value)
+                            setDescriptionError(false)
+                        }}
+                        padding="$4"
+
                     />
                 </YStack>
 
@@ -614,6 +630,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             </YStack>
             </ScrollView>
         </View>
+        </KeyboardAvoidingView>
+
     );
 };
 

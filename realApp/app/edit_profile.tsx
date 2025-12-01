@@ -5,6 +5,8 @@ import * as ImagePicker from "expo-image-picker";
 import { useSQLiteContext } from "expo-sqlite";
 import { getCurrentUser, UserData } from "../lib/db";
 
+import { KeyboardAvoidingView, Platform } from "react-native";
+
 export default function EditProfile() {
   const router = useRouter();
   const db = useSQLiteContext(); 
@@ -52,8 +54,19 @@ export default function EditProfile() {
     router.back();
   };
 
-  return (
-    <YStack flex={1} justifyContent="center" alignItems="center" padding="$4" gap="$4">
+return (
+  <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === "ios" ? "padding" : "height"}
+    keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+  >
+    <YStack
+      flex={1}
+      justifyContent="center"
+      alignItems="center"
+      padding="$4"
+      gap="$4"
+    >
       <H3>Edit Profile</H3>
 
       <Button onPress={pickImage}>
@@ -75,6 +88,7 @@ export default function EditProfile() {
         value={firstName}
         onChangeText={setFirstName}
       />
+
       <Input
         width="80%"
         placeholder="Last Name"
@@ -89,5 +103,6 @@ export default function EditProfile() {
         <Button onPress={handleSave}>Save</Button>
       </XStack>
     </YStack>
-  );
+  </KeyboardAvoidingView>
+);
 }
