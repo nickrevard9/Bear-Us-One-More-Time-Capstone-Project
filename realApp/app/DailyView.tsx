@@ -43,6 +43,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
 
     const incrementDate = new Date();
     incrementDate.setHours(date.getHours() + 1);
+    // TODO: recommendedMedia will be the imported data
     const recommendedMedia = [
         { channel: "Amazon Prime", medium: "Phone", start_date: (new Date().toISOString()), end_date: incrementDate.toISOString()},
     ];
@@ -264,21 +265,15 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                             </XStack>
                             </YStack>
                         ) : (
-                            <>
-                                {/* Add recommended media here */}
-                                {recommendedMedia.map((item, index) => (
-                                    <YStack key={index}>
-                                        <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
-                                            <Text>{item.channel}</Text>
-                                            <Text>{convertMinutesToHMS(getDurationBetweenDates(new Date(item.start_date), new Date(item.end_date)))}</Text>
-                                        </XStack>
-                                        <XStack justifyContent="space-between" paddingHorizontal={20} fontSize={11} opacity={0.7}>
-                                            <Text>{item.medium}</Text>
-                                            <Button size={"$1"}><Plus/></Button>
-                                        </XStack>
-                                    </YStack>
-                                ))}
-                            </>
+                            <YStack>
+                            <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
+                                <Text>Future Feature Incoming...</Text>
+                            </XStack>
+                            <XStack justifyContent="space-between" paddingHorizontal={20} fontSize={11} opacity={0.7}>
+                                <Text>Screen Time data will be imported from your phone! 
+                                    To view this data, navigate to your phone's [PATH HERE].</Text>
+                            </XStack>
+                            </YStack>
                         )}
                         </YStack>
                     </YStack>
