@@ -201,8 +201,15 @@ export async function logNotification(
  */
 export async function getRecentNotifications(db: SQLiteDatabase, days = 30) {
   const cutoff = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
-  return db.getAllAsync(
+
+  const rows = await db.getAllAsync(
     `SELECT * FROM notification WHERE timestamp >= ? ORDER BY timestamp DESC`,
     [cutoff]
   );
+
+  // Fix timestamp into ISO for React Native
+  return rows.map((r) => ({
+    ...r,
+    timestamp: r.timestamp.replace(" ", "T") + "Z",
+  }));
 }
