@@ -271,7 +271,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                             </XStack>
                             <XStack justifyContent="space-between" paddingHorizontal={20} fontSize={11} opacity={0.7}>
                                 <Text>Screen Time data will be imported from your phone! 
-                                    To view this data, navigate to your phone's [PATH HERE].</Text>
+                                    To view this data, navigate to your phone's Settings App and then to the Digital Wellbeing & Parental Controls.</Text>
                             </XStack>
                             </YStack>
                         )}
