@@ -456,9 +456,6 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         <View paddingHorizontal={10}>
             {/* Header with back arrow and title */}
             <XStack alignItems="center" justifyContent="space-between" paddingBottom={20} paddingTop={10}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Text style={{ fontSize: 28, fontWeight: 'bold' }} onPress={() => router.back()}>{'←'}</Text>
-                </TouchableOpacity>
                 <H6 style={{ textAlign: 'center', fontWeight: "600", position: 'absolute', left: 0, right: 0 }}>
                     Log
                 </H6>
@@ -471,7 +468,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     popover={<Paragraph color="#e4e0d5">This is where you track your media! Click on the labels if you're confused on what to type.</Paragraph>}
                 >
                     <HelpCircle />
-                    </Tooltip>
+                </Tooltip>
             </XStack>
 
             <CongratsModal 

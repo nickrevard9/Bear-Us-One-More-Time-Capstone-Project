@@ -1,12 +1,12 @@
 import React from 'react';
-import { Dimensions } from 'react-native';
+import { Dimensions, TouchableOpacity } from 'react-native';
 import { YStack, XStack, Text, Button } from 'tamagui';
 import { useRouter } from 'expo-router';
 import { Bell } from '@tamagui/lucide-icons';
 
 const { height: screenHeight } = Dimensions.get('window');
 
-export function HeaderNotifications() {
+export function HeaderNotifications(props: {route_name: any}) {
   const router = useRouter();
   const headerHeight = screenHeight * 0.135; // making height of header reactive to the screen size
 
@@ -21,6 +21,10 @@ export function HeaderNotifications() {
       borderColor="$backgroundStrong"
     >
       <XStack alignItems="center" justifyContent="space-between">
+        {(props.route_name == "report_page" || props.route_name == "edit_page")  && 
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={{ fontSize: 28, fontWeight: 'bold' }} onPress={() => router.back()}>{'←'}</Text>
+        </TouchableOpacity>}
         {/* TODO: add logo next to Pawse title? */}
         <Text fontSize="$7" fontWeight="600">{"Pawse"}</Text>
         {/* TODO: make notification bubble appear or change color of bell if there are unread notifictations? */}
