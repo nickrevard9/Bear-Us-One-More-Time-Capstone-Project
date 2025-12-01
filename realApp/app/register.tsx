@@ -7,8 +7,11 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Alert,
+  View,
+  TextInput
 } from 'react-native'
 import { Button, Input, YStack, XStack, Text, H2 } from 'tamagui'
+
 
 // ✅ import SQLite helpers
 import { useSQLiteContext } from 'expo-sqlite'
@@ -124,6 +127,13 @@ export default function Register() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+            <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
+        <TextInput
+          placeholder="Type here..."
+          style={{ borderWidth: 1, padding: 10 }}
+        />
+      </View>
+
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <XStack flex={1} justifyContent="center" alignItems="center">
           <YStack gap="$6" width="80%" maxWidth={520}>
