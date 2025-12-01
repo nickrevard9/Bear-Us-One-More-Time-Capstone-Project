@@ -656,10 +656,9 @@ export async function getCurrentStreak(db: SQLiteDatabase) {
       channel: r.channel,
       value: r.value,
     }))
-    console.log(mapped);
     const sum = (100 - mapped.reduce((acc, curr) => acc + curr.value, 0)).toFixed(2);
     
-    if(Number(sum) > 0){
+    if(Number(sum) > 0 && mapped.length > 0){
       return mapped.concat({channel: "other", value: Number(sum)});
     }
     return mapped;
@@ -869,6 +868,27 @@ export async function storeAchievement(
   }
 }
 
+
+// compute total non-school/job media hours for a given calendar day
+export async function getNonWorkMediaHoursForDate(
+  db: any,
+  ymd: string, // 'YYYY-MM-DD'
+): Promise<number> {
+  const sql = `
+    SELECT COALESCE(
+      SUM((julianday(end_date) - julianday(start_date)) * 24.0),
+      0
+    ) AS hours
+    FROM log_data
+    WHERE date(start_date) = ?
+      AND primary_motivation NOT IN ('Schoolwork', 'Job')
+  `;
+
+  // adjust getFirstAsync to whatever you already use (getAllAsync / execAsync)
+  const row = await db.getFirstAsync(sql, [ymd]);
+  return row?.hours ?? 0;
+}
+
 export async function getAchievement(
   db: SQLiteDatabase,
   achievement_id: string
@@ -883,7 +903,6 @@ export async function getAchievement(
       FROM achievements a
       WHERE a.achievement_id = ?;
     `;
-
     const result = await db.getFirstAsync<Achievement>(query, [achievement_id]);
     if (!result)
       throw Error(`No achievement by this id ${achievement_id}`);

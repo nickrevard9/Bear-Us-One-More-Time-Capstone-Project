@@ -17,7 +17,9 @@ import {
     updateStreak,
     calculateAchievements,
     Achievement,
+    getNonWorkMediaHoursForDate
 } from "../lib/db";
+
 import { HelpCircle } from '@tamagui/lucide-icons';
 import { TimePicker } from '@/components/timepicker';
 import Tooltip from "rn-tooltip";
@@ -215,6 +217,43 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         }
     }
 
+    const checkIntervention = async () => {
+      const now = new Date();
+
+      // build 'YYYY-MM-DD' for today
+      const mkYmd = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+
+      // collect the three most recent calendar days
+      const days: string[] = [];
+      for (let offset = 0; offset < 3; offset++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - offset);
+        days.push(mkYmd(d));
+      }
+
+      // query db for each day’s non-work media hours
+      const hours: number[] = [];
+      for (const ymd of days) {
+        const h = await getNonWorkMediaHoursForDate(db, ymd);
+        hours.push(h);
+      }
+
+      // require strictly more than 5 hours on all 3 days
+      const triggered = hours.every((h) => h > 5);
+
+      if (triggered) {
+        Alert.alert(
+          "Heads up",
+          "You have been consuming a lot of media recently. Try limiting screentime in favor of time spent outside or with friends."
+        );
+      }
+    };
+
     // Handle form submission: insert or update log
     const handleSubmit = async () => {
         if(dateError){
@@ -268,9 +307,12 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 await insertLog(db, log); // Insert new log
             }
 
+            await checkIntervention();
             await nextPage();
+            return;
         }
         catch (error){
+            console.log(error);
             Alert.alert("Could not save log")
         }
         //add streak update here
