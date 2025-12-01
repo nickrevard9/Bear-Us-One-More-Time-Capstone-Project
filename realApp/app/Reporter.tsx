@@ -5,8 +5,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { DatePicker } from '@/components/datepicker';
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
-import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, 
-    insertStreak, updateStreak } from "../lib/db";
+import { deleteLogByLogID, duplicateLog, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, getNonWorkMediaHoursForDate, updateStreak, calculateAchievements } from "../lib/db";
 import { HelpCircle } from '@tamagui/lucide-icons';
 import { TimePicker } from '@/components/timepicker';
 import CongratsModal from '@/components/TopPlatforms';
@@ -202,7 +201,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         }
         else{
             await duplicateLog(db, log_id);
-            nextPage();
+            await nextPage();
         }
     }
 
@@ -604,7 +603,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     <Input
                         maxW={600}
                         onChangeText={(value) => {setChannel(value); setChannelError(false)}} value={channel}
-                        placeholder={channelPlaceholders[medium]}
+                        placeholder={channelPlaceholders[medium]? channelPlaceholders[medium] : "e.g., Enter platform here"}
                     />
                     <Text style={{ color: channelError ? 'red' : theme.color.get(), marginLeft: 10 }}>
                         {channelError ? 'Must have a motivation' : ''}
