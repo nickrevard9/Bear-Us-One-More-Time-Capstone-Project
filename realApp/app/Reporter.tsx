@@ -244,7 +244,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
       }
 
       // require strictly more than 5 hours on all 3 days
-      const triggered = hours.every((h) => h > 5);
+    //   const triggered = hours.every((h) => h > 5);
+      const triggered = true; // for testing purposes
 
       if (triggered) {
         Alert.alert(
