@@ -5,27 +5,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { DatePicker } from '@/components/datepicker';
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
-<<<<<<< HEAD
-import { 
-    deleteLogByLogID, 
-    getLogByLogID, 
-    insertLog, 
-    duplicateLog,
-    LogData, 
-    updateLog, 
-    getCurrentStreak, 
-    insertStreak, 
-    updateStreak,
-    calculateAchievements,
-    Achievement,
-    getNonWorkMediaHoursForDate
-} from "../lib/db";
-
-import { HelpCircle } from '@tamagui/lucide-icons';
-import { TimePicker } from '@/components/timepicker';
-import Tooltip from "rn-tooltip";
-import { CongratsModal } from '@/components/congratsmodal';
-=======
 import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, 
     insertStreak, updateStreak } from "../lib/db";
 import { HelpCircle } from '@tamagui/lucide-icons';
@@ -33,7 +12,6 @@ import { TimePicker } from '@/components/timepicker';
 import Tooltip from "rn-tooltip";
 import { KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 
->>>>>>> SCRUM-109/AndroidFix
 
 // Define props for the Reporter component, with optional log_id for editing an existing log
 interface ReporterProps {

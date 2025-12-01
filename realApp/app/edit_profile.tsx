@@ -5,7 +5,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useSQLiteContext } from "expo-sqlite";
 import { getCurrentUser, UserData } from "../lib/db";
 import { Keyboard, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from "react-native";
-
 import { KeyboardAvoidingView, Platform } from "react-native";
 
 export default function EditProfile() {
@@ -54,24 +53,6 @@ export default function EditProfile() {
     router.back();
   };
 
-<<<<<<< HEAD
-  return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
-      >
-        <YStack
-          flex={1}
-          justifyContent="center"
-          alignItems="center"
-          padding="$4"
-          gap="$4"
-          flexShrink={0}     // this prevents compression
-        >
-          <H3>Edit Profile</H3>
-=======
 return (
   <KeyboardAvoidingView
     style={{ flex: 1 }}
@@ -86,7 +67,6 @@ return (
       gap="$4"
     >
       <H3>Edit Profile</H3>
->>>>>>> SCRUM-109/AndroidFix
 
           <Button onPress={pickImage}>
             {profilePicture ? "Change Picture" : "Pick Profile Picture"}
@@ -105,29 +85,6 @@ return (
             />
           ) : null}
 
-<<<<<<< HEAD
-          <Input
-            width="80%"
-            placeholder="First Name"
-            value={firstName}
-            onChangeText={setFirstName}
-          />
-
-          <Input
-            width="80%"
-            placeholder="Last Name"
-            value={lastName}
-            onChangeText={setLastName}
-          />
-
-          <XStack gap="$3" marginTop="$4">
-            <Button onPress={handleSave}>Save</Button>
-          </XStack>
-        </YStack>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
-  );
-=======
       <Input
         width="80%"
         placeholder="First Name"
@@ -151,5 +108,4 @@ return (
     </YStack>
   </KeyboardAvoidingView>
 );
->>>>>>> SCRUM-109/AndroidFix
 }
