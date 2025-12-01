@@ -20,7 +20,7 @@ const Item = styled(
 )
 
 type ModeToggleProps = {
-  mode: "day" | "month";
+  mode: "day" | "week" | "month";
 };
 
 export default function ModeToggle ({ mode }: ModeToggleProps) {
@@ -30,6 +30,9 @@ export default function ModeToggle ({ mode }: ModeToggleProps) {
         <ToggleGroupBase orientation="horizontal" type="single" justify={"center"} disableDeactivation={true} size="$7" defaultValue="day" alignSelf="center">
                 <Item value="day" aria-label="day" active={mode == "day"} disabled={mode == "day"} onPress={() => router.back()}>
                     <Text>Day</Text>
+                </Item>
+                <Item value="week" aria-label="week" active={mode == "week"} disabled={mode == "week"} onPress={() => router.push('/home/WeeklyView')}>
+                    <Text>Week</Text>
                 </Item>
                 <Item value="month" aria-label="month" active={mode == "month"} disabled={mode == "month"} onPress={() => router.push('/home/calendar')}>
                     <Text>Month</Text>

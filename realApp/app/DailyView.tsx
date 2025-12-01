@@ -50,7 +50,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
     const formatDate = (date: Date) =>
         date.toLocaleDateString(undefined, {
       year: "numeric",
-      month: "long",
+      month: "long",   
       day: "numeric",
     });
 

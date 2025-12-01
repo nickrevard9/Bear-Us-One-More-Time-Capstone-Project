@@ -60,9 +60,7 @@ export default function RootLayout() {
           <SQLiteProvider databaseName="pawse.db" onInit={initDb}>
             <NotificationListenerWrapper>
               <Stack screenOptions={{ headerShown: false }}>
-                                <Stack.Screen name="index" options={{ headerShown: false }} />
-                {/* <Stack.Screen name="login" options={{ title: 'Login' }} /> */}
-                {/* <Stack.Screen name="register" options={{ title: 'Register' }} /> */}
+                <Stack.Screen name="index" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="settings"
