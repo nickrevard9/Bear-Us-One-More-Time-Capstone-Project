@@ -129,6 +129,9 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
   // Whether the activity was intentional
   const [isIntentional, setIsIntentional] = useState(false);
 
+  // Whether the medium has been selected
+  const isMediumSelected = !!medium;
+
   // Dropdown for primary motivation
   const [primaryMotivation, setPrimaryMotivation] = useState('');
   const motivations = [
@@ -578,34 +581,40 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
 
             {/* Medium dropdown with fixed width to stop layout shifting */}
             <View style={{ width: 200, marginRight: 6 }}>
-              <Dropdown
-                data={mediums}
-                placeholder="device"
-                value={medium}
-                onChange={(item: any) => {
-                  setMedium(item.value);
-                  setMediumError(false);
-                }}
-                style={{
-                  width: '100%',
-                  alignContent: 'center',
-                }}
-                labelField="label"
-                valueField="value"
-                placeholderStyle={{
-                  color: mediumError ? 'red' : theme.color.get(),
+            <Dropdown
+              data={mediums}
+              placeholder="medium"
+              value={medium || null}   // important: null instead of '' when empty
+              onChange={(item: any) => {
+                setMedium(item.value);
+                setMediumError(false);
+              }}
+              style={{
+                width: '100%',
+                alignContent: 'center',
+              }}
+              labelField="label"
+              valueField="value"
+              // you can even drop placeholderStyle entirely if you want
+              placeholderStyle={{
+                color: '#777',
+                fontSize: 16,
+              }}
+              selectedTextProps={{
+                numberOfLines: 1,
+                ellipsizeMode: 'tail',
+                style: {
+                  color: !isMediumSelected
+                    ? '#777'                        // grey when nothing chosen
+                    : mediumError
+                    ? 'red'                         // red on error
+                    : theme.color.get(),           // normal sentence color when chosen
                   fontSize: 16,
-                }}
-                selectedTextProps={{
-                  numberOfLines: 1,
-                  ellipsizeMode: 'tail',
-                  style: {
-                    color: mediumError ? 'red' : theme.color.get(),
-                    fontSize: 16,
-                  },
-                }}
-              />
-            </View>
+                },
+              }}
+            />
+          </View>
+
 
             {/* Dynamic connector based on medium */}
             <Text>{getMediumConnector(medium)}</Text>
