@@ -5,7 +5,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useSQLiteContext } from "expo-sqlite";
 import { getCurrentUser, UserData } from "../lib/db";
 import { Keyboard, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from "react-native";
-import { KeyboardAvoidingView, Platform } from "react-native";
 
 export default function EditProfile() {
   const router = useRouter();

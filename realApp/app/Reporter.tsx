@@ -9,6 +9,7 @@ import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog, getCurr
     insertStreak, updateStreak } from "../lib/db";
 import { HelpCircle } from '@tamagui/lucide-icons';
 import { TimePicker } from '@/components/timepicker';
+import CongratsModal from '@/components/TopPlatforms';
 import Tooltip from "rn-tooltip";
 import { KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 
