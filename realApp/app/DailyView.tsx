@@ -226,7 +226,7 @@ const DailyView: React.FC<DailyViewProps> = ({ initialDate, notHome }) => {
                     <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
                     Media Usage
                     </Text>
-                        <ScreenTimeChart usageData={usage} focus={false}/>
+                        <ScreenTimeChart usageData={usage} focus={true}/>
                     </YStack>
                     <YStack>
                         <YStack>

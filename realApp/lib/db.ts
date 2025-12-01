@@ -656,6 +656,7 @@ export async function getCurrentStreak(db: SQLiteDatabase) {
       channel: r.channel,
       value: r.value,
     }))
+    console.log(mapped);
     const sum = (100 - mapped.reduce((acc, curr) => acc + curr.value, 0)).toFixed(2);
     
     if(Number(sum) > 0){

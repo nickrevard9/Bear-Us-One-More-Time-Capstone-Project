@@ -29,7 +29,6 @@ export default function CalendarPage() {
     try {
         const media = await getMediumCountByDate(db, month, year);
         setMediumCounts(media);
-        console.log("Fetched medium counts:", media, "on ", month, ", ", year);
   } catch (error: any) {
       Alert.alert(`Error retrieving media: ${error.message}`);
   }
@@ -39,7 +38,6 @@ export default function CalendarPage() {
     try {
         const media = await getChannelCountByDate(db, month, year);
         setPlatformCounts(media);
-        console.log("Fetched platform counts:", media, "on ", month, ", ", year);
   } catch (error: any) {
       Alert.alert(`Error retrieving media: ${error.message}`);
   }
@@ -55,10 +53,12 @@ export default function CalendarPage() {
   function onMonthChange(m: number){
     setMonth(m);
     fetchMediumCounts(m+1 % 12, year);
+    fetchPlatformCounts(m+1 % 12, year);
   }  
 function onYearChange(y: number){
     setYear(y);
     fetchMediumCounts(month, y);
+    fetchPlatformCounts(month, y);
   }
 
   return (

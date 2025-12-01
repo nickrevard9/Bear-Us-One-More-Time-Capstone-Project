@@ -1,19 +1,18 @@
 import React, { useState } from "react";
 import { LineChart } from "react-native-gifted-charts";
 import { View, Text, useColorScheme } from "react-native";
+import { Button } from "tamagui";
 import { tamaguiConfig } from '../tamagui.config';
 
 type ScreenTimeChartProps = {
   usageData: { value: number; time: string }[];
   focus?: boolean;
-  point?: {value: number; time: string, label?: string, "labelTextStyle"?: {color: string, width?: number}} ;
 };
 
-export default function ScreenTimeChart({usageData, focus, point} : ScreenTimeChartProps) {
+export default function ScreenTimeChart({usageData, focus} : ScreenTimeChartProps) {
   const data = usageData;
   const maxValue = 120;
   const [_focus, setFocus] = useState(focus || false);
-  const [_point, set_Point] = useState(point || {value:0, time:""});  
 
   const colorScheme = useColorScheme()
   const colors = colorScheme === 'dark' 
@@ -71,17 +70,14 @@ export default function ScreenTimeChart({usageData, focus, point} : ScreenTimeCh
               return (
                 <View
                   style={{
-                    height: 90,
+                    height: 180,
                     width: 100,
                     justifyContent: 'center',
                     marginTop: -30,
-                    marginLeft: items[0].time.split(" ")[1] == "AM"  ? 0 : -80,
+                    marginLeft: items[0].time.split(" ")[1] == "AM"  ? 0 : -100,
                   }}>
-                  <Text style={{color: 'white', fontSize: 14, marginBottom:6,textAlign:'center'}}>
-                    {items[0].time}
-                  </Text>
   
-                  <View style={{paddingHorizontal:14,paddingVertical:6, borderRadius:16, backgroundColor:'white'}}>
+                  <View style={{width: 130, paddingHorizontal:15, paddingVertical:6, borderRadius:16, backgroundColor:'white', flexDirection: 'row'}}>
                     <Text style={{fontWeight: 'bold',textAlign:'center'}}>
                       {items[0].value + " mins at " + items[0].time}
                     </Text>
