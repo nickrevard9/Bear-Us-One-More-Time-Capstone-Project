@@ -5,10 +5,10 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { DatePicker } from '@/components/datepicker';
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
-import { deleteLogByLogID, duplicateLog, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, getNonWorkMediaHoursForDate, updateStreak, calculateAchievements } from "../lib/db";
+import { Achievement, deleteLogByLogID, duplicateLog, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, getNonWorkMediaHoursForDate, updateStreak, calculateAchievements } from "../lib/db";
 import { HelpCircle } from '@tamagui/lucide-icons';
 import { TimePicker } from '@/components/timepicker';
-import CongratsModal from '@/components/TopPlatforms';
+import { CongratsModal } from '@/components/congratsmodal';
 import Tooltip from "rn-tooltip";
 import { KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 
@@ -58,7 +58,6 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     const [currentStreak, setCurrentStreak] = useState(0);
     const [streakChanged, setStreakChanged] = useState(false);
     const [new_achievements, setAchievements] = useState<Achievement[]>([]);
-    const [haveAchievements, setHaveAchievements] = useState(false);
 
     const theme = useTheme()
 
@@ -130,18 +129,36 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         "Other": "e.g., Describe your activity here",
     };
     
-    // Function to round date to  nearest 5 or 10 minutes
+    /**
+     * 
+     * @param date - date with time to be rounded to the nearest 5 or 10 minutes
+     * @returns Date rounded to nearest 5 minutes
+     */
     function roundToNearest5(date: Date): Date {
         const ms = 1000 * 60 * 5; // 5 minutes in milliseconds
         return new Date(Math.round(date.getTime() / ms) * ms);
     }
 
     // Function checking if start and end dates are valid
+    /**
+     * validateDates
+     * 
+     * Sets dateError state based on whether start_date is after end_date
+     * @param start_date - start date inputted
+     * @param end_date  - end date inputted
+     * 
+     */
     function validateDates(start_date: Date, end_date: Date) {
         start_date > end_date ? setDateError(true) : setDateError(false);
     }
 
     // Function to load an existing log from the database
+    /**
+     * obtainLog
+     * 
+     * Loads log data from the database and populates form fields
+     * @param log_id - log being edited
+     */
     async function obtainLog(log_id: number) {
         const log: LogData | null = await getLogByLogID(db, log_id);
         if(!log){
@@ -158,9 +175,13 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     }
 
     // useFocusEffect runs whenever this screen gains focus
+    /**
+     * useFocusEffect
+     * 
+     * Loads existing log data if editing, or resets form for new log
+     */
     useFocusEffect(
     useCallback(() => {
-        setHaveAchievements(false);
         setStreakChanged(false);
       if (logId) { // If editing an existing log
         try {
@@ -195,6 +216,11 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     ])
     );
 
+    /**
+     * handleDuplicate
+     * 
+     * Duplicates the current log entry in the database
+     */
     const handleDuplicate = async () => {
         if(!log_id){
             Alert.alert("Cannot duplicate this log");
@@ -205,6 +231,11 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         }
     }
 
+    /**
+     * checkIntervention
+     * 
+     * Checks if user has exceeded non-work media hours threshold and shows alert
+     */
     const checkIntervention = async () => {
       const now = new Date();
 
@@ -243,7 +274,12 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
       }
     };
 
-    // Handle form submission: insert or update log
+    /** 
+     * handleSubmit
+     * 
+     * Handle form submission: insert or update log in database
+     * Will also check if user has extended their streak or any achievements have been earned
+     */ 
     const handleSubmit = async () => {
         if(dateError){
             Alert.alert("Please fix date errors before submitting");
@@ -304,16 +340,14 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             console.log(error);
             Alert.alert("Could not save log")
         }
-        //add streak update here
-        //check if the streak needs to be updated
-        
-        //if it is within 24 hour window then update accordingly
-
-        //If there was no active streak create a new one
-
-        //checking if the streak was active or not should be done elsewhere
     };
 
+    /**
+     * getStreak
+     * 
+     * Checks and updates the user's current streak
+     * @returns True or False if the streak has been updated
+     */
     async function getStreak(): Promise<boolean>{
         const curr_streak = await getCurrentStreak(db);
         if (!curr_streak || isTodayOrYesterday(curr_streak.last_updated)) {
@@ -326,18 +360,28 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         return false;
     }
 
+    /**
+     * getAchievements
+     * 
+     * Calculates and sets any new achievements earned by the user
+     * New achievements are stored in state
+     * @returns boolean if a user has gained an achievement (true) or false
+     */
     async function getAchievements(): Promise<boolean> {
         const achievements = await calculateAchievements(db)
         if(achievements && achievements.length > 0){
             setAchievements(achievements);
-            setHaveAchievements(true);
             return true;
         }
-        setHaveAchievements(false);
         return false;
     }
 
-
+    /**
+     * nextPage
+     * 
+     * Once a user submits a log, checks for streaks and achievements
+     * Shows congrats modal if either are true, otherwise navigates back to home
+     */
     async function nextPage(){
         const a = await getStreak();
         const b = await getAchievements();
@@ -350,6 +394,13 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     }
 
 
+    /**
+     * isTodayOrYesterday
+     * 
+     * Checks if a given date string corresponds to today or yesterday
+     * @param dateStr - date of when the log has been submitted
+     * @returns true if date has changed, false if not
+     */
     function isTodayOrYesterday(dateStr: string): boolean {
         const inputDate = new Date(dateStr);
         const now = new Date();
@@ -364,7 +415,12 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         return input.getTime() === today.getTime() || input.getTime() === yesterday.getTime();
     }
 
-    // Handle deleting an existing log
+    
+    /**
+     * handleDelete
+     * 
+     * Handle deleting an existing log
+     */
     const handleDelete = async () => {
         try{
             if(!editMode){
@@ -385,11 +441,21 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         
     };
 
-    // Start date picker handlers
+    // START DATE + TIME PICKERS
+    /**
+     * onDismissStartDate
+     * 
+     * Handles dismissing the start date picker
+     */
     const onDismissStartDate = React.useCallback(() => {
         setShowStartDatePicker(false);
     }, [setShowStartDatePicker]);
 
+    /**
+     * onConfirmStartDate
+     * 
+     * Handles the confirming of a new start date
+     */
     const onConfirmStartDate = React.useCallback(
     (params) => {
         setShowStartDatePicker(false);  
@@ -398,11 +464,22 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         validateDates(new_date, end_date);
     },
     [setShowStartDatePicker, setStartDate, start_date, end_date]
-  );
+    );
+
+    /**
+     * onDismissStartTime
+     * 
+     * Handles dismissing the start time picker
+     */
     const onDismissStartTime = React.useCallback(() => {
         setShowStartTimePicker(false);
     }   , [setShowStartTimePicker]);
 
+    /**
+     * onConfirmStartTime
+     * 
+     * Handles the confirming of a new start time
+     */
     const onConfirmStartTime = React.useCallback(
     (params: {hours: number, minutes: number}) => {
       setShowStartTimePicker(false);
@@ -410,13 +487,24 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
       setStartDate(new_date);            
       validateDates(new_date, end_date);},
     [setShowStartTimePicker, setStartDate, start_date, end_date]
-  );
+    );
 
-    // End date picker handlers
+
+    // END DATE + TIME PICKERS
+    /**
+     * onDismissEndTime
+     * 
+     * Handles dismissing the start time picker
+     */
     const onDismissEndDate = React.useCallback(() => {
         setShowEndDatePicker(false);
     }, [setShowEndDatePicker]);
 
+    /**
+     * onConfirmEndDate
+     * 
+     * Handles the confirming of a new end date
+     */
     const onConfirmEndDate = React.useCallback(
     (params) => {
         setShowEndDatePicker(false);
@@ -425,12 +513,22 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         validateDates(start_date, new_date);
     },
     [setShowEndDatePicker, setEndDate, end_date, start_date]
-  );
+    );
 
+    /**
+     * onDismissEndTime
+     * 
+     * Handles dismissing the end time picker
+     */
     const onDismissEndTime = React.useCallback(() => {
         setShowEndTimePicker(false);
     }, [setShowEndTimePicker]);
 
+    /**
+     * onConfirmEndTime
+     * 
+     * Handles the confirming of a new end time
+     */
     const onConfirmEndTime = React.useCallback(
     (params: {hours: number, minutes: number}) => {
       setShowEndTimePicker(false);
@@ -438,17 +536,17 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
       setEndDate(new_date);
       validateDates(start_date, new_date);},
     [setShowEndTimePicker, setEndDate, end_date]
-  );
+    );
 
     return (
-            <KeyboardAvoidingView
+        <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         style={{ flex: 1 }}
-    >
+        >
 
         <View style={{ flex: 1 }} paddingHorizontal={10}>
-            {/* Header with back arrow and title */}
+            {/* Header with a help icon for any confusions users have for inputting data */}
             <XStack alignItems="center" justifyContent="space-between" paddingBottom={20} paddingTop={10}>
                 <H6 style={{ textAlign: 'center', fontWeight: "600", position: 'absolute', left: 0, right: 0 }}>
                     Log
@@ -465,18 +563,20 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 </Tooltip>
             </XStack>
 
+            {/* Congrats Modal for Achievements and Streaks */}
             <CongratsModal 
-                achievements={new_achievements} 
+                achievements={new_achievements}
                 streak_increased={streakChanged} 
                 streak={currentStreak} 
                 isVisible={showPopup} 
                 onConfirm={() => {router.back(); setShowPopup(false)}}
             />
 
-
+            {/* Main Scrollable Form */}
             <ScrollView paddingBottom="$4">
             <YStack justifyContent="left">
-                {/* Time Picker */}
+
+                {/* Start Pickers */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
                     <Tooltip 
                     backgroundColor= "#7f8f67"
@@ -486,6 +586,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     popover={<Text color="#e4e0d5">When you began watching/listening/reading</Text>}>
                         <Text style={{ fontWeight: "bold", fontSize: 16}}>Started</Text>
                     </Tooltip>
+
+                    {/* Start Date */}
                     <TouchableOpacity background="none" onPress={() => setShowStartDatePicker(true)}>
                         <Input color={dateError? "red" : theme.color.get()} onPress={() => setShowStartDatePicker(true)} value={start_date.toLocaleString('en-US', {
                             year: 'numeric',
@@ -493,6 +595,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                             day: 'numeric',
                             })} editable={false}/>
                     </TouchableOpacity>
+
+                    {/* Start Time */}
                     <TouchableOpacity background="none" onPress={() => setShowStartTimePicker(true)}>
                         <Input color={dateError? "red" : theme.color.get()} onPress={() => setShowStartTimePicker(true)} value={start_date.toLocaleTimeString('en-US', {
                             hour: 'numeric',
@@ -515,7 +619,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     }/>    
                 </XStack>
 
-                {/* Duration Picker */}
+                {/* End Pickers */}
                 <XStack alignItems="center" gap="$4" paddingBottom="$4">
                     <Tooltip 
                     backgroundColor= "#7f8f67"
@@ -527,6 +631,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     </Tooltip>
                     <YStack>
                         <XStack>
+
+                        {/* End Date Picker */}
                         <TouchableOpacity activeOpacity={1} onPress={() => setShowEndDatePicker(true)}>
                         <Input color={dateError? "red" : theme.color.get()} onPress={() => setShowEndDatePicker(true)} value={end_date.toLocaleDateString('en-US', {
                             year: 'numeric',
@@ -534,6 +640,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                             day: 'numeric',
                             })} editable={false} marginEnd={10}/>
                         </TouchableOpacity>
+
+                        {/* End Time Picker */}
                         <TouchableOpacity activeOpacity={1} onPress={() => setShowEndTimePicker(true)}>
                         <Input color={dateError? "red" : theme.color.get()} onPress={() => setShowEndTimePicker(true)} value={end_date.toLocaleTimeString('en-US', {
                             hour: 'numeric',
@@ -542,8 +650,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                         </TouchableOpacity>
                         </XStack>
                         <Text style={{ color: dateError ? 'red' : 'black', marginLeft: 10 }}>
-                        {dateError ? 'End time must be after start time' : ''}
-                    </Text>
+                            {dateError ? 'End time must be after start time' : ''}
+                        </Text>
                         </YStack>
                     <DatePicker
                         isVisible={showEndDatePicker}
@@ -705,7 +813,6 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 </YStack>
 
                 <XStack minHeight={100} maxHeight={200}>
-                    {/* Empty space for padding or future content */}
                 </XStack>
             </YStack>
             </ScrollView>

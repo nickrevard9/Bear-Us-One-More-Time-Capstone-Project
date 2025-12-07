@@ -590,7 +590,8 @@ export async function getCurrentStreak(db: SQLiteDatabase) {
       ROUND(
         100.0 * COUNT(medium) / 
         (SELECT COUNT(*) FROM log_data
-        WHERE user_id = ?),
+        WHERE strftime('%m', start_date) = ? 
+      AND strftime('%Y', start_date) = ? AND user_id = ?),
       2) AS value
       FROM log_data
       WHERE strftime('%m', start_date) = ? 
@@ -601,7 +602,7 @@ export async function getCurrentStreak(db: SQLiteDatabase) {
     const id = await AsyncStorage.getItem('pawse.currentUserId')
     const monthStr = month.toString().padStart(2, '0');
     const yearStr = year.toString();
-    const params: any[] = [id, monthStr, yearStr, id];
+    const params: any[] = [monthStr, yearStr, id, monthStr, yearStr, id];
 
     const result = await db.getAllAsync<any>(query, params);
     const mapped: {medium: string, value: number}[] = result.map((r: any) => ({

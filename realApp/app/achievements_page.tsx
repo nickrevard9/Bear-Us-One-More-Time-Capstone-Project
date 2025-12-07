@@ -9,6 +9,13 @@ import {useSQLiteContext} from "expo-sqlite";
 import { image_requires } from "@/assets/images/achievement_images"
 
 
+/**
+ * Achievement Toggle Component
+ * @param image_url - URL of the achievement image
+ * @param description - Description of the achievement
+ * @param name - Name of the achievement
+ * @return Achievement Toggle Component - shows achievement image and modal on click
+ */
 type AchievementProps = {
   image_url?: string;
   description?: string;
@@ -51,22 +58,31 @@ function Achievement_Toggle({ image_url, description, name }: AchievementProps) 
 
 
 export default function AchievementsPage() {
-
+  // State variables holding the achievements the user has earned
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [totalAchievements, setTotalAchievements] = useState(0);
   const db = useSQLiteContext(); // SQLite context for database access
 
+  // Fetch achievements when the page is focused (done once via useFocusEffect to avoid multiple fetches))
   useFocusEffect(
     useCallback(() => {
       retrieveAchievements();
     },[])
   )
 
+  /**
+   * Retrieve Achievements from Database
+   * Fetches the achievements earned by the user and the total number of achievements available
+   */
   async function retrieveAchievements() {
     setAchievements(await getAchievementsByUser(db));
     setTotalAchievements(await getTotalAchievements(db));
   }
 
+  /**
+   * Print Remainder
+   * @returns Achievement Toggle components for unearned achievements
+   */
   function printRemainder() {
     const elements =[];
     for(let i = achievements.length; i < totalAchievements; i++){
@@ -95,6 +111,7 @@ export default function AchievementsPage() {
   );
 }
 
+// For the Achievement Toggle Modal styles
 const styles = StyleSheet.create({
   centeredView: {
     flex: 1,
@@ -121,25 +138,5 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 10,
     elevation: 2,
-  },
-  Input: {
-    fontSize: 22,
-    backgroundColor:"#bdbdbd28",
-    width: 70, 
-    height: 70,
-    textAlign: 'center',
-  },
-    InputError: {
-    color: "red",
-    fontSize: 22,
-    backgroundColor:"#bdbdbd28",
-    width: 70, 
-    height: 70,
-    textAlign: 'center',
-  },
-  modalText: {
-    fontSize: 30,
-    marginBottom: 15,
-    textAlign: 'center',
   },
 });
