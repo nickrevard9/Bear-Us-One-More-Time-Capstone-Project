@@ -19,6 +19,9 @@ export const USE_LOCAL_STORAGE = true
 export const API_BASE = 'http://192.168.68.112:8888'
 export const LOGIN_URL = `${API_BASE}/login`
 
+/**
+ * Navigation themes for light and dark modes
+ */
 const navLight = {
   ...DefaultTheme,
   colors: {
@@ -42,6 +45,12 @@ const navDark = {
   },
 }
 
+/**
+ * RootLayout 
+ * 
+ * The main layout component for the application, setting up theming, navigation, and database context.
+ * @returns The root layout for the entire application
+ */
 export default function RootLayout() {
   const colorScheme = useColorScheme()
   const colors = colorScheme === 'dark' ? tamaguiConfig.themes.dark : tamaguiConfig.themes.light
@@ -59,8 +68,14 @@ export default function RootLayout() {
         <ThemeProvider value={colorScheme === 'dark' ? navDark : navLight}>
           <SQLiteProvider databaseName="pawse.db" onInit={initDb}>
             <NotificationListenerWrapper>
+              {/** Stack maps different pages of the app
+               * Each Stack.Screen represents a different page with its own options
+               * headerShown controls the visibility of the header for each page
+               * Custom headers can be provided for specific pages
+               */}
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" options={{ headerShown: false }} />
+                {/* Tabs has its own _layout to define its pages in the stack */}
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="settings"
@@ -68,7 +83,7 @@ export default function RootLayout() {
                     headerShown: true,
                     title: 'Settings',
                     headerBackTitle: 'Back',
-                    headerBackTitleVisible: true,
+                    headerBackVisible: true,
                     headerStyle: {
                       backgroundColor: colors?.backgroundStrong.val,
                     },
@@ -86,7 +101,7 @@ export default function RootLayout() {
                   headerShown: true,
                   title: 'Achievements',
                   headerBackTitle: 'Back',
-                  headerBackTitleVisible: true,
+                  headerBackVisible: true,
                   headerStyle: {
                     backgroundColor: colors?.backgroundStrong.val,
                   },
@@ -104,7 +119,7 @@ export default function RootLayout() {
                     headerShown: true,
                     title: 'Notifications',
                     headerBackTitle: 'Back',
-                    headerBackTitleVisible: true,
+                    headerBackVisible: true,
                     headerStyle: {
                       backgroundColor: colors?.backgroundStrong.val,
                     },
@@ -122,7 +137,7 @@ export default function RootLayout() {
                     headerShown: true,
                     title: 'Edit Profile',
                     headerBackTitle: 'Back',
-                    headerBackTitleVisible: true,
+                    headerBackVisible: true,
                     headerStyle: {
                       backgroundColor: colors?.backgroundStrong.val,
                     },
@@ -133,9 +148,6 @@ export default function RootLayout() {
                       color: colors?.color.val,
                     },
                   }}
-                />
-                <Stack.Screen
-                  name="edit_page" options={{header: () => <HeaderNotifications />}}
                 />
                 <Stack.Screen name="+not-found" />
               </Stack>
