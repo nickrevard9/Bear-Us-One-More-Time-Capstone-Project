@@ -82,7 +82,7 @@ export default function RegisterPage() {
         email: "email",
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        password: '', // no password for local-only
+        password: '', // no password for local-only, change as needed
         createdAt: new Date(),
         profilePicture: "pat-neff.png",
       })
