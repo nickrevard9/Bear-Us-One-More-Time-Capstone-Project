@@ -898,6 +898,7 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
                 borderColor={channelError ? 'red' : theme.color.get()}
                 paddingHorizontal={4}
                 placeholder={channelPlaceholders[medium] ?? channelPlaceholders['']}
+                color={dateError ? 'red' : theme.color.get()}
                 value={channel}
                 onChangeText={(value) => {
                   setChannel(value);
