@@ -72,13 +72,7 @@ function rowsToCSV(rows: (string | number | null | undefined)[][]): string {
 }
 
 
-function todayLocalMMDDYYYY() {
-  const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  return `${mm}/${dd}/${yyyy}`;
-}
+
 function todayLocalIso() {
   const now = new Date();
   
@@ -145,6 +139,7 @@ export default function Profile() {
         try {
 
          const user = await getCurrentUser(db);
+         
 
           if (user) {
             const full = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
@@ -161,7 +156,6 @@ export default function Profile() {
                 `,
             );
             setStreakDays(streak?.num_days ?? 0);
-            //setStreakDays(3);
           } else {
             setDisplayName("Your Name");
             console.log("failed to get the streak.")
