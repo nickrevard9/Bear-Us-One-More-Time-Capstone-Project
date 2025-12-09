@@ -7,8 +7,9 @@ import { DateType } from "react-native-ui-datepicker";
 import { Alert } from "react-native";
 import ModeToggle from "@/components/ModeToggle";
 import MediaChart from "@/components/MediaChart";
-import { getMediumCountByDate } from "@/lib/db";
+import { getMediumCountByDate, getChannelCountByDate } from "@/lib/db";
 import { useSQLiteContext } from "expo-sqlite";
+import PlatformChart from "@/components/TopPlatforms";
 
 
 export default function CalendarPage() {
@@ -20,11 +21,23 @@ export default function CalendarPage() {
     medium: string, 
     value: number}[]>([]);
 
+  const [platform_counts, setPlatformCounts] = useState<{
+    channel: string, 
+    value: number}[]>([]);
+
   async function fetchMediumCounts(month: number, year: number) {
     try {
         const media = await getMediumCountByDate(db, month, year);
         setMediumCounts(media);
-        console.log("Fetched medium counts:", media, "on ", month, ", ", year);
+  } catch (error: any) {
+      Alert.alert(`Error retrieving media: ${error.message}`);
+  }
+  };
+
+  async function fetchPlatformCounts(month: number, year: number) {
+    try {
+        const media = await getChannelCountByDate(db, month, year);
+        setPlatformCounts(media);
   } catch (error: any) {
       Alert.alert(`Error retrieving media: ${error.message}`);
   }
@@ -33,16 +46,19 @@ export default function CalendarPage() {
   useFocusEffect(
     useCallback(() => {
       fetchMediumCounts(month, year);
-    }, [setMediumCounts])      
+      fetchPlatformCounts(month, year);
+    }, [])      
   );
 
   function onMonthChange(m: number){
     setMonth(m);
     fetchMediumCounts(m+1 % 12, year);
+    fetchPlatformCounts(m+1 % 12, year);
   }  
 function onYearChange(y: number){
     setYear(y);
     fetchMediumCounts(month, y);
+    fetchPlatformCounts(month, y);
   }
 
   return (
@@ -64,7 +80,9 @@ function onYearChange(y: number){
           monthChange={onMonthChange}
           yearChange={setYear}
         />
-        <MediaChart key={medium_counts[0]} media_counts={medium_counts}/>
+        <MediaChart key={medium_counts[0] ? medium_counts[0].medium : medium_counts[0]} media_counts={medium_counts}/>
+
+        <PlatformChart key={platform_counts[0] ? platform_counts[0].channel : platform_counts[0]} platform_counts={platform_counts}/>
         </ScrollView>
         </YStack>
     </View>

@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useSQLiteContext } from "expo-sqlite";
 import { getCurrentUser, UserData } from "../lib/db";
+import { Keyboard, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from "react-native";
 
 export default function EditProfile() {
   const router = useRouter();
@@ -48,26 +49,40 @@ export default function EditProfile() {
       [firstName.trim(), lastName.trim(), profilePicture || "", user.id]
     );
 
-    console.log("✅ Profile updated!");
     router.back();
   };
 
-  return (
-    <YStack flex={1} justifyContent="center" alignItems="center" padding="$4" gap="$4">
+return (
+  <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === "ios" ? "padding" : "height"}
+    keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+  >
+    <YStack
+      flex={1}
+      justifyContent="center"
+      alignItems="center"
+      padding="$4"
+      gap="$4"
+    >
       <H3>Edit Profile</H3>
 
-      <Button onPress={pickImage}>
-        {profilePicture ? "Change Picture" : "Pick Profile Picture"}
-      </Button>
+          <Button onPress={pickImage}>
+            {profilePicture ? "Change Picture" : "Pick Profile Picture"}
+          </Button>
 
-      {profilePicture ? (
-        <Image
-          source={{ uri: profilePicture }}
-          width={120}
-          height={120}
-          borderRadius={60}
-        />
-      ) : null}
+          {profilePicture ? (
+            <Image
+              source={
+                profilePicture.includes("pat-neff.png")
+                  ? require("../assets/images/pat-neff.png")
+                  : { uri: profilePicture }
+              }
+              width={120}
+              height={120}
+              borderRadius={60}
+            />
+          ) : null}
 
       <Input
         width="80%"
@@ -75,6 +90,7 @@ export default function EditProfile() {
         value={firstName}
         onChangeText={setFirstName}
       />
+
       <Input
         width="80%"
         placeholder="Last Name"
@@ -89,5 +105,6 @@ export default function EditProfile() {
         <Button onPress={handleSave}>Save</Button>
       </XStack>
     </YStack>
-  );
+  </KeyboardAvoidingView>
+);
 }

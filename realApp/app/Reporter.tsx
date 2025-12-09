@@ -5,10 +5,13 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { DatePicker } from '@/components/datepicker';
 import {Dropdown} from 'react-native-element-dropdown';
 import { useSQLiteContext } from "expo-sqlite";
-import { deleteLogByLogID, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, insertStreak, updateStreak } from "../lib/db";
+import { deleteLogByLogID, duplicateLog, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, getNonWorkMediaHoursForDate, updateStreak, calculateAchievements } from "../lib/db";
 import { HelpCircle } from '@tamagui/lucide-icons';
 import { TimePicker } from '@/components/timepicker';
+import CongratsModal from '@/components/TopPlatforms';
 import Tooltip from "rn-tooltip";
+import { KeyboardAvoidingView, Platform, TextInput } from 'react-native';
+
 
 // Define props for the Reporter component, with optional log_id for editing an existing log
 interface ReporterProps {
@@ -49,6 +52,13 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
     const [motivationError, setMotivationError] = useState(false);
     const [descriptionError, setDescriptionError] = useState(false);
+
+    // Congrats Modal for Achievements and Streaks
+    const [showPopup, setShowPopup] = useState(false);
+    const [currentStreak, setCurrentStreak] = useState(0);
+    const [streakChanged, setStreakChanged] = useState(false);
+    const [new_achievements, setAchievements] = useState<Achievement[]>([]);
+    const [haveAchievements, setHaveAchievements] = useState(false);
 
     const theme = useTheme()
 
@@ -137,7 +147,6 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         if(!log){
             throw Error("cannot retrieve log data");
         }
-        console.log(`Got the log ${log_id}`)
         setEditMode(true); // Set edit mode since this is an existing log
         setChannel(log.channel);
         setEndDate(new Date(log.end_date));
@@ -151,6 +160,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
     // useFocusEffect runs whenever this screen gains focus
     useFocusEffect(
     useCallback(() => {
+        setHaveAchievements(false);
+        setStreakChanged(false);
       if (logId) { // If editing an existing log
         try {
           obtainLog(logId);
@@ -182,7 +193,55 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
       setPrimaryMotivation,
       setDescription,
     ])
-  );
+    );
+
+    const handleDuplicate = async () => {
+        if(!log_id){
+            Alert.alert("Cannot duplicate this log");
+        }
+        else{
+            await duplicateLog(db, log_id);
+            await nextPage();
+        }
+    }
+
+    const checkIntervention = async () => {
+      const now = new Date();
+
+      // build 'YYYY-MM-DD' for today
+      const mkYmd = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+
+      // collect the three most recent calendar days
+      const days: string[] = [];
+      for (let offset = 0; offset < 3; offset++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - offset);
+        days.push(mkYmd(d));
+      }
+
+      // query db for each day’s non-work media hours
+      const hours: number[] = [];
+      for (const ymd of days) {
+        const h = await getNonWorkMediaHoursForDate(db, ymd);
+        hours.push(h);
+      }
+
+      // require strictly more than 5 hours on all 3 days
+      const triggered = hours.every((h) => h > 5);
+    //   const triggered = true; // for testing purposes
+
+      if (triggered) {
+        Alert.alert(
+          "Heads up",
+          "You have been consuming a lot of media recently. Try limiting screentime in favor of time spent outside or with friends."
+        );
+      }
+    };
 
     // Handle form submission: insert or update log
     const handleSubmit = async () => {
@@ -206,7 +265,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             Alert.alert("Please fill in all required fields before submitting");
             return;
         }
-          const now = new Date();
+        
+        const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
@@ -227,44 +287,21 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             log.log_id = logId; // Include log ID if editing
         }
 
-        console.log(log);
-
         try {   
 
             if(editMode){
-                console.log("hello");
-
                 await updateLog(db, log); // Update existing log
-                //const id = await AsyncStorage.getItem('pawse.currentUserId')
-
-                const curr_streak = await getCurrentStreak(db);
-                console.log(curr_streak);
-
-                if (!curr_streak) {
-                    await updateStreak(db); // No streak yet, start one
-                } else if (isTodayOrYesterday(curr_streak.last_updated)) {
-                    await updateStreak(db); // Streak is active, update it
-                }
-
-
             }   
             else{
                 await insertLog(db, log); // Insert new log
-                const curr_streak = await getCurrentStreak(db);
-                console.log(curr_streak);
-
-                if (!curr_streak) {
-                    await updateStreak(db); // No streak yet, start one
-                } else if (isTodayOrYesterday(curr_streak.last_updated)) {
-                    await updateStreak(db); // Streak is active, update it
-                }
-
             }
 
-            router.back() // Navigate back to home
+            await checkIntervention();
+            await nextPage();
             return;
         }
         catch (error){
+            console.log(error);
             Alert.alert("Could not save log")
         }
         //add streak update here
@@ -276,6 +313,43 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
 
         //checking if the streak was active or not should be done elsewhere
     };
+
+    async function getStreak(): Promise<boolean>{
+        const curr_streak = await getCurrentStreak(db);
+        if (!curr_streak || isTodayOrYesterday(curr_streak.last_updated)) {
+            const streak = await updateStreak(db); // Streak is active, update it
+            setCurrentStreak(streak.num_days);
+            setStreakChanged(true);
+            return true;
+        }
+        setStreakChanged(false);
+        return false;
+    }
+
+    async function getAchievements(): Promise<boolean> {
+        const achievements = await calculateAchievements(db)
+        if(achievements && achievements.length > 0){
+            setAchievements(achievements);
+            setHaveAchievements(true);
+            return true;
+        }
+        setHaveAchievements(false);
+        return false;
+    }
+
+
+    async function nextPage(){
+        const a = await getStreak();
+        const b = await getAchievements();
+        if(a || b){
+            setShowPopup(true);
+        } else {
+            router.back() // Navigate back to home
+            return;
+        }
+    }
+
+
     function isTodayOrYesterday(dateStr: string): boolean {
         const inputDate = new Date(dateStr);
         const now = new Date();
@@ -367,12 +441,15 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
   );
 
     return (
-        <View paddingHorizontal={10}>
+            <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        style={{ flex: 1 }}
+    >
+
+        <View style={{ flex: 1 }} paddingHorizontal={10}>
             {/* Header with back arrow and title */}
             <XStack alignItems="center" justifyContent="space-between" paddingBottom={20} paddingTop={10}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Text style={{ fontSize: 28, fontWeight: 'bold' }} onPress={() => router.back()}>{'←'}</Text>
-                </TouchableOpacity>
                 <H6 style={{ textAlign: 'center', fontWeight: "600", position: 'absolute', left: 0, right: 0 }}>
                     Log
                 </H6>
@@ -385,8 +462,16 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     popover={<Paragraph color="#e4e0d5">This is where you track your media! Click on the labels if you're confused on what to type.</Paragraph>}
                 >
                     <HelpCircle />
-                    </Tooltip>
+                </Tooltip>
             </XStack>
+
+            <CongratsModal 
+                achievements={new_achievements} 
+                streak_increased={streakChanged} 
+                streak={currentStreak} 
+                isVisible={showPopup} 
+                onConfirm={() => {router.back(); setShowPopup(false)}}
+            />
 
 
             <ScrollView paddingBottom="$4">
@@ -518,7 +603,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     <Input
                         maxW={600}
                         onChangeText={(value) => {setChannel(value); setChannelError(false)}} value={channel}
-                        placeholder={channelPlaceholders[medium]}
+                        placeholder={channelPlaceholders[medium]? channelPlaceholders[medium] : "e.g., Enter platform here"}
                     />
                     <Text style={{ color: channelError ? 'red' : theme.color.get(), marginLeft: 10 }}>
                         {channelError ? 'Must have a motivation' : ''}
@@ -573,7 +658,9 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                 
 
                 {/* Description TextArea */}
-                <YStack paddingBottom="$4">
+                <YStack   paddingBottom="$4"
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: 200 }}>
                     <XStack alignItems="center" gap="$4" paddingBottom="$2">
                         <Tooltip 
                             backgroundColor= "#7f8f67"
@@ -588,13 +675,18 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                         </Text>
                     </XStack>
                     <TextArea
-                        size="$4" borderWidth={2}
+                       size="$4"
+                        borderWidth={2}
                         width="100%"
-                        paddingBottom="$4"
                         height={250}
                         placeholder={descriptionPlaceholders[primaryMotivation]}
                         value={description}
-                        onChangeText={(value) => {setDescription(value); setDescriptionError(false)}}
+                        onChangeText={(value) => {
+                            setDescription(value)
+                            setDescriptionError(false)
+                        }}
+                        padding="$4"
+
                     />
                 </YStack>
 
@@ -603,9 +695,13 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
                     <Button onPress={handleSubmit}>
                         {editMode? "Save" : "Submit"}
                     </Button>
-                    {editMode && <Button onPress={handleDelete} variant='outlined'>
+                    {editMode && <View><Button onPress={handleDelete} variant='outlined'>
                         Delete
-                    </Button>}
+                    </Button>
+                    <Button onPress={handleDuplicate}>
+                        Duplicate
+                    </Button>
+                    </View>}
                 </YStack>
 
                 <XStack minHeight={100} maxHeight={200}>
@@ -614,6 +710,8 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
             </YStack>
             </ScrollView>
         </View>
+        </KeyboardAvoidingView>
+
     );
 };
 

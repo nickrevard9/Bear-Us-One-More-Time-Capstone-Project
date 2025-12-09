@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Reporter from "./Reporter"
+import Reporter from "../Reporter"
 import { useLocalSearchParams } from "expo-router";
 
 

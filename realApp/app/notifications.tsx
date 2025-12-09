@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { YStack, XStack, Text, Button, Separator, H4, Spinner } from "tamagui";
 import { useSQLiteContext } from "expo-sqlite";
-
-import { getRecentNotifications, logNotification } from "../lib/notifications";
+import { getRecentNotifications } from "../lib/notifications";
 
 type NotificationItem = {
   notification_id: number;
   title: string;
   description: string;
-  timestamp: string; // UTC timestamp stored as ISO string
+  timestamp: number; // stored as epoch seconds (UTC)
   user_id?: string | null;
 };
 
-// HELPER: group notifications by relative date (today / yesterday / earlier)
+// Group notifications by date
 function groupNotifications(notifications: NotificationItem[]) {
   const today = new Date();
   const yesterday = new Date();
@@ -30,7 +29,7 @@ function groupNotifications(notifications: NotificationItem[]) {
     a.getFullYear() === b.getFullYear();
 
   for (const n of notifications) {
-    const date = new Date(n.timestamp); // parse UTC timestamp
+    const date = new Date(n.timestamp * 1000); // parse UTC seconds → ms
     if (sameDay(date, today)) {
       sections.today.push(n);
     } else if (sameDay(date, yesterday)) {
@@ -51,7 +50,7 @@ export default function NotificationCenter() {
   useEffect(() => {
     (async () => {
       try {
-        const rows = await getRecentNotifications(db, 30) as NotificationItem[];
+        const rows = (await getRecentNotifications(db, 30)) as NotificationItem[];
         setNotifications(rows);
       } catch (err) {
         console.error("[NotificationCenter] Load error:", err);
@@ -90,8 +89,12 @@ export default function NotificationCenter() {
               </H4>
 
               {items.map((n) => {
-                const localDate = new Date(n.timestamp); // parse UTC
-                const timeString = localDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                // convert UTC epoch seconds → proper Date()
+                const localDate = new Date(n.timestamp);
+                const timeString = localDate.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
 
                 return (
                   <React.Fragment key={n.notification_id}>
@@ -106,7 +109,7 @@ export default function NotificationCenter() {
                         <Text fontWeight="600">{n.title}</Text>
                         <Text color="$accentColor">{n.description}</Text>
                         <Text fontSize="$2" color="$accentColor">
-                          {timeString}
+                          {timeString} {/* LOCAL TIME FIXED */}
                         </Text>
                       </YStack>
                     </Button>
