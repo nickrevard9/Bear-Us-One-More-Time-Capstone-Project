@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import { SQLiteDatabase } from "expo-sqlite";
 
 /* Foreground handler */
+// Show notifications when app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -14,6 +15,7 @@ Notifications.setNotificationHandler({
 });
 
 /* Android channel */
+// Ensure the notification channel exists on Android
 async function ensureAndroidChannel() {
   if (Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync("daily-default", {
@@ -26,6 +28,8 @@ async function ensureAndroidChannel() {
 }
 
 /* Permissions */
+// Ensure notification permissions are granted
+// Will prompt the user if not already granted
 export async function ensurePermission(): Promise<boolean> {
   const cur = await Notifications.getPermissionsAsync();
   if (cur.status === "granted") return true;
@@ -36,6 +40,10 @@ export async function ensurePermission(): Promise<boolean> {
 }
 
 /* One-shot (seconds) — uses TIME_INTERVAL type */
+// Used to schedule a notification after a certain number of seconds
+// sound can be true (default), false (no sound), or a string for custom sound
+
+// (mainly used for testing the notifications)
 export async function scheduleNotification(
   seconds: number,
   title: string,
@@ -70,6 +78,8 @@ export async function scheduleNotification(
 }
 
 /* Calendar ONE-SHOT (fires at a specific Date) — uses CALENDAR type */
+// Used to schedule a notification at a specific date and time (non-repeating)
+// CALENDAR type is used to target specific date/time
 export async function scheduleCalendarOneShot(date: Date, title: string, body: string) {
   await ensureAndroidChannel();
   const ok = await ensurePermission();
@@ -92,6 +102,8 @@ export async function scheduleCalendarOneShot(date: Date, title: string, body: s
 }
 
 /* Daily repeating (calendar-based) — uses CALENDAR type */
+// Used to schedule a daily repeating notification at a specific hour and minute
+// CALENDAR type is used to target specific time
 export async function scheduleDailyNotification(
   hour: number,
   minute: number,
@@ -122,6 +134,7 @@ export async function scheduleDailyNotification(
 }
 
 /* Utilities */
+// Used to cancel a specific scheduled notification by its ID
 export async function cancelScheduledNotification(id: string) {
   try {
     console.log("[Notifications] Cancelling ID:", id);
@@ -131,6 +144,8 @@ export async function cancelScheduledNotification(id: string) {
   }
 }
 
+
+// Used to cancel all scheduled notifications
 export async function cancelAllScheduled() {
   try {
     console.log("[Notifications] Cancelling ALL scheduled notifications...");
@@ -140,6 +155,8 @@ export async function cancelAllScheduled() {
   }
 }
 
+// List all scheduled notifications
+// This is mainly for debugging purposes
 export async function listScheduled() {
   try {
     const list = await Notifications.getAllScheduledNotificationsAsync();
@@ -152,6 +169,13 @@ export async function listScheduled() {
 }
 
 /* Diagnostics */
+// Run a series of notification tests
+// 1) one-shot in 10s
+// 2) calendar one-shot at next minute boundary
+// 3) daily repeating at specified hour:minute
+
+// Also lists scheduled notifications a few times with increasing delays
+// Strictly for testing purposes
 export async function runNotificationDiagnostics(hour: number, minute: number) {
   console.log("[Diag] Starting notification diagnostics…");
 
