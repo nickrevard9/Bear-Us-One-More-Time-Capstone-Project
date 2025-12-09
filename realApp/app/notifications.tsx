@@ -29,7 +29,7 @@ function groupNotifications(notifications: NotificationItem[]) {
     a.getFullYear() === b.getFullYear();
 
   for (const n of notifications) {
-    const date = new Date(n.timestamp * 1000); // parse UTC seconds → ms
+    const date = new Date(n.timestamp * 1000); // parse UTC seconds to ms
     if (sameDay(date, today)) {
       sections.today.push(n);
     } else if (sameDay(date, yesterday)) {
@@ -42,11 +42,20 @@ function groupNotifications(notifications: NotificationItem[]) {
   return sections;
 }
 
+/**
+ * notification center page
+ * groups notifications into general categories (today, yesterday, and earlier)
+ * only gets notifications sent within the last 30 days
+ * 
+ * notifications are stored in UTC and then converted when displayed
+ * @returns 
+ */
 export default function NotificationCenter() {
   const db = useSQLiteContext();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // get the most recent list of notifications (within 30 days)
   useEffect(() => {
     (async () => {
       try {
@@ -89,7 +98,7 @@ export default function NotificationCenter() {
               </H4>
 
               {items.map((n) => {
-                // convert UTC epoch seconds → proper Date()
+                // convert UTC epoch seconds to proper Date() in local time
                 const localDate = new Date(n.timestamp);
                 const timeString = localDate.toLocaleTimeString([], {
                   hour: "2-digit",
@@ -109,7 +118,7 @@ export default function NotificationCenter() {
                         <Text fontWeight="600">{n.title}</Text>
                         <Text color="$accentColor">{n.description}</Text>
                         <Text fontSize="$2" color="$accentColor">
-                          {timeString} {/* LOCAL TIME FIXED */}
+                          {timeString}
                         </Text>
                       </YStack>
                     </Button>

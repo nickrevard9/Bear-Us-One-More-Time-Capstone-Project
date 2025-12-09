@@ -3,6 +3,9 @@ import { View, Text, YStack } from "tamagui";
 import { BarChart } from "react-native-gifted-charts";
 import { useColorScheme } from "react-native";
 
+/** 
+ * weekly bar chart for weekly view use
+*/
 const WeeklyBarChart = ({ data, weekStart }) => {
   const convertHoursToHMS = (hours: number): string => {
     const totalMinutes = Math.round(hours * 60);
@@ -15,21 +18,27 @@ const WeeklyBarChart = ({ data, weekStart }) => {
     return `${hrStr}${minStr}`;
   };
 
+  /**
+   * chart data to be used
+   * includes labels for the chart (x and y axis)
+   */
   const chartData = data.map((d, idx) => {
     const date = new Date(weekStart);
     date.setDate(date.getDate() + idx);
 
-    const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" }); // add day of week if wanted
+    const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" });
     const day = date.getDate();
     const month = date.getMonth() + 1; // Java months are zero indexed
 
-    // gifted charts bar graphs don't support multi-line labels (x-axis)
     return {
       value: d.minutes,
       label: `${dayOfWeek}\n${month}/${day}`,
     };
   });
 
+  /**
+   * color schemes for the chart (dark and light mode)
+   */
   const colorScheme = useColorScheme()
     const colors = colorScheme === 'dark' 
     ? {
@@ -81,6 +90,7 @@ const WeeklyBarChart = ({ data, weekStart }) => {
         noOfSections={6}                // number of sections
         stepValue={4}                   // section spacing
         xAxisTextNumberOfLines={2}
+        // tooltips show exact amount logged for each day
         renderTooltip={(item, index) => {
           return (
             <View

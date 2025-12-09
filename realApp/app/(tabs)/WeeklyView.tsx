@@ -8,11 +8,21 @@ import ModeToggle from "@/components/ModeToggle";
 import { router, useFocusEffect } from "expo-router";
 import GestureRecognizer from "react-native-swipe-gestures";
 
+// use local storage for data
 export const USE_LOCAL_STORAGE = true;
 
+/**
+ * weekly view page
+ * navigation from view toggle
+ */
 const WeeklyView: React.FC = () => {
   const db = useSQLiteContext();
 
+  /**
+   * get starting date of the requested week
+   * @param d 
+   * @returns Date (start of week)
+   */
   const getStartOfWeek = (d: Date) => {
     const cloned = new Date(d);
     cloned.setHours(0, 0, 0, 0);
@@ -28,12 +38,30 @@ const WeeklyView: React.FC = () => {
   >([]);
   const translateX = useRef(new Animated.Value(0)).current;
   
-  // ---------------------------
-  // Helpers
-  // ---------------------------
+  /**
+   * get minutes left over from the hour(s)
+   * @param start 
+   * @param end 
+   * @returns 
+   */
   const getMinutes = (start: Date, end: Date) =>
     Math.abs(end.getTime() - start.getTime()) / (1000 * 60);
 
+  /**
+   * aggregates total minutes of activity per day for a single week
+   * 
+   * Given a list of logs (each with a start and end timestamp), this function
+   * splits logs across day boundaries and sums up the minutes that fall on each
+   * day of the target week. It returns an array of 7 objects (Sun–Sat or
+   * whatever locale dictates), each containing:
+   *   - `dayIndex` (0–6)
+   *   - `label` (weekday short name)
+   *   - `minutes` (total minutes for that day)
+   * 
+   * @param logs 
+   * @param startOfWeek 
+   * @returns 
+   */
   const aggregateWeek = (logs: LogData[], startOfWeek: Date) => {
     const weekArray = Array.from({ length: 7 }, (_, i) => ({
       dayIndex: i,
@@ -49,17 +77,17 @@ const WeeklyView: React.FC = () => {
       const logEnd = new Date(log.end_date);
 
       while (currentStart < logEnd) {
-        // End of the current day
+        // end of the current day
         const endOfDay = new Date(currentStart);
         endOfDay.setHours(24, 0, 0, 0);
 
-        // Minutes for this day slice
+        // minutes for this day slice
         const minutesThisDay = Math.min(
           (endOfDay.getTime() - currentStart.getTime()) / (1000 * 60),
           (logEnd.getTime() - currentStart.getTime()) / (1000 * 60)
         );
 
-        // Offset in week
+        // offset in week
         const dayOffset = Math.floor(
           (currentStart.setHours(0, 0, 0, 0) - startOfWeek.getTime()) / 86400000
         );
@@ -68,7 +96,7 @@ const WeeklyView: React.FC = () => {
           weekArray[dayOffset].minutes += minutesThisDay;
         }
 
-        // Move to next day
+        // move to next day
         currentStart = endOfDay;
       }
     });
@@ -76,6 +104,12 @@ const WeeklyView: React.FC = () => {
     return weekArray;
   };
 
+  /**
+   * converts a total number of minutes into a formatted
+   * string showing hours and minutes.
+   * @param totalMinutes 
+   * @returns string in format "X hr Y mins".
+   */
   function convertMinutesToHMS(totalMinutes: number): string {
       const hours = Math.floor(totalMinutes / 60);
       const minutes = Math.floor(totalMinutes % 60);
@@ -86,9 +120,9 @@ const WeeklyView: React.FC = () => {
       return `${hr} ${mins}`;
   }
 
-  // ---------------------------
-  // Fetch logs touching the week
-  // ---------------------------
+  /**
+   * get weekly logs for that week
+   */
   const retrieveWeeklyLogs = useCallback(async () => {
     try {
       const logs: LogData[] = [];
@@ -101,7 +135,7 @@ const WeeklyView: React.FC = () => {
           logs.push(...dayLogs);
         }
 
-        // Remove duplicates (some logs may appear in multiple days)
+        // remove duplicates (some logs may appear in multiple days)
         const seen = new Set<string>();
         const uniqueLogs = logs.filter((log) => {
           if (seen.has(log.log_id)) return false;
@@ -117,12 +151,17 @@ const WeeklyView: React.FC = () => {
     }
   }, [weekStart, db]);
 
+  // update logs needed
   useFocusEffect(
     useCallback(() => {
       retrieveWeeklyLogs();
     }, [weekStart, retrieveWeeklyLogs])
   );
 
+  /**
+   * change week being shown
+   * @param delta 
+   */
   const changeWeek = (delta: number) => {
     // Animate out
         Animated.timing(translateX, {
@@ -150,12 +189,14 @@ const WeeklyView: React.FC = () => {
   };
 
   return (
+    // add swiping functionality
     <GestureRecognizer
       onSwipeLeft={() => changeWeek(1)}
       onSwipeRight={() => changeWeek(-1)}
       style={{ flex: 1 }}
     >
       <View style={{ flex: 1, padding: 25, marginTop: 20 }}>
+        {/* mode toggle is present */}
         <ModeToggle mode="week" />
 
         <YStack>
@@ -172,6 +213,7 @@ const WeeklyView: React.FC = () => {
 
             <H3 onPress={() => changeWeek(1)}>&#8594;</H3>
           </XStack>
+          {/* ability to go to current week */}
           {weekStart.toDateString() !== getStartOfWeek(new Date()).toDateString() && (
             <Button size="$2" onPress={() => setWeekStart(getStartOfWeek(new Date()))}>
               Show This Week
@@ -180,6 +222,7 @@ const WeeklyView: React.FC = () => {
         </YStack>
 
         <ScrollView>
+          {/* animate week changing */}
           <Animated.View
             style={[
               { transform: [{ translateX }] }
@@ -212,6 +255,7 @@ const WeeklyView: React.FC = () => {
               }}
             />
 
+            {/* show all logs in that week */}
             <YStack marginTop={20}>
               <Label size="$4" style={{ paddingTop: 10, textAlign: "center" }} fontWeight="bold">
                 Your Weekly Media
@@ -241,6 +285,7 @@ const WeeklyView: React.FC = () => {
                 ))
               ) : (
                 <YStack paddingVertical={10}>
+                  {/* show this when there are no logs */}
                   <XStack justifyContent="space-between" paddingVertical={10} paddingHorizontal={20}>
                     <Text>Nothing here yet...</Text>
                   </XStack>

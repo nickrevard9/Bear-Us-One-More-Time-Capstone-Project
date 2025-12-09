@@ -58,10 +58,12 @@ export default function RootLayout() {
       <Theme name={colorScheme === 'dark' ? 'dark' : 'light'}>
         <ThemeProvider value={colorScheme === 'dark' ? navDark : navLight}>
           <SQLiteProvider databaseName="pawse.db" onInit={initDb}>
+            {/* apply the notification listener to the overarching layout */}
             <NotificationListenerWrapper>
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                {/* the options below attach a basic back button the the top left of the specified page */}
                 <Stack.Screen
                   name="settings"
                   options={{
@@ -134,8 +136,9 @@ export default function RootLayout() {
                     },
                   }}
                 />
+                {/* this applys the custom header with the notification center */}
                 <Stack.Screen
-                  name="edit_page" options={{header: () => <HeaderNotifications />}}
+                  name="edit_page" options={{header: () => <HeaderNotifications route_name={undefined} />}}
                 />
                 <Stack.Screen name="+not-found" />
               </Stack>
@@ -147,6 +150,12 @@ export default function RootLayout() {
   )
 }
 
+/**
+ * listens for push notifications sent to the user
+ * this really only tracks the "🔥 Save Your Streak" notifications right now
+ * @param param0 
+ * @returns a notification listener
+ */
 function NotificationListenerWrapper({ children }: { children: React.ReactNode }) {
   const db = useSQLiteContext();
 

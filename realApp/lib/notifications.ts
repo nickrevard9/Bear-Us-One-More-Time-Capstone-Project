@@ -54,8 +54,6 @@ export async function scheduleNotification(
     channelId: Platform.OS === "android" ? "daily-default" : undefined,
   };
 
-  console.log("[Notifications] Scheduling one-shot:", { seconds, title, body, trigger });
-
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -65,7 +63,6 @@ export async function scheduleNotification(
     trigger,
   });
 
-  console.log("[Notifications] One-shot scheduled with ID:", id);
   return id;
 }
 
@@ -81,13 +78,10 @@ export async function scheduleCalendarOneShot(date: Date, title: string, body: s
     channelId: Platform.OS === "android" ? "daily-default" : undefined,
   };
 
-  console.log("[Notifications] Scheduling calendar one-shot:", { date: date.toString(), title, body, trigger });
-
   const id = await Notifications.scheduleNotificationAsync({
     content: { title, body, sound: "default" },
     trigger,
   });
-  console.log("[Notifications] Calendar one-shot scheduled with ID:", id);
   return id;
 }
 
@@ -110,21 +104,17 @@ export async function scheduleDailyNotification(
     channelId: Platform.OS === "android" ? "daily-default" : undefined,
   };
 
-  console.log("[Notifications] Scheduling daily reminder:", { hour, minute, title, body, trigger });
-
   const id = await Notifications.scheduleNotificationAsync({
     content: { title, body, sound: "default" },
     trigger,
   });
 
-  console.log("[Notifications] Daily scheduled with ID:", id);
   return id;
 }
 
 /* Utilities */
 export async function cancelScheduledNotification(id: string) {
   try {
-    console.log("[Notifications] Cancelling ID:", id);
     await Notifications.cancelScheduledNotificationAsync(id);
   } catch (err) {
     console.error("[Notifications] Cancel error:", err);
@@ -133,7 +123,6 @@ export async function cancelScheduledNotification(id: string) {
 
 export async function cancelAllScheduled() {
   try {
-    console.log("[Notifications] Cancelling ALL scheduled notifications...");
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch (err) {
     console.error("[Notifications] Cancel all error:", err);
@@ -143,7 +132,6 @@ export async function cancelAllScheduled() {
 export async function listScheduled() {
   try {
     const list = await Notifications.getAllScheduledNotificationsAsync();
-    console.log("[Notifications] Currently scheduled:", JSON.stringify(list, null, 2));
     return list;
   } catch (err) {
     console.error("[Notifications] List error:", err);
@@ -153,8 +141,6 @@ export async function listScheduled() {
 
 /* Diagnostics */
 export async function runNotificationDiagnostics(hour: number, minute: number) {
-  console.log("[Diag] Starting notification diagnostics…");
-
   // 1) seconds one-shot in 10s
   await scheduleNotification(10, "Diag: seconds", "This should arrive in ~10s.");
 
@@ -172,13 +158,12 @@ export async function runNotificationDiagnostics(hour: number, minute: number) {
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
   for (const wait of [200, 600, 1200, 2000]) {
     await sleep(wait);
-    console.log(`[Diag] Listing after ${wait}ms…`);
     await listScheduled();
   }
 }
 
 /**
- * log a notification into the database.
+ * log a notification into the database
  */
 export async function logNotification(
   db: SQLiteDatabase,
@@ -193,7 +178,6 @@ export async function logNotification(
     [title, description, userId ?? null]
   );
 
-  console.log(`---- message has been logged: ${title} : ${description} : ${userId} ----`)
 }
 
 /**

@@ -6,6 +6,11 @@ import { Bell } from '@tamagui/lucide-icons';
 
 const { height: screenHeight } = Dimensions.get('window');
 
+/**
+ * This it the general header component. It gives the user access to the notification center.
+ * @param props 
+ * @returns header component
+ */
 export function HeaderNotifications(props: {route_name: any}) {
   const router = useRouter();
   const headerHeight = screenHeight * 0.135; // making height of header reactive to the screen size
