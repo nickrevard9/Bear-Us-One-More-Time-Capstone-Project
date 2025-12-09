@@ -29,7 +29,7 @@ import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
-import { getCurrentUser, markLoggedOut } from "../../lib/db";
+import { getCurrentUser, markLoggedOut,getActiveStreak } from "../../lib/db";
 import {
   scheduleDailyNotification,
   cancelAllScheduled,
@@ -149,16 +149,12 @@ export default function Profile() {
             setProfilePicture(user.profilePicture);
 
             // streak query
-            const streak = await db.getFirstAsync<any>(
-              `SELECT num_days
-                 FROM streak
-             ORDER BY streak_id DESC
-                `,
-            );
-            setStreakDays(streak?.num_days ?? 0);
+            const streakDays = await getActiveStreak(db);
+            setStreakDays(streakDays);
+
           } else {
             setDisplayName("Your Name");
-            console.log("failed to get the streak.")
+            //console.log("failed to get the streak.")
             setStreakDays(0);
           }
         } catch {
@@ -341,7 +337,7 @@ export default function Profile() {
           "⏰ Daily check-in",
           "Don’t forget to log your activity today!"
         );
-        console.log("[Profile] Scheduled daily reminder ID:", id);
+        //console.log("[Profile] Scheduled daily reminder ID:", id);
         setScheduledId(id);
         await savePrefs(true, hour, minute, id);
 
@@ -405,7 +401,7 @@ export default function Profile() {
         "⏰ Daily check-in",
         "Don’t forget to log your activity today!"
       );
-      console.log("[Profile] Re-scheduled daily reminder ID:", id);
+      //console.log("[Profile] Re-scheduled daily reminder ID:", id);
       setScheduledId(id);
       await savePrefs(true, hour, minute, id);
 
