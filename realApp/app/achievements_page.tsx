@@ -95,7 +95,7 @@ export default function AchievementsPage() {
   return (
     <ScrollView style={{ marginTop: 50, marginLeft: 20, marginRight: 20}}>
     <YStack>
-        <XStack flexWrap="wrap" alignContent="center" justifyContent="flex-start">
+        <XStack flexWrap="wrap" alignContent="center" justifyContent="center" >
             {achievements.map((v, index) => (
               <Achievement_Toggle 
               key={v.name} 
