@@ -898,8 +898,6 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
                 borderColor={channelError ? 'red' : theme.color.get()}
                 paddingHorizontal={4}
                 placeholder={channelPlaceholders[medium] ?? channelPlaceholders['']}
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                color="white"
                 value={channel}
                 onChangeText={(value) => {
                   setChannel(value);
@@ -978,18 +976,15 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
                 size="$4"
                 borderWidth={2}
                 width="100%"
-                height={200}
-                placeholder={
-                  descriptionPlaceholders[primaryMotivation] ??
-                  descriptionPlaceholders['']
-                }
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                color="white"
+                height={250}
+                placeholder={descriptionPlaceholders[primaryMotivation]}
                 value={description}
                 onChangeText={(value) => {
-                  setDescription(value);
-                  setDescriptionError(false);
+                    setDescription(value)
+                    setDescriptionError(false)
                 }}
+                padding="$4"
+
               />
 
               {/* Description validation */}
