@@ -1,5 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { ScrollView, Alert, TouchableOpacity } from 'react-native';
+import {
+  ScrollView,
+  Alert,
+  TouchableOpacity,
+  View as RNView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import {
   View,
   Input,
@@ -19,13 +26,18 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
   deleteLogByLogID,
+  duplicateLog,
   getLogByLogID,
   insertLog,
   LogData,
   updateLog,
   getCurrentStreak,
+  getNonWorkMediaHoursForDate,
   updateStreak,
+  calculateAchievements,
 } from '../lib/db';
+import type { Achievement } from '../lib/db';
+import CongratsModal from '@/components/TopPlatforms';
 import { HelpCircle } from '@tamagui/lucide-icons';
 import Tooltip from 'rn-tooltip';
 
@@ -107,6 +119,13 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
   const [motivationError, setMotivationError] = useState(false);
   const [descriptionError, setDescriptionError] = useState(false);
 
+  // Congrats Modal for Achievements and Streaks
+  const [showPopup, setShowPopup] = useState(false);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [streakChanged, setStreakChanged] = useState(false);
+  const [new_achievements, setAchievements] = useState<Achievement[]>([]);
+  const [haveAchievements, setHaveAchievements] = useState(false);
+
   // Dropdown options for mediums
   const mediums = [
     { label: 'Car Stereo', value: 'Car Stereo' },
@@ -150,32 +169,32 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     '': 'e.g., Enter platform here',
     'Car Stereo': 'e.g., FM Radio, Spotify',
     'Desktop Computer': 'e.g., YouTube, Netflix',
-    eReader: 'e.g., Book or article title',
+    'eReader': 'e.g., Book or article title',
     'Laptop Computer': 'e.g., Hulu, Amazon Prime',
     'Large Screen / Movie Theater': 'e.g., Movie or show title',
     'Print Newspaper': 'e.g., Newspaper name or article',
     'Personal Computer': 'e.g., Spotify, Audible',
-    Radio: 'e.g., NPR, BBC Radio',
+    'Radio': 'e.g., NPR, BBC Radio',
     'Stereo System': 'e.g., Playlist or album',
     'Smart Phone': 'e.g., TikTok, Instagram',
-    Tablet: 'e.g., Netflix, YouTube',
-    Television: 'e.g., Channel or show title',
+    'Tablet': 'e.g., Netflix, YouTube',
+    'Television': 'e.g., Channel or show title',
     'Other Handheld Device': 'e.g., Game title or app',
     'Other Printed Material': 'e.g., Magazine or brochure',
-    Other: 'e.g., Enter platform here',
+    'Other': 'e.g., Enter platform here',
   };
 
   // Placeholder Texts for Description based on motivation selected
   const descriptionPlaceholders: { [key: string]: string } = {
     '': 'e.g., Describe your activity here',
-    Ambient: 'e.g., Background music while working',
-    Entertainment: 'e.g., Watching a movie or playing a game',
-    Escape: 'e.g., Reading a novel to unwind',
+    'Ambient': 'e.g., Background music while working',
+    'Entertainment': 'e.g., Watching a movie or playing a game',
+    'Escape': 'e.g., Reading a novel to unwind',
     'Information Seeking': 'e.g., Researching a topic online',
-    Job: 'e.g., Attending a virtual meeting',
-    Social: 'e.g., Video calling with friends',
-    Schoolwork: 'e.g., Studying or attending online classes',
-    Other: 'e.g., Describe your activity here',
+    'Job': 'e.g., Attending a virtual meeting',
+    'Social': 'e.g., Video calling with friends',
+    'Schoolwork': 'e.g., Studying or attending online classes',
+    'Other': 'e.g., Describe your activity here',
   };
 
   // Function checking if start and end dates are valid
@@ -184,12 +203,11 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
   }
 
   // Function to load an existing log from the database
-  async function obtainLog(log_id: number) {
-    const log: LogData | null = await getLogByLogID(db, log_id);
+  async function obtainLog(id: number) {
+    const log: LogData | null = await getLogByLogID(db, id);
     if (!log) {
       throw Error('cannot retrieve log data');
     }
-    console.log(`Got the log ${log_id}`);
     setEditMode(true); // Set edit mode since this is an existing log
     setChannel(log.channel);
     setEndDate(new Date(log.end_date));
@@ -200,9 +218,94 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     setPrimaryMotivation(log.primary_motivation);
   }
 
+  // Intervention check: non-work media > 5 hours for last 3 days
+  const checkIntervention = async () => {
+    const now = new Date();
+
+    const mkYmd = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    const days: string[] = [];
+    for (let offset = 0; offset < 3; offset++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - offset);
+      days.push(mkYmd(d));
+    }
+
+    const hoursArr: number[] = [];
+    for (const ymd of days) {
+      const h = await getNonWorkMediaHoursForDate(db, ymd);
+      hoursArr.push(h);
+    }
+
+    const triggered = hoursArr.every((h) => h > 5);
+
+    if (triggered) {
+      Alert.alert(
+        'Heads up',
+        'You have been consuming a lot of media recently. Try limiting screentime in favor of time spent outside or with friends.'
+      );
+    }
+  };
+
+  async function getStreak(): Promise<boolean> {
+    const curr_streak = await getCurrentStreak(db);
+    if (!curr_streak || isTodayOrYesterday(curr_streak.last_updated)) {
+      const streak = await updateStreak(db); // Streak is active, update it
+      setCurrentStreak(streak.num_days);
+      setStreakChanged(true);
+      return true;
+    }
+    setStreakChanged(false);
+    return false;
+  }
+
+  async function getAchievements(): Promise<boolean> {
+    const achievements = await calculateAchievements(db);
+    if (achievements && achievements.length > 0) {
+      setAchievements(achievements);
+      setHaveAchievements(true);
+      return true;
+    }
+    setHaveAchievements(false);
+    return false;
+  }
+
+  async function nextPage() {
+    const a = await getStreak();
+    const b = await getAchievements();
+    if (a || b) {
+      setShowPopup(true);
+    } else {
+      router.back();
+    }
+  }
+
+  function isTodayOrYesterday(dateStr: string): boolean {
+    const inputDate = new Date(dateStr);
+    const now = new Date();
+
+    // Normalize all dates to midnight for comparison
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const input = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
+
+    return input.getTime() === today.getTime() || input.getTime() === yesterday.getTime();
+  }
+
   // useFocusEffect runs whenever this screen gains focus
   useFocusEffect(
     useCallback(() => {
+      setHaveAchievements(false);
+      setStreakChanged(false);
+      setShowPopup(false);
+
       if (logId) {
         // If editing an existing log
         obtainLog(logId).catch((error) => {
@@ -275,8 +378,6 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
       log.log_id = logId; // Include log ID if editing
     }
 
-    console.log(log);
-
     try {
       if (editMode) {
         await updateLog(db, log); // Update existing log
@@ -284,36 +385,13 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
         await insertLog(db, log); // Insert new log
       }
 
-      const curr_streak = await getCurrentStreak(db);
-      console.log(curr_streak);
-
-      if (!curr_streak) {
-        await updateStreak(db); // No streak yet, start one
-      } else if (isTodayOrYesterday(curr_streak.last_updated)) {
-        await updateStreak(db); // Streak is active, update it
-      }
-
-      router.back(); // Navigate back to home
-      return;
+      await checkIntervention();
+      await nextPage();
     } catch (error) {
       console.error(error);
       Alert.alert('Could not save log');
     }
   };
-
-  function isTodayOrYesterday(dateStr: string): boolean {
-    const inputDate = new Date(dateStr);
-    const now = new Date();
-
-    // Normalize all dates to midnight for comparison
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-
-    const input = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
-
-    return input.getTime() === today.getTime() || input.getTime() === yesterday.getTime();
-  }
 
   // Handle deleting an existing log
   const handleDelete = async () => {
@@ -333,6 +411,21 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     } catch (error) {
       console.error(error);
       Alert.alert('Cannot delete log');
+    }
+  };
+
+  // Handle duplicate
+  const handleDuplicate = async () => {
+    try {
+      if (!logId) {
+        Alert.alert('Cannot duplicate this log');
+        return;
+      }
+      await duplicateLog(db, logId);
+      await nextPage();
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Could not duplicate log');
     }
   };
 
@@ -421,319 +514,339 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
   );
 
   return (
-    <View paddingHorizontal={10}>
-      {/* Header with back arrow and title */}
-      <XStack
-        alignItems="center"
-        justifyContent="space-between"
-        paddingBottom={20}
-        paddingTop={10}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ fontSize: 28, fontWeight: 'bold' }}>{'←'}</Text>
-        </TouchableOpacity>
-        <H6
-          style={{
-            textAlign: 'center',
-            fontWeight: '600',
-            position: 'absolute',
-            left: 0,
-            right: 0,
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      style={{ flex: 1 }}
+    >
+      <View style={{ flex: 1 }} paddingHorizontal={10}>
+        {/* Header with back arrow and title */}
+        <XStack
+          alignItems="center"
+          justifyContent="space-between"
+          paddingBottom={20}
+          paddingTop={10}
+        >
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={{ fontSize: 28, fontWeight: 'bold' }}>{'←'}</Text>
+          </TouchableOpacity>
+          <H6
+            style={{
+              textAlign: 'center',
+              fontWeight: '600',
+              position: 'absolute',
+              left: 0,
+              right: 0,
+            }}
+          >
+            Log
+          </H6>
+          <Tooltip
+            actionType="press"
+            height={150}
+            width={200}
+            withOverlay={false}
+            backgroundColor="#7f8f67"
+            popover={
+              <Paragraph color="#e4e0d5">
+                This is where you track your media! Each blank is a part of a sentence.
+              </Paragraph>
+            }
+          >
+            <HelpCircle />
+          </Tooltip>
+        </XStack>
+
+        <CongratsModal
+          achievements={new_achievements}
+          streak_increased={streakChanged}
+          streak={currentStreak}
+          isVisible={showPopup}
+          onConfirm={() => {
+            setShowPopup(false);
+            router.back();
           }}
-        >
-          Log
-        </H6>
-        <Tooltip
-          actionType="press"
-          height={150}
-          width={200}
-          withOverlay={false}
-          backgroundColor="#7f8f67"
-          popover={
-            <Paragraph color="#e4e0d5">
-              This is where you track your media! Each blank is a part of a sentence.
-            </Paragraph>
-          }
-        >
-          <HelpCircle />
-        </Tooltip>
-      </XStack>
+        />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
-        <YStack gap="$4">
-          {/* Sentence 1: time window */}
-          <XStack flexWrap="wrap" alignItems="center" gap="$2">
-            {/* Chunk 1: On [start date] */}
-            <XStack alignItems="center">
-              <Text>On </Text>
-              <Input
-                size="$2"
-                value={start_date.toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-                editable={false}
-                onPress={() => setShowStartDatePicker(true)}
-                color={dateError ? 'red' : theme.color.get()}
-                style={{
-                  paddingHorizontal: 8,
-                  fontSize: 14,
-                }}
-              />
+        <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
+          <YStack gap="$4">
+            {/* Sentence 1: time window */}
+            <XStack flexWrap="wrap" alignItems="center" gap="$2">
+              {/* Chunk 1: On [start date] */}
+              <XStack alignItems="center">
+                <Text>On </Text>
+                <Input
+                  size="$2"
+                  value={start_date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                  editable={false}
+                  onPress={() => setShowStartDatePicker(true)}
+                  color={dateError ? 'red' : theme.color.get()}
+                  style={{
+                    paddingHorizontal: 8,
+                    fontSize: 14,
+                  }}
+                />
+              </XStack>
+
+              {/* Chunk 2: at [start time] */}
+              <XStack alignItems="center">
+                <Text> at </Text>
+                <Input
+                  size="$2"
+                  value={start_date.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: 'numeric',
+                  })}
+                  editable={false}
+                  onPress={() => setShowStartTimePicker(true)}
+                  color={dateError ? 'red' : theme.color.get()}
+                  style={{
+                    paddingHorizontal: 8,
+                    fontSize: 14,
+                  }}
+                />
+              </XStack>
+
+              {/* Chunk 3: until [end date] */}
+              <XStack alignItems="center">
+                <Text> until </Text>
+                <Input
+                  size="$2"
+                  value={end_date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                  editable={false}
+                  onPress={() => setShowEndDatePicker(true)}
+                  color={dateError ? 'red' : theme.color.get()}
+                  style={{
+                    paddingHorizontal: 8,
+                    fontSize: 14,
+                  }}
+                />
+              </XStack>
+
+              {/* Chunk 4: at [end time], */}
+              <XStack alignItems="center">
+                <Text> at </Text>
+                <Input
+                  size="$2"
+                  value={end_date.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: 'numeric',
+                  })}
+                  editable={false}
+                  onPress={() => setShowEndTimePicker(true)}
+                  color={dateError ? 'red' : theme.color.get()}
+                  style={{
+                    paddingHorizontal: 8,
+                    fontSize: 14,
+                  }}
+                />
+                <Text>,</Text>
+              </XStack>
             </XStack>
 
-            {/* Chunk 2: at [start time] */}
-            <XStack alignItems="center">
-              <Text> at </Text>
-              <Input
-                size="$2"
-                value={start_date.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: 'numeric',
-                })}
-                editable={false}
-                onPress={() => setShowStartTimePicker(true)}
-                color={dateError ? 'red' : theme.color.get()}
-                style={{
-                  paddingHorizontal: 8,
-                  fontSize: 14,
-                }}
-              />
-            </XStack>
-
-            {/* Chunk 3: until [end date] */}
-            <XStack alignItems="center">
-              <Text> until </Text>
-              <Input
-                size="$2"
-                value={end_date.toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-                editable={false}
-                onPress={() => setShowEndDatePicker(true)}
-                color={dateError ? 'red' : theme.color.get()}
-                style={{
-                  paddingHorizontal: 8,
-                  fontSize: 14,
-                }}
-              />
-            </XStack>
-
-            {/* Chunk 4: at [end time], */}
-            <XStack alignItems="center">
-              <Text> at </Text>
-              <Input
-                size="$2"
-                value={end_date.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: 'numeric',
-                })}
-                editable={false}
-                onPress={() => setShowEndTimePicker(true)}
-                color={dateError ? 'red' : theme.color.get()}
-                style={{
-                  paddingHorizontal: 8,
-                  fontSize: 14,
-                }}
-              />
-              <Text>,</Text>
-            </XStack>
-          </XStack>
-
-          {/* Date & time pickers */}
-          <DatePicker
-            isVisible={showStartDatePicker}
-            onDismiss={onDismissStartDate}
-            onConfirm={onConfirmStartDate}
-            date={start_date}
-          />
-          <TimePicker
-            key={`start-${start_date.toISOString()}`}
-            isVisible={showStartTimePicker}
-            onDismiss={onDismissStartTime}
-            onConfirm={onConfirmStartTime}
-            hours={start_date.getHours()}
-            minutes={start_date.getMinutes()}
-          />
-          <DatePicker
-            isVisible={showEndDatePicker}
-            onDismiss={onDismissEndDate}
-            onConfirm={onConfirmEndDate}
-            date={end_date}
-          />
-          <TimePicker
-            key={`end-${end_date.toISOString()}`}
-            isVisible={showEndTimePicker}
-            onDismiss={onDismissEndTime}
-            onConfirm={onConfirmEndTime}
-            hours={end_date.getHours()}
-            minutes={end_date.getMinutes()}
-          />
-
-          {dateError && <Text color="red">End time must be after start time</Text>}
-
-          {/* Sentence 2: medium + channel + intentional */}
-          <XStack flexWrap="wrap" alignItems="center">
-            <Text>I used a/an </Text>
-
-            {/* Medium dropdown with fixed width to stop layout shifting */}
-            <View style={{ width: 200, marginRight: 6 }}>
-            <Dropdown
-              data={mediums}
-              placeholder="medium"
-              value={medium || null}   // important: null instead of '' when empty
-              onChange={(item: any) => {
-                setMedium(item.value);
-                setMediumError(false);
-              }}
-              style={{
-                width: '100%',
-                alignContent: 'center',
-              }}
-              labelField="label"
-              valueField="value"
-              // you can even drop placeholderStyle entirely if you want
-              placeholderStyle={{
-                color: '#777',
-                fontSize: 16,
-              }}
-              selectedTextProps={{
-                numberOfLines: 1,
-                ellipsizeMode: 'tail',
-                style: {
-                  color: !isMediumSelected
-                    ? '#777'                        // grey when nothing chosen
-                    : mediumError
-                    ? 'red'                         // red on error
-                    : theme.color.get(),           // normal sentence color when chosen
-                  fontSize: 16,
-                },
-              }}
+            {/* Date & time pickers */}
+            <DatePicker
+              isVisible={showStartDatePicker}
+              onDismiss={onDismissStartDate}
+              onConfirm={onConfirmStartDate}
+              date={start_date}
             />
-          </View>
-
-
-            {/* Dynamic connector based on medium */}
-            <Text>{getMediumConnector(medium)}</Text>
-
-            {/* Channel / content blank */}
-            <Input
-              unstyled
-              maxWidth={220}
-              borderBottomWidth={1}
-              borderColor={channelError ? 'red' : theme.color.get()}
-              paddingHorizontal={4}
-              placeholder={channelPlaceholders[medium] ?? channelPlaceholders['']}
-              placeholderTextColor="rgba(255,255,255,0.6)"
-              color="white"
-              value={channel}
-              onChangeText={(value) => {
-                setChannel(value);
-                setChannelError(false);
-              }}
+            <TimePicker
+              key={`start-${start_date.toISOString()}`}
+              isVisible={showStartTimePicker}
+              onDismiss={onDismissStartTime}
+              onConfirm={onConfirmStartTime}
+              hours={start_date.getHours()}
+              minutes={start_date.getMinutes()}
+            />
+            <DatePicker
+              isVisible={showEndDatePicker}
+              onDismiss={onDismissEndDate}
+              onConfirm={onConfirmEndDate}
+              date={end_date}
+            />
+            <TimePicker
+              key={`end-${end_date.toISOString()}`}
+              isVisible={showEndTimePicker}
+              onDismiss={onDismissEndTime}
+              onConfirm={onConfirmEndTime}
+              hours={end_date.getHours()}
+              minutes={end_date.getMinutes()}
             />
 
-            <Text>, and it was </Text>
+            {dateError && <Text color="red">End time must be after start time</Text>}
 
-            {/* Intentional text toggle */}
-            <TouchableOpacity onPress={() => setIsIntentional(!isIntentional)}>
-              <Text
-                style={{
-                  textDecorationLine: 'underline',
-                  color: theme.color.get(),
+            {/* Sentence 2: medium + channel + intentional */}
+            <XStack flexWrap="wrap" alignItems="center">
+              <Text>I used a/an </Text>
+
+              {/* Medium dropdown with fixed width to stop layout shifting */}
+              <RNView style={{ width: 200, marginRight: 6 }}>
+                <Dropdown
+                  data={mediums}
+                  placeholder="medium"
+                  value={medium || null}   // important: null instead of '' when empty
+                  onChange={(item: any) => {
+                    setMedium(item.value);
+                    setMediumError(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    alignContent: 'center',
+                  }}
+                  labelField="label"
+                  valueField="value"
+                  placeholderStyle={{
+                    color: '#777',
+                    fontSize: 16,
+                  }}
+                  selectedTextProps={{
+                    numberOfLines: 1,
+                    ellipsizeMode: 'tail',
+                    style: {
+                      color: !isMediumSelected
+                        ? '#777'                        // grey when nothing chosen
+                        : mediumError
+                        ? 'red'                         // red on error
+                        : theme.color.get(),           // normal sentence color when chosen
+                      fontSize: 16,
+                    },
+                  }}
+                />
+              </RNView>
+
+              {/* Dynamic connector based on medium */}
+              <Text>{getMediumConnector(medium)}</Text>
+
+              {/* Channel / content blank */}
+              <Input
+                unstyled
+                maxWidth={220}
+                borderBottomWidth={1}
+                borderColor={channelError ? 'red' : theme.color.get()}
+                paddingHorizontal={4}
+                placeholder={channelPlaceholders[medium] ?? channelPlaceholders['']}
+                placeholderTextColor="rgba(255,255,255,0.6)"
+                color="white"
+                value={channel}
+                onChangeText={(value) => {
+                  setChannel(value);
+                  setChannelError(false);
                 }}
-              >
-                {isIntentional ? 'on purpose' : 'in the background'}
-              </Text>
-            </TouchableOpacity>
+              />
 
-            <Text>.</Text>
-          </XStack>
+              <Text>, and it was </Text>
 
-          {mediumError && <Text color="red">Must have a media type</Text>}
-          {channelError && <Text color="red">Must have a platform</Text>}
+              {/* Intentional text toggle */}
+              <TouchableOpacity onPress={() => setIsIntentional(!isIntentional)}>
+                <Text
+                  style={{
+                    textDecorationLine: 'underline',
+                    color: theme.color.get(),
+                  }}
+                >
+                  {isIntentional ? 'on purpose' : 'in the background'}
+                </Text>
+              </TouchableOpacity>
 
-          {/* Sentence 3: motivation */}
-          <XStack flexWrap="wrap" alignItems="center">
-            <Text>My primary motivation was </Text>
+              <Text>.</Text>
+            </XStack>
 
-            <View style={{ width: 200, marginRight: 6 }}>
-              <Dropdown
-                data={motivations}
-                value={primaryMotivation}
-                onChange={(item: any) => {
-                  setPrimaryMotivation(item.value);
-                  setMotivationError(false);
-                }}
-                style={{
-                  width: '100%',
-                  alignContent: 'center',
-                }}
-                placeholder="select one"
-                labelField="label"
-                valueField="value"
-                placeholderStyle={{
-                  color: motivationError ? 'red' : theme.color.get(),
-                  fontSize: 16,
-                }}
-                selectedTextProps={{
-                  numberOfLines: 1,
-                  ellipsizeMode: 'tail',
-                  style: {
+            {mediumError && <Text color="red">Must have a media type</Text>}
+            {channelError && <Text color="red">Must have a platform</Text>}
+
+            {/* Sentence 3: motivation */}
+            <XStack flexWrap="wrap" alignItems="center">
+              <Text>My primary motivation was </Text>
+
+              <RNView style={{ width: 200, marginRight: 6 }}>
+                <Dropdown
+                  data={motivations}
+                  value={primaryMotivation}
+                  onChange={(item: any) => {
+                    setPrimaryMotivation(item.value);
+                    setMotivationError(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    alignContent: 'center',
+                  }}
+                  placeholder="select one"
+                  labelField="label"
+                  valueField="value"
+                  placeholderStyle={{
                     color: motivationError ? 'red' : theme.color.get(),
                     fontSize: 16,
-                  },
+                  }}
+                  selectedTextProps={{
+                    numberOfLines: 1,
+                    ellipsizeMode: 'tail',
+                    style: {
+                      color: motivationError ? 'red' : theme.color.get(),
+                      fontSize: 16,
+                    },
+                  }}
+                />
+              </RNView>
+
+              <Text>.</Text>
+            </XStack>
+
+            {motivationError && <Text color="red">Must have a motivation</Text>}
+
+            {/* Sentence 4 + TextArea: description */}
+            <YStack gap="$2">
+              <Paragraph fontSize={16}>
+                <Text>In more detail, I…</Text>
+              </Paragraph>
+
+              <TextArea
+                size="$4"
+                borderWidth={2}
+                width="100%"
+                height={200}
+                placeholder={
+                  descriptionPlaceholders[primaryMotivation] ??
+                  descriptionPlaceholders['']
+                }
+                placeholderTextColor="rgba(255,255,255,0.6)"
+                color="white"
+                value={description}
+                onChangeText={(value) => {
+                  setDescription(value);
+                  setDescriptionError(false);
                 }}
               />
-            </View>
 
-            <Text>.</Text>
-          </XStack>
+              {descriptionError && <Text color="red">Must have a description</Text>}
+            </YStack>
 
-          {motivationError && <Text color="red">Must have a motivation</Text>}
-
-          {/* Sentence 4 + TextArea: description */}
-          <YStack gap="$2">
-            <Paragraph fontSize={16}>
-              <Text>In more detail, I…</Text>
-            </Paragraph>
-
-            <TextArea
-              size="$4"
-              borderWidth={2}
-              width="100%"
-              height={200}
-              placeholder={
-                descriptionPlaceholders[primaryMotivation] ??
-                descriptionPlaceholders['']
-              }
-              placeholderTextColor="rgba(255,255,255,0.6)"
-              color="white"
-              value={description}
-              onChangeText={(value) => {
-                setDescription(value);
-                setDescriptionError(false);
-              }}
-            />
-
-            {descriptionError && <Text color="red">Must have a description</Text>}
+            {/* Submit and Delete / Duplicate Buttons */}
+            <YStack gap="$2" marginTop="$4">
+              <Button onPress={handleSubmit}>{editMode ? 'Save' : 'Submit'}</Button>
+              {editMode && (
+                <RNView>
+                  <Button onPress={handleDelete} variant="outlined">
+                    Delete
+                  </Button>
+                  <Button onPress={handleDuplicate}>
+                    Duplicate
+                  </Button>
+                </RNView>
+              )}
+            </YStack>
           </YStack>
-
-          {/* Submit and Delete Buttons */}
-          <YStack gap="$2" marginTop="$4">
-            <Button onPress={handleSubmit}>{editMode ? 'Save' : 'Submit'}</Button>
-            {editMode && (
-              <Button onPress={handleDelete} variant="outlined">
-                Delete
-              </Button>
-            )}
-          </YStack>
-        </YStack>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
