@@ -31,7 +31,7 @@ export default function ModeToggle ({ mode }: ModeToggleProps) {
                 <Item value="day" aria-label="day" active={mode == "day"} disabled={mode == "day"} onPress={() => router.back()}>
                     <Text>Day</Text>
                 </Item>
-                <Item value="week" aria-label="week" active={mode == "week"} disabled={mode == "week"} onPress={() => router.push('/home/WeeklyView')}>
+                <Item value="week" aria-label="week" active={mode == "week"} disabled={mode == "week"} onPress={() => router.push('/WeeklyView')}>
                     <Text>Week</Text>
                 </Item>
                 <Item value="month" aria-label="month" active={mode == "month"} disabled={mode == "month"} onPress={() => router.push('/home/calendar')}>

@@ -301,7 +301,6 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
 
     await db.runAsync(query, params);
 
-    console.log('Log inserted successfully');
   } catch (error) {
     console.error('Failed to insert log:', error);
     throw error;
@@ -341,7 +340,6 @@ export async function updateLog(db: SQLiteDatabase, log: LogData) {
 
     await db.runAsync(query, params);
 
-    console.log('Log inserted successfully');
   } catch (error) {
     console.error('Failed to update log:', error);
     throw error;
@@ -382,7 +380,6 @@ export async function getLogsByUserDate(
     query += ` ORDER BY start_date DESC;`
 
     const rows = await db.getAllAsync<any>(query, params)
-    console.log(rows);
     const mapped: LogData[] = rows.map((r: any) => ({
       start_date: r.start_date,
       end_date: r.end_date,
@@ -395,7 +392,6 @@ export async function getLogsByUserDate(
       log_id: r.log_id,
     }))
 
-    console.log(`Retrieved ${mapped.length} logs for user`)
     return mapped
   } catch (error) {
     console.error('Failed to get logs by user:', error)
@@ -429,10 +425,6 @@ export async function getLogByLogID(
     if(!log){
       throw Error("Log does not exist");
     }
-
-    console.log(
-      `Retrieved log ${log_id}`
-    );
     return log;
   } catch (error) {
     console.error(`Failed to get log by id ${log_id}:`, error);
@@ -465,7 +457,6 @@ export async function duplicateLog(db: SQLiteDatabase, log_id: number) {
 
     await db.runAsync(query, params);
 
-    console.log('Log duplicated successfully');
   } catch (error) {
     console.error('Failed to duplicated log:', error);
     throw error;
@@ -494,10 +485,6 @@ export async function deleteLogByLogID(
     if(result.changes == 0){
       throw Error("Log does not exist");
     }
-
-    console.log(
-      `Deleted log ${log_id}`
-    );
     return true;
   } catch (error) {
     console.error(`Failed to get log by id ${log_id}:`, error);
@@ -531,7 +518,6 @@ export async function insertStreak(db: SQLiteDatabase, log: LogData) {
 
     await db.runAsync(query, params);
 
-    console.log('Log inserted successfully');
   } catch (error) {
     console.error('Failed to insert log:', error);
     throw error;
@@ -541,8 +527,6 @@ export async function insertStreak(db: SQLiteDatabase, log: LogData) {
 export async function getCurrentStreak(db: SQLiteDatabase) {
   try {
     const id = await AsyncStorage.getItem('pawse.currentUserId')
-
-    console.log("getCurrentStreak: user_id =", id);
 
     // use getFirstAsync to return a single row (or null)
     const row = await db.getFirstAsync<any>(
@@ -555,11 +539,9 @@ export async function getCurrentStreak(db: SQLiteDatabase) {
     );
 
     if (row) {
-      console.log("getCurrentStreak row:", row);
-      console.log("getCurrentStreak num_days:", row.num_days);
       return row;
     } else {
-      console.log("getCurrentStreak: no row returned for user_id =", id);
+      console.error("getCurrentStreak: no row returned for user_id =", id);
       return null;
     }
 
@@ -674,9 +656,7 @@ export async function getCurrentStreak(db: SQLiteDatabase) {
 export async function updateStreak(db: SQLiteDatabase) {
     const id = await AsyncStorage.getItem('pawse.currentUserId')
 
-    console.log("entered");
     if (!id) return { ok: false, reason: "no-user" };
-    console.log("I have an id");
     const current_streak = true;
     const now = todayLocalIso();
 
@@ -684,8 +664,6 @@ export async function updateStreak(db: SQLiteDatabase) {
 
     const current = await getCurrentStreak(db);
   try {
-    console.log("updateStreak: user_id =", id, "now =", now);
-
     // choose the available method
     const queryAll = db.getAllAsync || db.getAll || db.all || db.allAsync || null;
     const queryFirst = db.getFirstAsync || db.getFirst || null;
@@ -701,8 +679,6 @@ export async function updateStreak(db: SQLiteDatabase) {
       : // fallback to getFirst-like behavior
         (await queryFirst.call(db, `SELECT * FROM log_data WHERE user_id = ? LIMIT 1`, [id]) ? 
         [await queryFirst.call(db, `SELECT * FROM log_data WHERE user_id = ? LIMIT 1`, [id])] : []);
-
-    console.log("first_row:", JSON.stringify(first_row));
 
     // check today's log
   // if your log_data.date is stored like "MM/DD/YYYY" (example shows "10/26/2025")
@@ -740,8 +716,6 @@ export async function updateStreak(db: SQLiteDatabase) {
 
     try {
       if (!current) {
-        console.log("inserted new streak");
-
         await db.runAsync(
           `INSERT INTO streak (start_date_streak,  num_days, user_id) VALUES (?, ?, ?)`,
           [now, 1, id]

@@ -3,7 +3,7 @@ import { View, Text, YStack } from "tamagui";
 import { BarChart } from "react-native-gifted-charts";
 import { useColorScheme } from "react-native";
 
-const WeeklyBarChart = ({ data }) => {
+const WeeklyBarChart = ({ data, weekStart }) => {
   const convertHoursToHMS = (hours: number): string => {
     const totalMinutes = Math.round(hours * 60);
     const h = Math.floor(totalMinutes / 60);
@@ -15,10 +15,20 @@ const WeeklyBarChart = ({ data }) => {
     return `${hrStr}${minStr}`;
   };
 
-  const chartData = data.map((d) => ({
-    value: d.minutes,
-    label: d.label,
-  }));
+  const chartData = data.map((d, idx) => {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + idx);
+
+    const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "short" }); // add day of week if wanted
+    const day = date.getDate();
+    const month = date.getMonth() + 1; // Java months are zero indexed
+
+    // gifted charts bar graphs don't support multi-line labels (x-axis)
+    return {
+      value: d.minutes,
+      label: `${dayOfWeek}\n${month}/${day}`,
+    };
+  });
 
   const colorScheme = useColorScheme()
     const colors = colorScheme === 'dark' 
@@ -38,30 +48,39 @@ const WeeklyBarChart = ({ data }) => {
         };
 
   return (
-    <YStack alignItems="center" paddingVertical={20}>
+    <YStack alignItems="center" paddingBottom={20}>
       <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
         Media Usage
       </Text>
 
       <BarChart
-        disableScroll
+        disableScroll                   // disable scroll on chart
         key={JSON.stringify(chartData)}
         data={chartData}
-        width={320}
+        width={320}                     // match width of daily graph
         barWidth={22}
         spacing={19}
-        xAxisLabelTextStyle={{ color: "#999" }}
-        yAxisTextStyle={{ color: "#999" }}
+        xAxisLabelTextStyle={{ 
+          color: colors.label,
+          textAlign: "center", 
+        }}
+        yAxisTextStyle={{ color: "gray" }}
         barBorderRadius={6}
-        frontColor="#88A77A"
+        showGradient                    // add gradient
+        frontColor={colors.gradientTo}  // beginning of gradient
+        gradientColor={colors.line}     // end of gradient
         color={colors.line}
         noOfSections={6}
         yAxisColor="white"
         yAxisThickness={0}
         rulesType="dashed"
         rulesColor="gray"
-        yAxisTextStyle={{color: 'gray'}}
-        xAxisColor="lightgray"
+        xAxisColor={colors.line}
+        xAxisThickness={2}
+        maxValue={24}                   // limit y-axis to 24 hours
+        noOfSections={6}                // number of sections
+        stepValue={4}                   // section spacing
+        xAxisTextNumberOfLines={2}
         renderTooltip={(item, index) => {
           return (
             <View
