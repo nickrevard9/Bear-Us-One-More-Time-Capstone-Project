@@ -350,12 +350,13 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
      */
     async function getStreak(): Promise<boolean>{
         const curr_streak = await getCurrentStreak(db);
-        if (!curr_streak || isTodayOrYesterday(curr_streak.last_updated)) {
+        if (!curr_streak || isTodayOrYesterday(curr_streak.last_updated) || isTodayOrYesterday(curr_streak.start_date_streak)) {
             const streak = await updateStreak(db); // Streak is active, update it
             setCurrentStreak(streak.num_days);
             setStreakChanged(true);
             return true;
         }
+        console.log("The change is unecessay");
         setStreakChanged(false);
         return false;
     }
@@ -411,6 +412,7 @@ const Reporter: React.FC<ReporterProps> = ({log_id}) => {
         yesterday.setDate(today.getDate() - 1);
 
         const input = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
+        console.log(input);
 
         return input.getTime() === today.getTime() || input.getTime() === yesterday.getTime();
     }

@@ -11,7 +11,7 @@ export async function resetDatabaseFile(dbName = 'pawse.db') {
     const info = await FileSystem.getInfoAsync(dbPath);
     if (info.exists) {
       await FileSystem.deleteAsync(dbPath, { idempotent: true });
-      console.log('Database file deleted');
+      //console.log('Database file deleted');
     } else {
       console.log('No database file found to delete');
     }
@@ -301,7 +301,7 @@ export async function insertLog(db: SQLiteDatabase, log: LogData) {
 
     await db.runAsync(query, params);
 
-    console.log('Log inserted successfully');
+    //console.log('Log inserted successfully');
   } catch (error) {
     console.error('Failed to insert log:', error);
     throw error;
@@ -341,7 +341,7 @@ export async function updateLog(db: SQLiteDatabase, log: LogData) {
 
     await db.runAsync(query, params);
 
-    console.log('Log inserted successfully');
+    //console.log('Log inserted successfully');
   } catch (error) {
     console.error('Failed to update log:', error);
     throw error;
@@ -382,7 +382,7 @@ export async function getLogsByUserDate(
     query += ` ORDER BY start_date DESC;`
 
     const rows = await db.getAllAsync<any>(query, params)
-    console.log(rows);
+    //console.log(rows);
     const mapped: LogData[] = rows.map((r: any) => ({
       start_date: r.start_date,
       end_date: r.end_date,
@@ -395,7 +395,7 @@ export async function getLogsByUserDate(
       log_id: r.log_id,
     }))
 
-    console.log(`Retrieved ${mapped.length} logs for user`)
+    //console.log(`Retrieved ${mapped.length} logs for user`)
     return mapped
   } catch (error) {
     console.error('Failed to get logs by user:', error)
@@ -430,9 +430,9 @@ export async function getLogByLogID(
       throw Error("Log does not exist");
     }
 
-    console.log(
-      `Retrieved log ${log_id}`
-    );
+    // console.log(
+    //   `Retrieved log ${log_id}`
+    // );
     return log;
   } catch (error) {
     console.error(`Failed to get log by id ${log_id}:`, error);
@@ -465,7 +465,7 @@ export async function duplicateLog(db: SQLiteDatabase, log_id: number) {
 
     await db.runAsync(query, params);
 
-    console.log('Log duplicated successfully');
+    // console.log('Log duplicated successfully');
   } catch (error) {
     console.error('Failed to duplicated log:', error);
     throw error;
@@ -495,9 +495,9 @@ export async function deleteLogByLogID(
       throw Error("Log does not exist");
     }
 
-    console.log(
-      `Deleted log ${log_id}`
-    );
+    // console.log(
+    //   `Deleted log ${log_id}`
+    // );
     return true;
   } catch (error) {
     console.error(`Failed to get log by id ${log_id}:`, error);
@@ -505,44 +505,29 @@ export async function deleteLogByLogID(
   }
 }
 
+
 /**
- * Add a user's log to the database
+ * Retrieves the most recent streak record for the currently logged-in user.
+ *
+ * Workflow:
+ * 1. Reads the current user ID from AsyncStorage.
+ * 2. Queries the `streak` table for the latest streak row (ordered by streak_id DESC).
+ * 3. Returns the streak record if it exists, otherwise returns null.
+ * 4. Any database or storage errors are caught and logged, and null is returned.
+ *
+ * This function ensures:
+ * - Only one row (the current streak) is queried and returned.
+ * - Database failures do not crash the app.
+ * - Missing user ID gracefully returns null.
  */
-export async function insertStreak(db: SQLiteDatabase, log: LogData) {
-  try {
-    const query = `
-      INSERT OR REPLACE INTO log_data 
-      (start_date, end_date, medium, channel, intentional, primary_motivation, description, report_date, user_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
-    `
-    const id = await AsyncStorage.getItem('pawse.currentUserId')
-
-    const params = [
-      log.start_date,
-      log.end_date,
-      log.medium,
-      log.channel,
-      log.intentional,
-      log.primary_motivation,
-      log.description,
-      log.report_date,
-      id,
-    ];
-
-    await db.runAsync(query, params);
-
-    console.log('Log inserted successfully');
-  } catch (error) {
-    console.error('Failed to insert log:', error);
-    throw error;
-  }
-}
-
 export async function getCurrentStreak(db: SQLiteDatabase) {
   try {
     const id = await AsyncStorage.getItem('pawse.currentUserId')
-
-    console.log("getCurrentStreak: user_id =", id);
+    if (!id) {
+      console.warn("getCurrentStreak: No user ID found");
+      return null;
+    }
+    // console.log("getCurrentStreak: user_id =", id);
 
     // use getFirstAsync to return a single row (or null)
     const row = await db.getFirstAsync<any>(
@@ -554,19 +539,11 @@ export async function getCurrentStreak(db: SQLiteDatabase) {
       [id]
     );
 
-    if (row) {
-      console.log("getCurrentStreak row:", row);
-      console.log("getCurrentStreak num_days:", row.num_days);
-      return row;
-    } else {
-      console.log("getCurrentStreak: no row returned for user_id =", id);
-      return null;
-    }
+    return row ?? null;
 
-    return row || null;
+
   } catch (err) {
-    console.error("getCurrentStreak error:", err);
-    return null;
+    console.error("getCurrentStreak error:", (err as Error).message);    return null;
   }
 }
 
@@ -671,109 +648,101 @@ export async function getCurrentStreak(db: SQLiteDatabase) {
   }
 }
 
-// Streak Logic
+/**
+ * Updates the user's streak based on their last activity date.
+ *
+ * Rules:
+ * - If no streak exists → create a new streak starting today.
+ * - If last updated today → do nothing.
+ * - If last updated yesterday → increment the streak.
+ * - If last updated before yesterday → reset streak to 1 and re-insert.
+ *
+ * Behavior:
+ * - Uses **full ISO timestamps** for database storage (e.g., "2025-12-07T06:00:00.000Z").
+ * - Compares streak continuity using only the "YYYY-MM-DD" portion of the timestamp.
+ * - Ensures missing user IDs fail gracefully without throwing.
+ *
+ * @param db SQLiteDatabase — active database connection
+ * @returns A structured result describing what action occurred:
+ *          { ok, action: "insert" | "noop" | "update" | "reset-insert", num_days }
+ */
 export async function updateStreak(db: SQLiteDatabase) {
-    const id = await AsyncStorage.getItem('pawse.currentUserId')
+  
+  const id = await AsyncStorage.getItem("pawse.currentUserId");
+  if (!id) return { ok: false, reason: "no-user" };
 
-    console.log("entered");
-    if (!id) return { ok: false, reason: "no-user" };
-    console.log("I have an id");
-    const current_streak = true;
-    const now = todayLocalIso();
+  //
+  // Always use FULL ISO timestamps like "2025-12-07T06:00:00.000Z"
+  //
+  const now = new Date();
+  const todayISO = now.toISOString();                // full timestamp
+  const todayDate = todayISO.slice(0, 10);           // "YYYY-MM-DD"
 
-    const yesterday = previousDayLocalIso();
+  const yest = new Date(now);
+  yest.setDate(yest.getDate() - 1);
+  const yesterdayISO = yest.toISOString();
+  const yesterdayDate = yesterdayISO.slice(0, 10);   // "YYYY-MM-DD"
 
-    const current = await getCurrentStreak(db);
-  try {
-    console.log("updateStreak: user_id =", id, "now =", now);
+  // Fetch current streak row
+  const current = await getCurrentStreak(db);
 
-    // choose the available method
-    const queryAll = db.getAllAsync || db.getAll || db.all || db.allAsync || null;
-    const queryFirst = db.getFirstAsync || db.getFirst || null;
 
-    if (!queryAll && !queryFirst && !db.runAsync) {
-      console.error("No suitable DB query method found on db:", Object.keys(db));
-      return { ok: false, reason: "no-db-method" };
-    }
 
-    // get a sample row
-    const first_row = queryAll
-      ? await queryAll.call(db, `SELECT * FROM log_data WHERE user_id = ? LIMIT 1`, [id])
-      : // fallback to getFirst-like behavior
-        (await queryFirst.call(db, `SELECT * FROM log_data WHERE user_id = ? LIMIT 1`, [id]) ? 
-        [await queryFirst.call(db, `SELECT * FROM log_data WHERE user_id = ? LIMIT 1`, [id])] : []);
-
-    console.log("first_row:", JSON.stringify(first_row));
-
-    // check today's log
-  // if your log_data.date is stored like "MM/DD/YYYY" (example shows "10/26/2025")
-  const todayFormatted = todayLocalMMDDYYYY(); // new helper shown below
-
-  // const lastLogRows = queryAll
-  // ? await queryAll.call(db, `SELECT 1 FROM log_data WHERE user_id = ? AND report_date = ? LIMIT 1`, [id, todayFormatted])
-  // : (await queryFirst.call(db, `SELECT 1 FROM log_data WHERE user_id = ? AND report_date = ? LIMIT 1`, [id, todayFormatted]))
-  //   ? [await queryFirst.call(db, `SELECT 1 FROM log_data WHERE user_id = ? AND report_date = ? LIMIT 1`, [id, todayFormatted])]
-  //   : [];
-
-    const lastLog = await db.getFirstAsync<any>(
-      `SELECT * FROM log_data WHERE user_id = ? ORDER BY log_id DESC LIMIT 1`,
-      [id]
+  //
+  // ---- CASE 1: No streak exists yet → insert new streak ---
+  //
+  if (!current) {
+    await db.runAsync(
+      `INSERT INTO streak (start_date_streak, last_updated, num_days, user_id)
+       VALUES (?, ?, ?, ?)`,
+      [todayISO, todayISO, 1, id]
     );
-    const logDate = lastLog?.report_date?.slice(0, 10);
-    const date = new Date();
-    date.setDate(date.getDate() + 0);
-    const today = date.toISOString().slice(0, 10);
-    const yester = new Date();
-    yester.setDate(yester.getDate() + 1);
-    const yesterday = yester.toISOString().slice(0, 10);
-    
-    // console.log("lastLogRows:", JSON.stringify(lastLogRows));
-    // const hasTodayLog = Array.isArray(lastLogRows) ? lastLogRows.length > 0 : Boolean(lastLogRows);
-    // console.log("hasTodayLog:", hasTodayLog);
 
-    // if (!hasTodayLog) return { ok: false, reason: "no-today-log" };
-    
-    // continue with rest of updateStreak...
-  } catch (err) {
-    console.error("updateStreak query error:", err);
-    return { ok: false, reason: "query-error", error: err };
+    return { ok: true, action: "insert", num_days: 1 };
   }
 
-    try {
-      if (!current) {
-        console.log("inserted new streak");
+  //
+  // Compare dates using only the YYYY-MM-DD part
+  //
+  const lastUpdatedISO = current.last_updated || "";
+  const lastUpdatedDate = lastUpdatedISO.slice(0, 10);
 
-        await db.runAsync(
-          `INSERT INTO streak (start_date_streak,  num_days, user_id) VALUES (?, ?, ?)`,
-          [now, 1, id]
-        );
-        return { ok: true, action: "insert", num_days: 1 };
-      }
+  //
+  // ---- CASE 2: Updated today → no-op ---
+  //
+  if (lastUpdatedDate === todayDate) {
+    return { ok: true, action: "noop", num_days: current.num_days };
+  }
 
-      const lastDate = (current.last_updated || "").slice(0, 10);
+  //
+  // ---- CASE 3: Updated yesterday → continue streak ---
+  //
+  if (lastUpdatedDate === yesterdayDate) {
+    const newDays = current.num_days + 1;
 
-      if (lastDate === now) return { ok: true, action: "noop", num_days: current.num_days };
+    await db.runAsync(
+      `UPDATE streak
+       SET num_days = ?, last_updated = ?
+       WHERE streak_id = ? AND user_id = ?`,
+      [newDays, todayISO, current.streak_id, id]
+    );
 
-      if (lastDate === yesterday) {
-        const newDays = (current.num_days || 0) + 1;
-        await db.runAsync(
-          `UPDATE streak SET num_days = ?, last_updated = ? WHERE streak_id = ? AND user_id = ?`,
-          [newDays, now, current.streak_id, id]
-        );
-        return { ok: true, action: "update", num_days: newDays };
-      }
+    return { ok: true, action: "update", num_days: newDays };
+  }
 
-      await db.runAsync(
-        `INSERT INTO streak (start_date_streak, last_updated, num_days, user_id) VALUES (?, ?, ?, ?)`,
-        [now, now, 1, id]
-      );
-      return { ok: true, action: "reset-insert", num_days: 1 };
-    } catch (err) {
-      console.error("updateStreak db-error:", err);
-  
-      return { ok: false, reason: "db-error", error: err };
-    }
+  //
+  // ---- CASE 4: Missed a day → reset streak ---
+  //
+  await db.runAsync(
+    `INSERT INTO streak (start_date_streak, last_updated, num_days, user_id)
+     VALUES (?, ?, ?, ?)`,
+    [todayISO, todayISO, 1, id]
+  );
+
+  return { ok: true, action: "reset-insert", num_days: 1 };
 }
+
+
 
 function todayLocalMMDDYYYY() {
   const d = new Date();
@@ -1071,4 +1040,41 @@ export async function getPrintedTotal(db: SQLiteDatabase,) : Promise<number> {
     console.error('Could not get total:', error);
     throw error;
   }
+}
+
+
+export async function getActiveStreak(db: SQLiteDatabase) {
+  const id = await AsyncStorage.getItem("pawse.currentUserId");
+  if (!id) return 0;
+
+  // Fetch most recent streak row for this user
+  const row = await db.getFirstAsync<any>(
+    `SELECT num_days, last_updated
+       FROM streak
+      WHERE user_id = ?
+   ORDER BY streak_id DESC
+      LIMIT 1`,
+    [id]
+  );
+
+  if (!row) return 0; // no streak exists
+
+  // Check if streak is active (updated today or yesterday)
+  const lastUpdatedISO = row.last_updated;
+  const isActive = isActiveStreak(lastUpdatedISO);
+
+  return isActive ? row.num_days : 0;
+}
+
+function isActiveStreak(lastUpdatedISO: string): boolean {
+  if (!lastUpdatedISO) return false;
+
+  const lastDate = lastUpdatedISO.slice(0, 10); // "YYYY-MM-DD"
+
+  const today = new Date().toISOString().slice(0, 10);
+  const yest = new Date();
+  yest.setDate(yest.getDate() - 1);
+  const yesterday = yest.toISOString().slice(0, 10);
+
+  return lastDate === today || lastDate === yesterday;
 }
