@@ -19,8 +19,15 @@ import {
   markLoggedIn,
   setCurrentUserId,
 } from '../lib/db'
+
+// USE_LOCAL_STORAGE and API_BASE are defined in _layout.tsx
+// USE_LOCAL_STORAGE = true means local-only (SQLite)
+// USE_LOCAL_STORAGE = false means server mode (REST API)
+// For our purposes, we use local-only
 import { API_BASE, USE_LOCAL_STORAGE } from './_layout'
 
+// Registration page for new users
+// Pops up only if no session is found
 export default function RegisterPage() {
   const db = useSQLiteContext()
   const router = useRouter()
@@ -36,10 +43,13 @@ export default function RegisterPage() {
     [firstName, lastName, submitting]
   )
 
+  // On mount, check for existing session
+  // If found, redirect to home
     useMemo(() => {
     let cancelled = false
     ;(async () => {
       try {
+        // check auth state
         await ensureAuthStateRow(db)
         const state = await getAuthState(db)
         if (!cancelled && state.is_logged_in === 1) {
@@ -48,7 +58,7 @@ export default function RegisterPage() {
           return
         }
 
-      
+      // no session found, continue to registration
       } finally {
         if (!cancelled) setBootChecking(false)
       }
@@ -57,19 +67,22 @@ export default function RegisterPage() {
   }, [db, router])
 
 
+  // Create local account
+  // Our user only has first and last name for now, since we are local only.
+  // You can expand this to include username, email, password, etc.
   const createLocalAccount = useCallback(async () => {
     setSubmitting(true)
     setMsg('')
 
     try {
       await ensureAuthStateRow(db)
-      // 1) add user
+      // 1) Add user
       const created = await addLocalUser(db as any, {
         username: "user",
         email: "email",
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        password: '', // no password for local-only
+        password: '', // no password for local-only, change as needed
         createdAt: new Date(),
         profilePicture: "pat-neff.png",
       })
@@ -79,8 +92,11 @@ export default function RegisterPage() {
       await AsyncStorage.setItem('user', JSON.stringify(created))
       await markLoggedIn(db as any, String(created.id))
 
-      console.log('[register] created user:', created) // ← logs what was created
+      // log what was created
+      console.log('[register] created user:', created) 
       setMsg(`✅ Created ${created.firstName} ${created.lastName} (@${created.username})`)
+
+      // navigate to home page
       router.replace('/(tabs)/home')
     } catch (e: any) {
       console.error('[register] create failed:', e)
@@ -101,11 +117,13 @@ export default function RegisterPage() {
     await createLocalAccount()
   }, [canSubmit, createLocalAccount])
 
+  // Render registration form
   if (!bootChecking) return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      {/* Registration form text*/}
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <XStack flex={1} justifyContent="center" alignItems="center">
           <YStack gap="$6" width="86%" maxWidth={520} paddingVertical="$6">
@@ -114,6 +132,7 @@ export default function RegisterPage() {
               Just enter your first and last name to get started!
             </Paragraph>  
 
+            {/* Registration form fields */}
             <YStack gap="$3">
               <YStack gap="$2">
                 <Text fontSize="$3" color="$gray11">First name</Text>
@@ -160,6 +179,7 @@ export default function RegisterPage() {
 
               <Separator />
 
+              {/* Mode info, user can see if they are in local or server mode for testing */}
               <Text fontSize="$2" color="$gray9" alignSelf="center">
                 {USE_LOCAL_STORAGE ? 'Mode: Local (SQLite)' : `Mode: Server (${API_BASE})`}
               </Text>

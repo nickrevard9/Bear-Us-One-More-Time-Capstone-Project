@@ -1,10 +1,18 @@
 import React, {use, useEffect, useState } from  'react';
 import {StyleSheet, Alert } from "react-native";
 import Modal from "react-native-modal";
-import { View, Button, Card, Input, XStack, Text, ToggleGroup as ToggleGroupBase, Image, YStack, H6, H5, H2 } from "tamagui";
+import { View, Button, Card, Text, Image, YStack, H6, H5, H2 } from "tamagui";
 import { Achievement } from "../lib/db"
 import { image_requires } from '@/assets/images/achievement_images';
 
+/**
+ * Props for CongratsModal component
+ * @property {Achievement[]} achievements - List of achievements earned
+ * @property {boolean} streak_increased - Whether the user's streak has increased
+ * @property {number} [streak] - The new streak value, if applicable
+ * @property {boolean} isVisible - Whether the modal is visible
+ * @property {() => void} onConfirm - Callback function when the modal is confirmed/closed
+ */
 type CongratsModalProps = {
     achievements: Achievement[]
     streak_increased: boolean;
@@ -13,6 +21,13 @@ type CongratsModalProps = {
     onConfirm: () => void;
 };
 
+/**
+ * CongratsModal
+ * 
+ * A modal component that displays achievements earned and streak increases.
+ * @param {CongratsModalProps} props - Props for the CongratsModal component 
+ * @returns 
+ */
 export function CongratsModal({achievements, streak_increased, streak, isVisible, onConfirm}:CongratsModalProps) {
     const [index, setIndex] = useState<number>(0)
     function onNext(): void {
@@ -24,6 +39,12 @@ export function CongratsModal({achievements, streak_increased, streak, isVisible
         }
     }
     
+    /**
+     * renderCards
+     * 
+     * Renders the achievement and streak cards for the modal.
+     * @returns The array of card elements to be displayed in the modal.
+     */
     function renderCards() {
         const elements = [];
 
@@ -59,8 +80,9 @@ export function CongratsModal({achievements, streak_increased, streak, isVisible
         return elements;
     }
 
-    const e = renderCards();
+    const e = renderCards(); // Make the cards
 
+    // Render the modal with the current card
     return(
         <View style={{flex: 2}}>
           <Modal
@@ -76,6 +98,7 @@ export function CongratsModal({achievements, streak_increased, streak, isVisible
     );
 }
 
+// Styles for the CongratsModal component
 const styles = StyleSheet.create({
   centeredView: {
     flex: 1,
@@ -96,26 +119,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-  },
-  button: {
-    borderRadius: 20,
-    padding: 10,
-    elevation: 2,
-  },
-  Input: {
-    fontSize: 22,
-    backgroundColor:"#bdbdbd28",
-    width: 70, 
-    height: 70,
-    textAlign: 'center',
-  },
-    InputError: {
-    color: "red",
-    fontSize: 22,
-    backgroundColor:"#bdbdbd28",
-    width: 70, 
-    height: 70,
-    textAlign: 'center',
   },
   modalText: {
     marginBottom: 15,
