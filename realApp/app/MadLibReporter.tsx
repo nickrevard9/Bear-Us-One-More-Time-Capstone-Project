@@ -308,21 +308,32 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
    * @returns boolean indicating whether streak changed
    */
   async function getStreak(): Promise<boolean> {
-    const curr_streak = await getCurrentStreak(db);
-    if (
-      !curr_streak ||
-      isTodayOrYesterday(curr_streak.last_updated) ||
-      isTodayOrYesterday(curr_streak.start_date_streak)
-    ) {
-      const streak = await updateStreak(db); // Streak is active, update it
-      setCurrentStreak(streak.num_days);
-      setStreakChanged(true);
-      return true;
+    // Let updateStreak decide what actually happened
+    const result = await updateStreak(db); 
+    // result looks like: { ok: boolean, action?: string, num_days?: number }
+
+    if (!result || !result.ok) {
+      // query failed or no log for today – don’t show popup
+      setStreakChanged(false);
+      return false;
     }
-    console.log('The change is unecessay');
-    setStreakChanged(false);
-    return false;
+
+    // Keep the current streak count in state
+    if (typeof result.num_days === 'number') {
+      setCurrentStreak(result.num_days);
+    }
+
+    // Only treat as a "change" if action is not "noop"
+    const changed =
+      result.action === 'insert' ||
+      result.action === 'update' ||
+      result.action === 'reset-insert';
+
+    setStreakChanged(changed);
+    return changed;
   }
+
+
 
   /**
    * getAchievements
