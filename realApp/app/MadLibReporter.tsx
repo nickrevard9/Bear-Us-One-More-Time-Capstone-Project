@@ -37,7 +37,7 @@ import {
   calculateAchievements,
 } from '../lib/db';
 import type { Achievement } from '../lib/db';
-import CongratsModal from '@/components/TopPlatforms';
+import {CongratsModal} from '@/components/congratsmodal';
 import { HelpCircle } from '@tamagui/lucide-icons';
 import Tooltip from 'rn-tooltip';
 

@@ -8,7 +8,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { deleteLogByLogID, duplicateLog, getLogByLogID, insertLog, LogData, updateLog, getCurrentStreak, getNonWorkMediaHoursForDate, updateStreak, calculateAchievements } from "../lib/db";
 import { HelpCircle } from '@tamagui/lucide-icons';
 import { TimePicker } from '@/components/timepicker';
-import CongratsModal from '@/components/TopPlatforms';
+import { CongratsModal } from '@/components/congratsmodal';
 import Tooltip from "rn-tooltip";
 import { KeyboardAvoidingView, Platform, TextInput } from 'react-native';
 
