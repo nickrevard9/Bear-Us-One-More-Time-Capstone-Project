@@ -6,7 +6,7 @@ import { Bell } from '@tamagui/lucide-icons';
 
 const { height: screenHeight } = Dimensions.get('window');
 
-export function HeaderNotifications(props: {route_name: any}) {
+export function HeaderNotifications(props: {route_name?: any}) {
   const router = useRouter();
   const headerHeight = screenHeight * 0.135; // making height of header reactive to the screen size
 
@@ -21,7 +21,7 @@ export function HeaderNotifications(props: {route_name: any}) {
       borderColor="$backgroundStrong"
     >
       <XStack alignItems="center" justifyContent="space-between">
-        {(props.route_name == "report_page" || props.route_name == "edit_page")  && 
+        {(props.route_name && props.route_name == "report_page" || props.route_name == "edit_page")  && 
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={{ fontSize: 28, fontWeight: 'bold' }} onPress={() => router.back()}>{'←'}</Text>
         </TouchableOpacity>}
