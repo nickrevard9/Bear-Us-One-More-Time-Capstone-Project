@@ -37,7 +37,7 @@ import {
   calculateAchievements,
 } from '../lib/db';
 import type { Achievement } from '../lib/db';
-import {CongratsModal} from '@/components/congratsmodal';
+import { CongratsModal } from '@/components/congratsmodal';
 import { HelpCircle } from '@tamagui/lucide-icons';
 import Tooltip from 'rn-tooltip';
 
@@ -46,13 +46,29 @@ interface ReporterProps {
   log_id?: number;
 }
 
-// Function to round date to nearest 5 minutes
+/**
+ * roundToNearest5
+ *
+ * Rounds a Date object to the nearest 5 minutes.
+ * Used to make start/end times snap to regular intervals.
+ *
+ * @param date - Date with time to be rounded
+ * @returns Date rounded to nearest 5-minute mark
+ */
 function roundToNearest5(date: Date): Date {
   const ms = 1000 * 60 * 5; // 5 minutes in milliseconds
   return new Date(Math.round(date.getTime() / ms) * ms);
 }
 
-// How the sentence connects the medium to the blank, based on medium
+/**
+ * getMediumConnector
+ *
+ * Returns a connector phrase to join the medium and channel
+ * in the Mad Lib sentence (e.g. "to watch", "to listen to", "on").
+ *
+ * @param medium - current medium string
+ * @returns connector phrase used in the sentence
+ */
 function getMediumConnector(medium: string): string {
   // Watch-type media
   if (
@@ -84,18 +100,25 @@ function getMediumConnector(medium: string): string {
   return ' on ';
 }
 
+/**
+ * ReporterMadlib
+ *
+ * Mad Lib–style logging component.
+ * Builds a log entry via a sentence-style form and stores it in SQLite.
+ */
 const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
   const router = useRouter(); // Expo Router for navigation
   const db = useSQLiteContext(); // SQLite context for database access
-  const theme = useTheme();
+  const theme = useTheme(); // Tamagui theme for colors
 
-  // State to track the current log's ID
+  // State to track the current log's ID (if editing)
   const [logId] = useState<number | null>(log_id ?? null);
 
   // Edit mode is true if editing an existing log
   const [editMode, setEditMode] = useState(false);
 
-  // States for date and time pickers
+  // --------- Date / Time initial state setup ---------
+  // Default start date is one hour before now, rounded to nearest 5 mins
   const incrementedDate = new Date();
   const startHours = incrementedDate.getHours() - 1;
   incrementedDate.setHours(startHours < 0 ? startHours + 24 : startHours);
@@ -104,22 +127,24 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
 
+  // Default end date is now, rounded to nearest 5 mins
   const [end_date, setEndDate] = useState<Date>(roundToNearest5(new Date()));
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
-  // Other form fields
+  // --------- Other form fields ---------
   const [description, setDescription] = useState('');
   const [channel, setChannel] = useState('');
   const [medium, setMedium] = useState('');
 
+  // Validation error flags
   const [dateError, setDateError] = useState(false);
   const [mediumError, setMediumError] = useState(false);
   const [channelError, setChannelError] = useState(false);
   const [motivationError, setMotivationError] = useState(false);
   const [descriptionError, setDescriptionError] = useState(false);
 
-  // Congrats Modal for Achievements and Streaks
+  // Congrats Modal state for Achievements and Streaks
   const [showPopup, setShowPopup] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [streakChanged, setStreakChanged] = useState(false);
@@ -145,7 +170,7 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     { label: 'Other', value: 'Other' },
   ];
 
-  // Whether the activity was intentional
+  // Whether the activity was intentional (true) or in the background (false)
   const [isIntentional, setIsIntentional] = useState(false);
 
   // Whether the medium has been selected
@@ -164,7 +189,7 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     { label: 'Other', value: 'Other' },
   ];
 
-  // Placeholder Texts for Channel based on medium selected
+  // Placeholder texts for Channel based on medium selected
   const channelPlaceholders: { [key: string]: string } = {
     '': 'e.g., Enter platform here',
     'Car Stereo': 'e.g., FM Radio, Spotify',
@@ -184,7 +209,7 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     'Other': 'e.g., Enter platform here',
   };
 
-  // Placeholder Texts for Description based on motivation selected
+  // Placeholder texts for Description based on motivation selected
   const descriptionPlaceholders: { [key: string]: string } = {
     '': 'e.g., Describe your activity here',
     'Ambient': 'e.g., Background music while working',
@@ -197,12 +222,25 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     'Other': 'e.g., Describe your activity here',
   };
 
-  // Function checking if start and end dates are valid
+  /**
+   * validateDates
+   *
+   * Sets dateError based on whether start is after end.
+   * @param start - start date
+   * @param end - end date
+   */
   function validateDates(start: Date, end: Date) {
     setDateError(start > end);
   }
 
-  // Function to load an existing log from the database
+  /**
+   * obtainLog
+   *
+   * Loads log data from the database by ID and populates form fields.
+   * Sets editMode to true when an existing log is loaded.
+   *
+   * @param id - log_id of the log being edited
+   */
   async function obtainLog(id: number) {
     const log: LogData | null = await getLogByLogID(db, id);
     if (!log) {
@@ -218,10 +256,16 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     setPrimaryMotivation(log.primary_motivation);
   }
 
-  // Intervention check: non-work media > 5 hours for last 3 days
+  /**
+   * checkIntervention
+   *
+   * Intervention check: calculates non-work media hours
+   * for the last 3 days and alerts if each day exceeds 5 hours.
+   */
   const checkIntervention = async () => {
     const now = new Date();
 
+    // build 'YYYY-MM-DD' for a date
     const mkYmd = (d: Date) => {
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -229,6 +273,7 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
       return `${y}-${m}-${day}`;
     };
 
+    // collect the three most recent calendar days
     const days: string[] = [];
     for (let offset = 0; offset < 3; offset++) {
       const d = new Date(now);
@@ -236,12 +281,14 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
       days.push(mkYmd(d));
     }
 
+    // query db for each day’s non-work media hours
     const hoursArr: number[] = [];
     for (const ymd of days) {
       const h = await getNonWorkMediaHoursForDate(db, ymd);
       hoursArr.push(h);
     }
 
+    // require strictly more than 5 hours on all 3 days
     const triggered = hoursArr.every((h) => h > 5);
 
     if (triggered) {
@@ -252,18 +299,39 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     }
   };
 
+  /**
+   * getStreak
+   *
+   * Checks and updates the user's current streak.
+   * If no streak or last updated is today/yesterday, it updates via updateStreak.
+   *
+   * @returns boolean indicating whether streak changed
+   */
   async function getStreak(): Promise<boolean> {
     const curr_streak = await getCurrentStreak(db);
-    if (!curr_streak || isTodayOrYesterday(curr_streak.last_updated)) {
+    if (
+      !curr_streak ||
+      isTodayOrYesterday(curr_streak.last_updated) ||
+      isTodayOrYesterday(curr_streak.start_date_streak)
+    ) {
       const streak = await updateStreak(db); // Streak is active, update it
       setCurrentStreak(streak.num_days);
       setStreakChanged(true);
       return true;
     }
+    console.log('The change is unecessay');
     setStreakChanged(false);
     return false;
   }
 
+  /**
+   * getAchievements
+   *
+   * Calculates and sets any new achievements earned by the user.
+   * New achievements are stored in state.
+   *
+   * @returns boolean indicating whether new achievements were gained
+   */
   async function getAchievements(): Promise<boolean> {
     const achievements = await calculateAchievements(db);
     if (achievements && achievements.length > 0) {
@@ -275,6 +343,12 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     return false;
   }
 
+  /**
+   * nextPage
+   *
+   * After a user submits a log, check for streak and achievements.
+   * If either triggers, show the CongratsModal; otherwise, navigate back.
+   */
   async function nextPage() {
     const a = await getStreak();
     const b = await getAchievements();
@@ -285,6 +359,15 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     }
   }
 
+  /**
+   * isTodayOrYesterday
+   *
+   * Checks if a given date string corresponds to today or yesterday.
+   * Used to see if streak should be updated.
+   *
+   * @param dateStr - date string of last streak update (from DB)
+   * @returns true if date is today or yesterday, false otherwise
+   */
   function isTodayOrYesterday(dateStr: string): boolean {
     const inputDate = new Date(dateStr);
     const now = new Date();
@@ -294,12 +377,24 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
 
-    const input = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
+    const input = new Date(
+      inputDate.getFullYear(),
+      inputDate.getMonth(),
+      inputDate.getDate(),
+    );
 
-    return input.getTime() === today.getTime() || input.getTime() === yesterday.getTime();
+    return (
+      input.getTime() === today.getTime() ||
+      input.getTime() === yesterday.getTime()
+    );
   }
 
-  // useFocusEffect runs whenever this screen gains focus
+  /**
+   * useFocusEffect
+   *
+   * Runs whenever this screen gains focus.
+   * If editing, loads existing log data; otherwise, resets form for a new log.
+   */
   useFocusEffect(
     useCallback(() => {
       setHaveAchievements(false);
@@ -317,9 +412,11 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
         setEditMode(false);
         setChannel('');
         setEndDate(roundToNearest5(new Date()));
+
         const newStart = new Date();
         const h = newStart.getHours() - 1;
         newStart.setHours(h < 0 ? h + 24 : h);
+
         setStartDate(roundToNearest5(newStart));
         setDescription('');
         setIsIntentional(false);
@@ -334,12 +431,21 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     }, [logId]),
   );
 
-  // Handle form submission: insert or update log
+  /**
+   * handleSubmit
+   *
+   * Handles form submission: validates fields, builds a LogData object,
+   * and either inserts or updates the log in the database.
+   * Then runs intervention check and moves to next page (streaks/achievements).
+   */
   const handleSubmit = async () => {
+    // Check for date errors
     if (dateError) {
       Alert.alert('Please fix date errors before submitting');
       return;
     }
+
+    // Required field validation
     if (medium === '') {
       setMediumError(true);
     }
@@ -352,11 +458,17 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     if (description === '') {
       setDescriptionError(true);
     }
-    if (medium === '' || channel === '' || primaryMotivation === '' || description === '') {
+    if (
+      medium === '' ||
+      channel === '' ||
+      primaryMotivation === '' ||
+      description === ''
+    ) {
       Alert.alert('Please fill in all required fields before submitting');
       return;
     }
 
+    // Build report_date in YYYY-MM-DDThh:mm:00 format
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -374,15 +486,19 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
       report_date: `${year}-${month}-${day}T${hours}:${minutes}:00`,
       description,
     };
+
+    // Include log_id if editing
     if (logId) {
-      log.log_id = logId; // Include log ID if editing
+      log.log_id = logId;
     }
 
     try {
       if (editMode) {
-        await updateLog(db, log); // Update existing log
+        // Update existing log
+        await updateLog(db, log);
       } else {
-        await insertLog(db, log); // Insert new log
+        // Insert new log
+        await insertLog(db, log);
       }
 
       await checkIntervention();
@@ -393,7 +509,12 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     }
   };
 
-  // Handle deleting an existing log
+  /**
+   * handleDelete
+   *
+   * Handles deleting an existing log.
+   * Only allowed in edit mode with a valid logId.
+   */
   const handleDelete = async () => {
     try {
       if (!editMode) {
@@ -414,7 +535,12 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     }
   };
 
-  // Handle duplicate
+  /**
+   * handleDuplicate
+   *
+   * Duplicates the current log entry in the database
+   * and then runs streak/achievement flow.
+   */
   const handleDuplicate = async () => {
     try {
       if (!logId) {
@@ -429,11 +555,22 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     }
   };
 
-  // Start date picker handlers
+  // --------- START DATE + TIME PICKERS ---------
+
+  /**
+   * onDismissStartDate
+   *
+   * Handles dismissing the start date picker.
+   */
   const onDismissStartDate = useCallback(() => {
     setShowStartDatePicker(false);
   }, []);
 
+  /**
+   * onConfirmStartDate
+   *
+   * Handles confirming a new start date (keeps the same time portion).
+   */
   const onConfirmStartDate = useCallback(
     (params: { date?: Date }) => {
       setShowStartDatePicker(false);
@@ -451,10 +588,20 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     [start_date, end_date],
   );
 
+  /**
+   * onDismissStartTime
+   *
+   * Handles dismissing the start time picker.
+   */
   const onDismissStartTime = useCallback(() => {
     setShowStartTimePicker(false);
   }, []);
 
+  /**
+   * onConfirmStartTime
+   *
+   * Handles confirming a new start time (keeps the same date).
+   */
   const onConfirmStartTime = useCallback(
     (params: { hours: number; minutes: number }) => {
       setShowStartTimePicker(false);
@@ -471,11 +618,22 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     [start_date, end_date],
   );
 
-  // End date picker handlers
+  // --------- END DATE + TIME PICKERS ---------
+
+  /**
+   * onDismissEndDate
+   *
+   * Handles dismissing the end date picker.
+   */
   const onDismissEndDate = useCallback(() => {
     setShowEndDatePicker(false);
   }, []);
 
+  /**
+   * onConfirmEndDate
+   *
+   * Handles confirming a new end date (keeps the same time portion).
+   */
   const onConfirmEndDate = useCallback(
     (params: { date?: Date }) => {
       setShowEndDatePicker(false);
@@ -493,10 +651,20 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     [start_date, end_date],
   );
 
+  /**
+   * onDismissEndTime
+   *
+   * Handles dismissing the end time picker.
+   */
   const onDismissEndTime = useCallback(() => {
     setShowEndTimePicker(false);
   }, []);
 
+  /**
+   * onConfirmEndTime
+   *
+   * Handles confirming a new end time (keeps the same date).
+   */
   const onConfirmEndTime = useCallback(
     (params: { hours: number; minutes: number }) => {
       setShowEndTimePicker(false);
@@ -513,6 +681,8 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
     [start_date, end_date],
   );
 
+  // --------- RENDER ---------
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -520,16 +690,19 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
       style={{ flex: 1 }}
     >
       <View style={{ flex: 1 }} paddingHorizontal={10}>
-        {/* Header with back arrow and title */}
+        {/* Header with back arrow, title, and help tooltip */}
         <XStack
           alignItems="center"
           justifyContent="space-between"
           paddingBottom={20}
           paddingTop={10}
         >
+          {/* Back navigation */}
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={{ fontSize: 28, fontWeight: 'bold' }}>{'←'}</Text>
           </TouchableOpacity>
+
+          {/* Centered title */}
           <H6
             style={{
               textAlign: 'center',
@@ -541,6 +714,8 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
           >
             Log
           </H6>
+
+          {/* Tooltip explaining the Mad Lib style */}
           <Tooltip
             actionType="press"
             height={150}
@@ -557,6 +732,7 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
           </Tooltip>
         </XStack>
 
+        {/* Modal shown when streak/achievements change */}
         <CongratsModal
           achievements={new_achievements}
           streak_increased={streakChanged}
@@ -568,9 +744,10 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
           }}
         />
 
+        {/* Main scrollable content */}
         <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
           <YStack gap="$4">
-            {/* Sentence 1: time window */}
+            {/* Sentence 1: time window (start/end dates and times) */}
             <XStack flexWrap="wrap" alignItems="center" gap="$2">
               {/* Chunk 1: On [start date] */}
               <XStack alignItems="center">
@@ -652,7 +829,7 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
               </XStack>
             </XStack>
 
-            {/* Date & time pickers */}
+            {/* Date & time pickers (hidden until toggled) */}
             <DatePicker
               isVisible={showStartDatePicker}
               onDismiss={onDismissStartDate}
@@ -682,6 +859,7 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
               minutes={end_date.getMinutes()}
             />
 
+            {/* Date validation error message */}
             {dateError && <Text color="red">End time must be after start time</Text>}
 
             {/* Sentence 2: medium + channel + intentional */}
@@ -693,7 +871,7 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
                 <Dropdown
                   data={mediums}
                   placeholder="medium"
-                  value={medium || null}   // important: null instead of '' when empty
+                  value={medium || null} // important: null instead of '' when empty
                   onChange={(item: any) => {
                     setMedium(item.value);
                     setMediumError(false);
@@ -713,17 +891,17 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
                     ellipsizeMode: 'tail',
                     style: {
                       color: !isMediumSelected
-                        ? '#777'                        // grey when nothing chosen
+                        ? '#777' // grey when nothing chosen
                         : mediumError
-                        ? 'red'                         // red on error
-                        : theme.color.get(),           // normal sentence color when chosen
+                        ? 'red' // red on error
+                        : theme.color.get(), // normal sentence color when chosen
                       fontSize: 16,
                     },
                   }}
                 />
               </RNView>
 
-              {/* Dynamic connector based on medium */}
+              {/* Dynamic connector based on medium (to watch / to listen to / on / etc.) */}
               <Text>{getMediumConnector(medium)}</Text>
 
               {/* Channel / content blank */}
@@ -745,7 +923,7 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
 
               <Text>, and it was </Text>
 
-              {/* Intentional text toggle */}
+              {/* Intentional text toggle ("on purpose" vs "in the background") */}
               <TouchableOpacity onPress={() => setIsIntentional(!isIntentional)}>
                 <Text
                   style={{
@@ -760,10 +938,11 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
               <Text>.</Text>
             </XStack>
 
+            {/* Validation messages for medium / channel */}
             {mediumError && <Text color="red">Must have a media type</Text>}
             {channelError && <Text color="red">Must have a platform</Text>}
 
-            {/* Sentence 3: motivation */}
+            {/* Sentence 3: motivation dropdown */}
             <XStack flexWrap="wrap" alignItems="center">
               <Text>My primary motivation was </Text>
 
@@ -800,9 +979,10 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
               <Text>.</Text>
             </XStack>
 
+            {/* Motivation validation message */}
             {motivationError && <Text color="red">Must have a motivation</Text>}
 
-            {/* Sentence 4 + TextArea: description */}
+            {/* Sentence 4 + TextArea: detailed description */}
             <YStack gap="$2">
               <Paragraph fontSize={16}>
                 <Text>In more detail, I…</Text>
@@ -826,6 +1006,7 @@ const ReporterMadlib: React.FC<ReporterProps> = ({ log_id }) => {
                 }}
               />
 
+              {/* Description validation */}
               {descriptionError && <Text color="red">Must have a description</Text>}
             </YStack>
 
