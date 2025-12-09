@@ -9,7 +9,7 @@ const ReportPage = () => {
   const { log_id } = useLocalSearchParams<{ log_id?: string }>();
 
   // true = Mad Lib style, false = original Report style
-  const [useMadlib, setUseMadlib] = useState(true);
+  const [useMadlib, setUseMadlib] = useState(false);
 
   const parsedLogId = log_id ? Number(log_id) : undefined;
 
