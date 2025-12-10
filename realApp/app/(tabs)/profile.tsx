@@ -1,4 +1,3 @@
-// app/(tabs)/profile.tsx
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, Switch } from "react-native";
 import {
@@ -16,8 +15,6 @@ import {
 import {
   CreditCard,
   Download,
-  LogOut as LogOutIcon,
-  Settings,
   Bell,
   Flame,
   Trophy,
@@ -34,7 +31,6 @@ import {
   scheduleDailyNotification,
   cancelAllScheduled,
   listScheduled,
-  runNotificationDiagnostics,
   ensurePermission,
 } from "../../lib/notifications";
 import { loadPrefs, savePrefs } from "../../lib/reminderPrefs";
@@ -45,9 +41,6 @@ const profileImages: Record<string, any> = {
   "honey-bear.jpg": require("../../assets/images/honey-bear.jpg")
 };
 
-/* ------------------------------------------
- * Small helpers
- * ------------------------------------------ */
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function delKV(key: string) {
@@ -57,8 +50,6 @@ async function delKV(key: string) {
     try { await SecureStore.deleteItemAsync(key); } catch {}
   }
 }
-
-
 
 // CSV cell & join
 function csvCell(s: any): string {
@@ -70,8 +61,6 @@ function csvCell(s: any): string {
 function rowsToCSV(rows: (string | number | null | undefined)[][]): string {
   return rows.map((r) => r.map(csvCell).join(",")).join("\n");
 }
-
-
 
 function todayLocalIso() {
   const now = new Date();
@@ -91,10 +80,6 @@ function previousDayLocalIso() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-
-
-
-
 /** Compute a safe next-occurrence (avoid “now”) */
 function computeSafeDailyTarget(base: Date): Date {
   const now = new Date();
@@ -106,9 +91,19 @@ function computeSafeDailyTarget(base: Date): Date {
   return target;
 }
 
-/* ------------------------------------------
- * Main Component
- * ------------------------------------------ */
+/**
+ * this is the profile page
+ * 
+ * functionality:
+ * - edit profile
+ * - view achievements
+ * - export report as CSV
+ * - set "🔥 Save Your Streak" reminders
+ * 
+ * users can also view their current streak on this page
+ * 
+ * @returns profile page
+ */
 export default function Profile() {
   const router = useRouter();
   const db = useSQLiteContext();
@@ -132,12 +127,8 @@ export default function Profile() {
   /* Refresh display name when tab gains focus */
   useFocusEffect(
     useCallback(() => {
-
       (async () => {
-
-
         try {
-
          const user = await getCurrentUser(db);
          
 
@@ -164,7 +155,6 @@ export default function Profile() {
           setStreakDays(0);
         }
       })();
-
 
     }, [db])
   );
@@ -300,19 +290,6 @@ export default function Profile() {
     }
   }, [db]);
 
-  /* Logout */
-  const onLogout = useCallback(async () => {
-    try {
-      await markLoggedOut(db);
-      await delKV("user");
-      await delKV("accessToken");
-      setDisplayName("Your Name");
-      router.replace("/new user");
-    } catch (e: any) {
-      Alert.alert("Logout failed", e?.message ?? "Unknown error");
-    }
-  }, [db, router]);
-
   /* Toggle daily reminders (with defensive logging + polling list) */
   const onToggleReminders = useCallback(
     async (value: boolean) => {
@@ -334,8 +311,8 @@ export default function Profile() {
         const id = await scheduleDailyNotification(
           hour,
           minute,
-          "⏰ Daily check-in",
-          "Don’t forget to log your activity today!"
+          "🔥 Save Your Streak",
+          "Don’t forget to log your activity for today!"
         );
         //console.log("[Profile] Scheduled daily reminder ID:", id);
         setScheduledId(id);
@@ -398,7 +375,7 @@ export default function Profile() {
       const id = await scheduleDailyNotification(
         hour,
         minute,
-        "⏰ Daily check-in",
+        "🔥 Save Your Streak",
         "Don’t forget to log your activity today!"
       );
       //console.log("[Profile] Re-scheduled daily reminder ID:", id);
@@ -416,10 +393,6 @@ export default function Profile() {
 
   const onCancelTime = useCallback(() => setShowPicker(false), []);
 
-
-  /* ------------------------------------------
-   * UI
-   * ------------------------------------------ */
   return (
     <ScrollView
       style={{ flex: 1 }}
@@ -482,13 +455,6 @@ export default function Profile() {
           <Button backgroundColor="automatic" icon={Settings} onPress={() => router.push("/settings")}>
             Settings
           </Button> */}
-
-          {/* <Separator marginVertical={10} width={'85%'} alignSelf="center" />
-          <Button backgroundColor="automatic" icon={LogOutIcon} onPress={onLogout}>
-            Log Out
-          </Button> */}
-
-
 
           {/* Reminders */}
           <Separator marginVertical={15} />

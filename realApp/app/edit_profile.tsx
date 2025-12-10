@@ -6,6 +6,14 @@ import { useSQLiteContext } from "expo-sqlite";
 import { getCurrentUser, UserData } from "../lib/db";
 import { Keyboard, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from "react-native";
 
+/**
+ * this is the edit profile page
+ * 
+ * It allows users to add their own custom photos as their profile picture.
+ * It also allows them to edit their name.
+ * 
+ * @returns edit profile page
+ */
 export default function EditProfile() {
   const router = useRouter();
   const db = useSQLiteContext(); 
@@ -14,6 +22,7 @@ export default function EditProfile() {
   const [lastName, setLastName] = useState("");
   const [profilePicture, setProfilePicture] = useState<string>("");
 
+  // get user information
   useEffect(() => {
     (async () => {
       const current = await getCurrentUser(db);
@@ -26,6 +35,7 @@ export default function EditProfile() {
     })();
   }, [db]);
 
+  // allow user to pick their own image
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
@@ -37,6 +47,7 @@ export default function EditProfile() {
     }
   };
 
+  // save the changes the user made
   const handleSave = async () => {
     if (!user) return;
 
@@ -53,6 +64,7 @@ export default function EditProfile() {
   };
 
 return (
+  // make sure the keyboard doesn't block view of the text input fields
   <KeyboardAvoidingView
     style={{ flex: 1 }}
     behavior={Platform.OS === "ios" ? "padding" : "height"}

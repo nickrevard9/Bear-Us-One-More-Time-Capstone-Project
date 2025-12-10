@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import { SQLiteDatabase } from "expo-sqlite";
 
 /* Foreground handler */
+// Show notifications when app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -14,6 +15,7 @@ Notifications.setNotificationHandler({
 });
 
 /* Android channel */
+// Ensure the notification channel exists on Android
 async function ensureAndroidChannel() {
   if (Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync("daily-default", {
@@ -26,6 +28,8 @@ async function ensureAndroidChannel() {
 }
 
 /* Permissions */
+// Ensure notification permissions are granted
+// Will prompt the user if not already granted
 export async function ensurePermission(): Promise<boolean> {
   const cur = await Notifications.getPermissionsAsync();
   if (cur.status === "granted") return true;
@@ -36,6 +40,10 @@ export async function ensurePermission(): Promise<boolean> {
 }
 
 /* One-shot (seconds) — uses TIME_INTERVAL type */
+// Used to schedule a notification after a certain number of seconds
+// sound can be true (default), false (no sound), or a string for custom sound
+
+// (mainly used for testing the notifications)
 export async function scheduleNotification(
   seconds: number,
   title: string,
@@ -54,8 +62,6 @@ export async function scheduleNotification(
     channelId: Platform.OS === "android" ? "daily-default" : undefined,
   };
 
-  console.log("[Notifications] Scheduling one-shot:", { seconds, title, body, trigger });
-
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -65,11 +71,12 @@ export async function scheduleNotification(
     trigger,
   });
 
-  console.log("[Notifications] One-shot scheduled with ID:", id);
   return id;
 }
 
 /* Calendar ONE-SHOT (fires at a specific Date) — uses CALENDAR type */
+// Used to schedule a notification at a specific date and time (non-repeating)
+// CALENDAR type is used to target specific date/time
 export async function scheduleCalendarOneShot(date: Date, title: string, body: string) {
   await ensureAndroidChannel();
   const ok = await ensurePermission();
@@ -81,17 +88,16 @@ export async function scheduleCalendarOneShot(date: Date, title: string, body: s
     channelId: Platform.OS === "android" ? "daily-default" : undefined,
   };
 
-  console.log("[Notifications] Scheduling calendar one-shot:", { date: date.toString(), title, body, trigger });
-
   const id = await Notifications.scheduleNotificationAsync({
     content: { title, body, sound: "default" },
     trigger,
   });
-  console.log("[Notifications] Calendar one-shot scheduled with ID:", id);
   return id;
 }
 
 /* Daily repeating (calendar-based) — uses CALENDAR type */
+// Used to schedule a daily repeating notification at a specific hour and minute
+// CALENDAR type is used to target specific time
 export async function scheduleDailyNotification(
   hour: number,
   minute: number,
@@ -110,40 +116,39 @@ export async function scheduleDailyNotification(
     channelId: Platform.OS === "android" ? "daily-default" : undefined,
   };
 
-  console.log("[Notifications] Scheduling daily reminder:", { hour, minute, title, body, trigger });
-
   const id = await Notifications.scheduleNotificationAsync({
     content: { title, body, sound: "default" },
     trigger,
   });
 
-  console.log("[Notifications] Daily scheduled with ID:", id);
   return id;
 }
 
 /* Utilities */
+// Used to cancel a specific scheduled notification by its ID
 export async function cancelScheduledNotification(id: string) {
   try {
-    console.log("[Notifications] Cancelling ID:", id);
     await Notifications.cancelScheduledNotificationAsync(id);
   } catch (err) {
     console.error("[Notifications] Cancel error:", err);
   }
 }
 
+
+// Used to cancel all scheduled notifications
 export async function cancelAllScheduled() {
   try {
-    console.log("[Notifications] Cancelling ALL scheduled notifications...");
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch (err) {
     console.error("[Notifications] Cancel all error:", err);
   }
 }
 
+// List all scheduled notifications
+// This is mainly for debugging purposes
 export async function listScheduled() {
   try {
     const list = await Notifications.getAllScheduledNotificationsAsync();
-    console.log("[Notifications] Currently scheduled:", JSON.stringify(list, null, 2));
     return list;
   } catch (err) {
     console.error("[Notifications] List error:", err);
@@ -152,9 +157,14 @@ export async function listScheduled() {
 }
 
 /* Diagnostics */
-export async function runNotificationDiagnostics(hour: number, minute: number) {
-  console.log("[Diag] Starting notification diagnostics…");
+// Run a series of notification tests
+// 1) one-shot in 10s
+// 2) calendar one-shot at next minute boundary
+// 3) daily repeating at specified hour:minute
 
+// Also lists scheduled notifications a few times with increasing delays
+// Strictly for testing purposes
+export async function runNotificationDiagnostics(hour: number, minute: number) {
   // 1) seconds one-shot in 10s
   await scheduleNotification(10, "Diag: seconds", "This should arrive in ~10s.");
 
@@ -172,13 +182,12 @@ export async function runNotificationDiagnostics(hour: number, minute: number) {
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
   for (const wait of [200, 600, 1200, 2000]) {
     await sleep(wait);
-    console.log(`[Diag] Listing after ${wait}ms…`);
     await listScheduled();
   }
 }
 
 /**
- * log a notification into the database.
+ * log a notification into the database
  */
 export async function logNotification(
   db: SQLiteDatabase,
@@ -193,7 +202,6 @@ export async function logNotification(
     [title, description, userId ?? null]
   );
 
-  console.log(`---- message has been logged: ${title} : ${description} : ${userId} ----`)
 }
 
 /**

@@ -14,8 +14,19 @@ type NotificationItem = {
 // Group notifications by date
 function groupNotifications(notifications: NotificationItem[]) {
   const today = new Date();
-  const yesterday = new Date();
+  const todayYMD = {
+    y: today.getFullYear(),
+    m: today.getMonth() + 1,
+    d: today.getDate(),
+  };
+  
+  const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
+  const yesterdayYMD = {
+    y: yesterday.getFullYear(),
+    m: yesterday.getMonth() + 1,
+    d: yesterday.getDate(),
+  };
 
   const sections = {
     today: [] as NotificationItem[],
@@ -23,18 +34,29 @@ function groupNotifications(notifications: NotificationItem[]) {
     earlier: [] as NotificationItem[],
   };
 
-  const sameDay = (a: Date, b: Date) =>
-    a.getDate() === b.getDate() &&
-    a.getMonth() === b.getMonth() &&
-    a.getFullYear() === b.getFullYear();
-
   for (const n of notifications) {
-    const date = new Date(n.timestamp * 1000); // parse UTC seconds → ms
-    if (sameDay(date, today)) {
+    const date = new Date(n.timestamp);
+    const ymd = {
+      y: date.getFullYear(),
+      m: date.getMonth() + 1,
+      d: date.getDate(),
+    };
+
+    if (
+      ymd.y === todayYMD.y &&
+      ymd.m === todayYMD.m &&
+      ymd.d === todayYMD.d
+    ) {
       sections.today.push(n);
-    } else if (sameDay(date, yesterday)) {
+    } 
+    else if (
+      ymd.y === yesterdayYMD.y &&
+      ymd.m === yesterdayYMD.m &&
+      ymd.d === yesterdayYMD.d
+    ) {
       sections.yesterday.push(n);
-    } else {
+    } 
+    else {
       sections.earlier.push(n);
     }
   }
@@ -42,11 +64,20 @@ function groupNotifications(notifications: NotificationItem[]) {
   return sections;
 }
 
+/**
+ * notification center page
+ * groups notifications into general categories (today, yesterday, and earlier)
+ * only gets notifications sent within the last 30 days
+ * 
+ * notifications are stored in UTC and then converted when displayed
+ * @returns 
+ */
 export default function NotificationCenter() {
   const db = useSQLiteContext();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // get the most recent list of notifications (within 30 days)
   useEffect(() => {
     (async () => {
       try {
@@ -89,7 +120,7 @@ export default function NotificationCenter() {
               </H4>
 
               {items.map((n) => {
-                // convert UTC epoch seconds → proper Date()
+                // convert UTC epoch seconds to proper Date() in local time
                 const localDate = new Date(n.timestamp);
                 const timeString = localDate.toLocaleTimeString([], {
                   hour: "2-digit",
@@ -109,7 +140,7 @@ export default function NotificationCenter() {
                         <Text fontWeight="600">{n.title}</Text>
                         <Text color="$accentColor">{n.description}</Text>
                         <Text fontSize="$2" color="$accentColor">
-                          {timeString} {/* LOCAL TIME FIXED */}
+                          {timeString}
                         </Text>
                       </YStack>
                     </Button>
