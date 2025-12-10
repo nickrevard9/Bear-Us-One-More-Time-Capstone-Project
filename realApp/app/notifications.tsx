@@ -14,8 +14,19 @@ type NotificationItem = {
 // Group notifications by date
 function groupNotifications(notifications: NotificationItem[]) {
   const today = new Date();
-  const yesterday = new Date();
+  const todayYMD = {
+    y: today.getFullYear(),
+    m: today.getMonth() + 1,
+    d: today.getDate(),
+  };
+  
+  const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
+  const yesterdayYMD = {
+    y: yesterday.getFullYear(),
+    m: yesterday.getMonth() + 1,
+    d: yesterday.getDate(),
+  };
 
   const sections = {
     today: [] as NotificationItem[],
@@ -23,18 +34,29 @@ function groupNotifications(notifications: NotificationItem[]) {
     earlier: [] as NotificationItem[],
   };
 
-  const sameDay = (a: Date, b: Date) =>
-    a.getDate() === b.getDate() &&
-    a.getMonth() === b.getMonth() &&
-    a.getFullYear() === b.getFullYear();
-
   for (const n of notifications) {
-    const date = new Date(n.timestamp * 1000); // parse UTC seconds to ms
-    if (sameDay(date, today)) {
+    const date = new Date(n.timestamp);
+    const ymd = {
+      y: date.getFullYear(),
+      m: date.getMonth() + 1,
+      d: date.getDate(),
+    };
+
+    if (
+      ymd.y === todayYMD.y &&
+      ymd.m === todayYMD.m &&
+      ymd.d === todayYMD.d
+    ) {
       sections.today.push(n);
-    } else if (sameDay(date, yesterday)) {
+    } 
+    else if (
+      ymd.y === yesterdayYMD.y &&
+      ymd.m === yesterdayYMD.m &&
+      ymd.d === yesterdayYMD.d
+    ) {
       sections.yesterday.push(n);
-    } else {
+    } 
+    else {
       sections.earlier.push(n);
     }
   }
